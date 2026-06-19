@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NAOMI · Clickable Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#FAF6EF; --paperDeep:#F2ECDF; --ink:#1C1B19; --inkSoft:#5B564C;
+    --line:#E3DCC9; --clay:#B8645A; --clayDeep:#8F4A42; --clayBg:#FBF1EE;
+    --navy:#1F3A35; --gold:#C9A24B; --goldSoft:#E7D9AE; --cream:#FFFCF6;
+    --ok:#5F7F5C; --okBg:#EAF1E8;
+    --fontDisplay:"Fraunces","Iowan Old Style",Georgia,serif;
+    --fontBody:"Inter",-apple-system,"Segoe UI",sans-serif;
+    --fontMono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:radial-gradient(circle at 20% 10%, #F5EEDD, var(--paperDeep) 70%);
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 16px 60px; font-family:var(--fontBody);
+  }
+  .pageHeader{ text-align:center; margin-bottom:28px; max-width:480px; }
+  .pageHeader .eyebrow{ font-family:var(--fontMono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--clayDeep); margin-bottom:8px; }
+  .pageHeader h1{ font-family:var(--fontDisplay); font-size:28px; color:var(--ink); margin:0; }
+  .pageHeader p{ font-size:13px; color:var(--inkSoft); margin-top:8px; }
+
+  .layout{ display:flex; gap:28px; align-items:flex-start; }
+  .phoneCol{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+
+  .phoneFrame{
+    width:360px; height:740px; border-radius:44px; background:var(--ink);
+    padding:10px; box-shadow:0 30px 60px rgba(28,27,25,.35), 0 2px 0 rgba(255,255,255,.4) inset;
+    position:relative; flex-shrink:0;
+  }
+  .phoneScreen{
+    width:100%; height:100%; border-radius:36px; background:var(--paper);
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .statusBar{
+    height:44px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; font-family:var(--fontBody); font-size:13px; font-weight:600;
+    color:var(--ink); flex-shrink:0; transition:color .2s ease;
+  }
+  .statusBar.dark{ color:var(--cream); }
+  .statusIcons{ display:flex; gap:5px; align-items:center; }
+  .screenBody{ flex:1; position:relative; overflow:hidden; }
+  .homeIndicatorWrap{ height:18px; display:flex; justify-content:center; align-items:flex-end; padding-bottom:6px; flex-shrink:0; }
+  .homeIndicator{ width:120px; height:4px; border-radius:4px; background:rgba(28,27,25,.3); transition:background .2s ease; }
+  .homeIndicator.dark{ background:rgba(255,252,246,.5); }
+
+  .screen{
+    height:100%; padding:28px; display:flex; flex-direction:column;
+    justify-content:flex-start; font-family:var(--fontBody); color:var(--ink);
+    box-sizing:border-box; overflow-y:auto; background:var(--paper);
+  }
+  .screen.justifyBetween{ justify-content:space-between; }
+  .screen.justifyCenter{ justify-content:center; }
+
+  .screenLabel{ font-family:var(--fontMono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--inkSoft); margin-bottom:14px; }
+
+  .btn{
+    width:100%; padding:16px 20px; border-radius:14px; border:none;
+    background:var(--clay); color:var(--cream); font-family:var(--fontBody);
+    font-size:15.5px; font-weight:600; cursor:pointer; transition:all .18s ease;
+    box-shadow:0 4px 10px rgba(28,27,25,.12);
+  }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(184,100,90,.35); }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn:disabled:hover{ transform:none; box-shadow:0 4px 10px rgba(28,27,25,.12); }
+  .btn.dark{ background:var(--ink); }
+  .btn.gold{ background:var(--gold); color:var(--navy); }
+  .btn.navy{ background:var(--navy); }
+
+  .btnGhost{
+    width:100%; padding:14px 20px; border-radius:14px; border:1px solid var(--line);
+    background:transparent; color:var(--ink); font-family:var(--fontBody);
+    font-size:14.5px; font-weight:600; cursor:pointer;
+  }
+  .btnGhost:disabled{ opacity:.4; cursor:default; }
+
+  .textLink{
+    background:none; border:none; color:var(--inkSoft); font-family:var(--fontBody);
+    font-size:13px; cursor:pointer; text-decoration:underline; text-decoration-color:var(--line); padding:0;
+  }
+
+  h1.disp{ font-family:var(--fontDisplay); margin:8px 0 18px; line-height:1.2; }
+  .bodyMuted{ font-size:13.5px; color:var(--inkSoft); }
+
+  .row{ display:flex; gap:10px; }
+  .col{ display:flex; flex-direction:column; gap:10px; }
+
+  input.field{
+    padding:15px 16px; border-radius:12px; border:1px solid var(--line);
+    background:var(--cream); font-family:var(--fontBody); font-size:14.5px; outline:none; width:100%;
+  }
+
+  .trustNote{ margin-top:22px; padding:12px 14px; border-radius:12px; background:var(--paperDeep); font-size:12px; color:var(--inkSoft); line-height:1.5; }
+
+  .otpRow{ display:flex; gap:8px; justify-content:center; }
+  .otpBox{
+    width:38px; height:48px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--cream); display:flex; align-items:center; justify-content:center;
+    font-size:20px; cursor:pointer; color:var(--clay); transition:border-color .15s ease;
+  }
+  .otpBox.filled{ border-color:var(--clay); }
+
+  .checkRow{ display:flex; align-items:center; gap:12px; }
+  .checkDot{
+    width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(255,252,246,.3);
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--navy);
+    flex-shrink:0; transition:all .3s ease;
+  }
+  .checkDot.done{ background:var(--gold); border-color:var(--gold); }
+
+  .naomiRow{ display:flex; gap:8px; align-items:flex-start; margin-bottom:12px; }
+  .naomiAvatar{
+    width:28px; height:28px; border-radius:50%; background:var(--navy); color:var(--goldSoft);
+    font-family:var(--fontDisplay); font-style:italic; font-size:13px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .naomiAvatar.onDark{ background:var(--gold); color:var(--navy); width:32px; height:32px; font-size:15px; }
+  .naomiBubble{
+    background:var(--cream); border:1px solid var(--line); border-radius:4px 16px 16px 16px;
+    padding:12px 15px; font-size:14px; line-height:1.5; max-width:78%; font-family:var(--fontDisplay);
+  }
+  .userRow{ display:flex; justify-content:flex-end; margin-bottom:12px; }
+  .userBubble{ background:var(--clay); color:var(--cream); border-radius:16px 4px 16px 16px; padding:11px 16px; font-size:14px; max-width:72%; }
+
+  .trustThread{ display:flex; gap:4px; align-items:center; height:36px; }
+  .trustSeg{ width:26px; height:5px; border-radius:4px; background:var(--line); transition:background .3s ease; }
+  .trustSeg.done{ background:var(--navy); }
+  .trustSeg.doneGold{ background:var(--gold); }
+  .trustSeg.current{ background:var(--clay); }
+
+  .dnaCard{ border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; background:var(--cream); }
+  .dnaCardTitle{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--inkSoft); margin-bottom:10px; }
+  .tagRow{ display:flex; flex-wrap:wrap; gap:7px; }
+  .tag{ font-size:12.5px; padding:5px 11px; border-radius:20px; background:var(--clayBg); color:var(--clayDeep); }
+  .tag.ok{ background:var(--okBg); color:var(--ok); }
+  .tag.muted{ background:var(--paperDeep); color:var(--inkSoft); }
+  .orderedItem{ display:flex; gap:9px; font-size:13.5px; margin-bottom:7px; }
+  .orderedItem .num{ font-family:var(--fontMono); color:var(--clay); font-weight:700; }
+
+  .navyBox{ background:var(--navy); border-radius:16px; padding:18px; color:var(--cream); }
+  .navyBoxLabel{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--goldSoft); margin-bottom:12px; }
+  .navyBoxItem{ display:flex; gap:10px; font-size:13px; line-height:1.4; margin-bottom:10px; }
+
+  .docBox{
+    height:200px; border-radius:16px; border:2px dashed var(--line); background:var(--cream);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; cursor:pointer;
+  }
+  .docBox.captured{ border-color:var(--ok); background:var(--okBg); }
+
+  .progressTrack{ height:8px; border-radius:6px; background:var(--paperDeep); overflow:hidden; margin-bottom:8px; }
+  .progressFill{ height:100%; background:var(--clay); }
+
+  .unlockItem{ display:flex; gap:10px; align-items:center; padding:12px 14px; border-radius:12px; background:var(--clayBg); margin-bottom:9px; }
+
+  .navRow{ display:flex; gap:10px; align-items:center; }
+  .backBtn{
+    padding:9px 16px; border-radius:10px; border:1px solid var(--line); background:var(--cream);
+    font-size:12.5px; cursor:pointer; font-family:var(--fontBody);
+  }
+  .backBtn:disabled{ opacity:.4; cursor:default; }
+  .stepBadge{ font-family:var(--fontMono); font-size:11px; color:var(--inkSoft); padding:9px 14px; border-radius:10px; background:var(--paperDeep); }
+
+  .jumpNav{ width:230px; max-height:740px; overflow-y:auto; background:var(--cream); border:1px solid var(--line); border-radius:18px; padding:16px; }
+  .jumpNav .jnTitle{ font-family:var(--fontMono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--inkSoft); margin-bottom:12px; }
+  .jnSection{ margin-bottom:10px; }
+  .jnSection .jnSecLabel{ font-size:11px; font-weight:700; color:var(--clayDeep); margin-bottom:5px; }
+  .jnBtn{
+    display:block; width:100%; text-align:left; padding:6px 9px; border-radius:8px; border:none;
+    background:transparent; color:var(--ink); font-weight:400; font-size:12px; cursor:pointer; font-family:var(--fontBody);
+  }
+  .jnBtn.active{ background:var(--clayBg); color:var(--clayDeep); font-weight:700; }
+
+  @media (max-width: 760px){
+    .layout{ flex-direction:column; align-items:center; }
+    .jumpNav{ width:360px; max-height:260px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="pageHeader">
+    <div class="eyebrow">Naomi &middot; Clickable Prototype</div>
+    <h1>Awareness &rarr; Onboarding &rarr; Relationship DNA &rarr; Activation</h1>
+    <p>Click through the phone like a real user. Matching &amp; first-date flows are out of scope for this pass.</p>
+  </div>
+
+  <div class="layout">
+    <div class="phoneCol">
+      <div class="phoneFrame">
+        <div class="phoneScreen">
+          <div class="statusBar" id="statusBar">
+            <span>9:41</span>
+            <div class="statusIcons" id="statusIcons"></div>
+          </div>
+          <div class="screenBody" id="screenBody"></div>
+          <div class="homeIndicatorWrap">
+            <div class="homeIndicator" id="homeIndicator"></div>
+          </div>
+        </div>
+      </div>
+      <div class="navRow">
+        <button class="backBtn" id="backBtn">&larr; Back</button>
+        <div class="stepBadge" id="stepBadge">&mdash;</div>
+      </div>
+    </div>
+
+    <div class="jumpNav">
+      <div class="jnTitle">Jump to screen</div>
+      <div id="jumpNavContent"></div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   NAOMI — Standalone Clickable Prototype (vanilla JS port)
+   Mirrors NaomiPrototype.jsx screen-for-screen, no build step.
+   ============================================================ */
+
+const $body = document.getElementById('screenBody');
+const $statusBar = document.getElementById('statusBar');
+const $statusIcons = document.getElementById('statusIcons');
+const $homeIndicator = document.getElementById('homeIndicator');
+const $backBtn = document.getElementById('backBtn');
+const $stepBadge = document.getElementById('stepBadge');
+const $jumpNavContent = document.getElementById('jumpNavContent');
+
+let history = ['splash'];
+let timers = [];
+
+function clearTimers(){ timers.forEach(t => clearTimeout(t) || clearInterval(t)); timers = []; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const STATUS_ICONS = `
+  <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><g class="sigfill">
+  <rect x="0" y="7" width="3" height="4" rx="0.5"/><rect x="4.5" y="5" width="3" height="6" rx="0.5"/>
+  <rect x="9" y="3" width="3" height="8" rx="0.5"/><rect x="13.5" y="0" width="3" height="11" rx="0.5"/></g></svg>
+  <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><g class="sigfill">
+  <path d="M7.5 9.8a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2z"/><path d="M4.4 7.2a4.4 4.4 0 016.2 0l-1 1a3 3 0 00-4.2 0l-1-1z"/>
+  <path d="M1.8 4.6a8 8 0 0111.4 0l-1 1a6.6 6.6 0 00-9.4 0l-1-1z"/></g></svg>
+  <svg width="24" height="12" viewBox="0 0 24 12" fill="none">
+  <rect x="0.5" y="0.5" width="20" height="11" rx="2.5" class="sigstroke" opacity="0.5"/>
+  <rect x="2" y="2" width="17" height="8" rx="1.5" class="sigfill"/>
+  <rect x="21.5" y="4" width="1.5" height="4" rx="0.7" class="sigfill" opacity="0.5"/></svg>
+`;
+$statusIcons.innerHTML = STATUS_ICONS;
+
+function setStatusDark(dark){
+  $statusBar.classList.toggle('dark', dark);
+  $homeIndicator.classList.toggle('dark', dark);
+  document.querySelectorAll('.sigfill').forEach(el => el.setAttribute('fill', dark ? '#FFFCF6' : '#1C1B19'));
+  document.querySelectorAll('.sigstroke').forEach(el => el.setAttribute('stroke', dark ? '#FFFCF6' : '#1C1B19'));
+}
+
+// ── 3-tier KYC question bank ─────────────────────────────────────────────────
+// Tier 1 — Essentials (required, gates first matches, ~3 min)
+// Goal: relationship intent + life context. Low-stakes, easy to answer.
+const T1_QUESTIONS = [
+  { q: "What kind of relationship are you looking for?",         hint: "Marriage, long-term, still figuring it out — all honest answers." },
+  { q: "Do you have kids? Do you want kids?",                    hint: "Both questions in one — answer however feels natural." },
+  { q: "What do you do for work — in your own words?",          hint: "Not your job title. What you actually do." },
+  { q: "How would you describe yourself in a few sentences?",   hint: "Not the dating-profile version. The real one." },
+  { q: "What would a perfect day look like for you?",           hint: "From morning to night. Don\'t edit it." },
+];
+
+// Tier 2 — High-signal personality layer (~5 min, shown post-T1, deferrable)
+// Goal: values, quirks, emotional patterns. Indirect questions reveal the most.
+const T2_QUESTIONS = [
+  { q: "What do you value most in a friendship?",               hint: "Think of your closest friend. What makes them irreplaceable?" },
+  { q: "What are you obsessed about right now?",                hint: "The thing you can\'t stop thinking or talking about." },
+  { q: "What do you irrationally hate?",                        hint: "Something small that bothers you more than it should." },
+  { q: "Before making a phone call, do you rehearse what to say? Why?",   hint: "No wrong answer — this tells us how your mind works." },
+  { q: "Is there something you\'ve dreamt of doing for a long time?",    hint: "And why haven\'t you done it yet?" },
+  { q: "How do you define success?",                            hint: "Not the LinkedIn version." },
+  { q: "What music gives you goosebumps?",                      hint: "Name a specific song or moment if you can." },
+  { q: "What have you made recently?",                          hint: "Cooked, built, written, grown — anything counts." },
+];
+
+// Tier 3 — Depth layer (optional, unlocked after first match, shown in-app)
+// Goal: vulnerability, emotional range, self-awareness. Never shown during onboarding.
+const T3_QUESTIONS = [
+  { q: "When did you last cry in front of another person?",     hint: "And were you okay with it?" },
+  { q: "What\'s the hardest thing you\'ve ever done?",        hint: "Not necessarily the most dramatic." },
+  { q: "If a crystal ball could tell you the truth about anything — what would you ask?", hint: "Take your time." },
+  { q: "What would you do if you had no fear?",                 hint: "Be specific." },
+  { q: "What\'s your proudest accomplishment?",                hint: "Something only you would think to mention." },
+  { q: "What do you wish you were better at saying no to?",     hint: "Be honest." },
+  { q: "If you could wake up tomorrow with one new ability — what would it be?", hint: "Not a superpower. Something real." },
+  { q: "What makes a house a home?",                            hint: "Objects, people, feelings — go wherever this takes you." },
+];
+
+const FLOW_ORDER = [
+  "splash","trailer","trust","entry","register","mobileotp",
+  "devicetrust","naomiintro",
+  "t1intro","t1questions","t1done",
+  "t2intro","t2questions","t2deferred",
+  "interviewdone","processing","profileready",
+  "celebration","dna",
+  "badge1intro","badge1doc","badge1bio","badge1age","badge1done",
+  "badge2intro","badge2doc","badge2done",
+  "badge3intro","badge3wait","badge3done",
+  "activation",
+  "paywall",
+  "photoupload","photocoach",
+  "startmatching","matchwaiting",
+  "matchnotif","matchreveal","matchdeepdive","whyyoufit","thereveal","mutualmatch",
+  "datebriefing","venueengine","dayoftoolkit","postdatecheckin",
+  "relationshipbuilding","milestone","successfee","offboarding",
+];
+const SECTION_LABELS = {
+  splash:"Awareness", trailer:"Awareness", trust:"Awareness",
+  entry:"Onboarding", register:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
+  naomiintro:"The Essentials",
+  t1intro:"The Essentials", t1questions:"The Essentials", t1done:"The Essentials",
+  t2intro:"Who You Really Are", t2questions:"Who You Really Are", t2deferred:"Who You Really Are",
+  textintro:"Interview", schedule:"Interview", interviewdone:"Interview",
+  processing:"DNA Profile", profileready:"DNA Profile", celebration:"DNA Profile", dna:"DNA Profile",
+  badge1intro:"Verification L1", badge1doc:"Verification L1", badge1bio:"Verification L1", badge1age:"Verification L1", badge1done:"Verification L1",
+  badge2intro:"Verification L2", badge2doc:"Verification L2", badge2done:"Verification L2",
+  badge3intro:"Verification L3", badge3wait:"Verification L3", badge3done:"Verification L3",
+  activation:"Activation",
+  paywall:"Subscription",
+  photoupload:"Photo Setup", photocoach:"Photo Setup",
+  startmatching:"Matching", matchwaiting:"Matching",
+  matchnotif:"Matching", matchreveal:"Matching", matchdeepdive:"Matching", whyyoufit:"Matching", thereveal:"Matching", mutualmatch:"Matching",
+  datebriefing:"First Date", venueengine:"First Date", dayoftoolkit:"First Date", postdatecheckin:"First Date",
+  relationshipbuilding:"Relationship & Beyond", milestone:"Relationship & Beyond", successfee:"Relationship & Beyond", offboarding:"Relationship & Beyond",
+};
+const DARK_STATUS_SCREENS = new Set(["splash","trailer","devicetrust","processing","activation","t1questions","matchwaiting","paywall","thereveal"]);
+
+function go(id){
+  if (!RENDERERS[id]) return;
+  history.push(id);
+  render(id);
+}
+function jumpTo(id){
+  history.push(id);
+  render(id);
+}
+function back(){
+  if (history.length < 2) return;
+  history.pop();
+  render(history[history.length - 1], true);
+}
+
+function trustThreadHTML(stage){
+  let html = '<div class="trustThread">';
+  for (let s = 0; s < 3; s++){
+    const done = stage > s, current = stage === s;
+    let cls = 'trustSeg';
+    if (done) cls += (stage >= 3 ? ' doneGold' : ' done');
+    else if (current) cls += ' current';
+    html += `<div class="${cls}"></div>`;
+  }
+  return html + '</div>';
+}
+
+/* ============================================================
+   RENDERERS — each returns/injects HTML and wires its own events
+   ============================================================ */
+const RENDERERS = {};
+
+RENDERERS.splash = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--navy);align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+        <div style="width:64px;height:64px;border-radius:50%;border:1.5px solid var(--goldSoft);display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:var(--fontDisplay);font-size:28px;color:var(--cream);font-style:italic;">N</span>
+        </div>
+        <div style="font-family:var(--fontDisplay);font-size:30px;color:var(--cream);letter-spacing:.02em;">naomi</div>
+        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--goldSoft);margin-top:4px;">
+          the world&rsquo;s first ai matchmaker
+        </div>
+      </div>
+    </div>`;
+  timers.push(setTimeout(() => go('trailer'), 2200));
+};
+
+RENDERERS.trailer = function(){
+  const lines = [
+    ["Meet Naomi.", 26],
+    ["Not another dating app.", 18],
+    ["Not endless swiping.", 18],
+    ["She gets to know your values, your goals, your Relationship DNA &mdash;", 18],
+    ["then searches for people who genuinely fit it.", 18],
+  ];
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="background:var(--navy);">
+      <div>
+        <div class="screenLabel" style="color:var(--goldSoft);">trailer</div>
+        <div style="margin-top:30px;display:flex;flex-direction:column;gap:16px;">
+          ${lines.map(([t,s]) => `<div style="font-family:var(--fontDisplay);font-size:${s}px;color:var(--cream);line-height:1.3;opacity:.95;">${t}</div>`).join('')}
+        </div>
+      </div>
+      <button class="btn gold" id="goTrust">Continue</button>
+    </div>`;
+  document.getElementById('goTrust').onclick = () => go('trust');
+};
+
+RENDERERS.trust = function(){
+  const principles = [
+    ["Your privacy comes first.", "We never sell your data or sell you to advertisers."],
+    ["We don&rsquo;t optimize for swipes.", "Our algorithm isn&rsquo;t built to keep you scrolling."],
+    ["We only succeed when you do.", "Our incentives are tied to outcomes, not screen time."],
+    ["Every member is verified.", "Identity and trust checks, before anyone is introduced."],
+  ];
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">trust manifesto</div>
+        <h1 class="disp" style="font-size:30px;line-height:1.15;">Trust comes <span style="font-style:italic;color:var(--clay);">first.</span></h1>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          ${principles.map(([t,d]) => `
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:6px;height:6px;border-radius:50%;background:var(--clay);margin-top:8px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-weight:700;font-size:14.5px;">${t}</div>
+                <div style="font-size:13px;color:var(--inkSoft);margin-top:2px;">${d}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <button class="btn" id="goEntry">Ready to get started</button>
+    </div>`;
+  document.getElementById('goEntry').onclick = () => go('entry');
+};
+
+RENDERERS.entry = function(){
+  let picked = null;
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">step 1 of 12</div>
+        <h1 class="disp" style="font-size:28px;margin-bottom:28px;">Why are you here today?</h1>
+        <div class="col">
+          <button class="entryOpt" data-id="love" style="text-align:left;padding:20px 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:20px;color:var(--clay);">&hearts;</span>
+            <div><div style="font-weight:700;font-size:15px;">I&rsquo;m here to find love</div></div>
+          </button>
+          <button class="entryOpt" data-id="help" disabled style="text-align:left;padding:20px 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:not-allowed;opacity:.45;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:20px;color:var(--clay);">&#10022;</span>
+            <div>
+              <div style="font-weight:700;font-size:15px;">I&rsquo;m here to help others find love</div>
+              <div style="font-size:12px;color:var(--inkSoft);margin-top:2px;">Matchmaker &middot; Referrer &middot; Family</div>
+              <div style="font-size:11px;color:var(--inkSoft);margin-top:2px;">Coming soon</div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <button class="btn" id="goRegister" disabled>Continue</button>
+    </div>`;
+  const $cont = document.getElementById('goRegister');
+  document.querySelectorAll('.entryOpt[data-id="love"]').forEach(btn => {
+    btn.onclick = () => {
+      picked = 'love';
+      btn.style.border = '1.5px solid var(--clay)';
+      btn.style.background = 'var(--clayBg)';
+      $cont.disabled = false;
+      $cont.style.opacity = 1;
+    };
+  });
+  $cont.onclick = () => { if (picked) go('register'); };
+};
+
+RENDERERS.register = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">step 2 &middot; identity</div>
+        <h1 class="disp" style="font-size:26px;margin-bottom:22px;">Create your account</h1>
+        <div class="col">
+          <input class="field" value="Naya" placeholder="Your name" />
+          <input class="field" placeholder="Phone number" type="tel" />
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+          <span style="font-size:11px;color:var(--inkSoft);font-family:var(--fontMono);">or</span>
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+        </div>
+        <div class="col">
+          <button class="btnGhost">Continue with Google</button>
+          <button class="btnGhost">Continue with Apple</button>
+        </div>
+        <div class="trustNote">&#128274; We verify every member to keep this a trusted relationship community &mdash; never to sell your data.</div>
+      </div>
+      <button class="btn" id="goVerify">Continue</button>
+    </div>`;
+  document.getElementById('goVerify').onclick = () => go('mobileotp');
+};
+
+function renderOtp(title, sub, nextId, digits){
+  let code = new Array(digits).fill('');
+  let seconds = 42;
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">${sub}</div>
+        <h1 class="disp" style="font-size:24px;margin-bottom:8px;">${title}</h1>
+        <p class="bodyMuted" style="margin-bottom:24px;">Enter the ${digits}-digit code we sent you.</p>
+        <div class="otpRow" id="otpRow"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px;">
+          <button class="textLink" id="resendLink">Resend in 0:42</button>
+          <button class="textLink">Wrong number?</button>
+        </div>
+      </div>
+      <button class="btn" id="verifyBtn" style="opacity:.45;">Verify</button>
+    </div>`;
+  const $row = document.getElementById('otpRow');
+  const $verify = document.getElementById('verifyBtn');
+  function paintBoxes(){
+    $row.innerHTML = code.map((c,i) => `<div class="otpBox ${c ? 'filled':''}" data-i="${i}">${c}</div>`).join('');
+    $row.querySelectorAll('.otpBox').forEach(box => {
+      box.onclick = () => {
+        const i = +box.dataset.i;
+        code[i] = code[i] ? '' : '&bull;';
+        paintBoxes();
+        const filled = code.filter(Boolean).length;
+        $verify.style.opacity = filled === digits ? 1 : .45;
+      };
+    });
+  }
+  paintBoxes();
+  const $resend = document.getElementById('resendLink');
+  const timer = setInterval(() => {
+    seconds = seconds > 0 ? seconds - 1 : 0;
+    $resend.textContent = seconds > 0 ? `Resend in 0:${String(seconds).padStart(2,'0')}` : 'Resend code';
+  }, 1000);
+  timers.push(timer);
+  $resend.onclick = () => { seconds = 42; };
+  $verify.onclick = () => { if (code.filter(Boolean).length === digits) go(nextId); };
+}
+RENDERERS.mobileotp = () => renderOtp("Verify your phone", "step 3 &middot; phone verification", "devicetrust", 6);
+
+RENDERERS.devicetrust = function(){
+  const checks = ["Device fingerprint analysis","Fraud signal scoring","Risk assessment","Trust profile creation"];
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--navy);">
+      <div style="text-align:center;margin-bottom:32px;">
+        <div style="font-family:var(--fontDisplay);color:var(--cream);font-size:20px;margin-bottom:6px;">Securing your account</div>
+        <div style="font-size:12.5px;color:var(--goldSoft);">Please wait &mdash; this takes 5&ndash;15 seconds.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;" id="checkList">
+        ${checks.map((c,i) => `
+          <div class="checkRow">
+            <div class="checkDot" data-i="${i}"></div>
+            <span style="font-size:13.5px;color:rgba(255,252,246,.5);" data-label="${i}">${c}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  let done = 0;
+  function step(){
+    if (done < checks.length){
+      const dot = document.querySelector(`.checkDot[data-i="${done}"]`);
+      const label = document.querySelector(`[data-label="${done}"]`);
+      if (dot){ dot.classList.add('done'); dot.textContent = '\u2713'; }
+      if (label) label.style.color = 'var(--cream)';
+      done++;
+      timers.push(setTimeout(step, 550));
+    } else {
+      timers.push(setTimeout(() => go('naomiintro'), 700));
+    }
+  }
+  timers.push(setTimeout(step, 550));
+};
+
+RENDERERS.naomiintro = function(){
+  let step = 0;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:20px;background:var(--paperDeep);">
+        <div>
+          <div class="screenLabel">naomi &middot; introduction</div>
+          <div style="margin-top:12px;">
+            <div class="naomiRow"><div class="naomiAvatar">N</div><div class="naomiBubble">Hi, I&rsquo;m Naomi. It&rsquo;s wonderful to have you here, Naya &mdash; just making sure I pronounce that right.</div></div>
+            ${step >= 1 ? `<div class="userRow"><div class="userBubble">Yes, that&rsquo;s right!</div></div>
+            <div class="naomiRow"><div class="naomiAvatar">N</div><div class="naomiBubble">For the next step I&rsquo;d love to get to know you a little. It takes about 3 minutes &mdash; and I think you&rsquo;ll enjoy it.</div></div>` : ''}
+          </div>
+        </div>
+        <div id="introActions"></div>
+      </div>`;
+    const $actions = document.getElementById('introActions');
+    if (step === 0){
+      $actions.innerHTML = `
+        <div class="row">
+          <button class="btn" style="flex:1;" id="yesName">Yes, that&rsquo;s right</button>
+          <button class="btnGhost" style="flex:1;" id="noName">No, it&rsquo;s not me</button>
+        </div>`;
+      document.getElementById('yesName').onclick = () => { step = 1; paint(); };
+      document.getElementById('noName').onclick = () => { step = 1; paint(); };
+    } else {
+      $actions.innerHTML = `
+        <div class="col">
+          <button class="btn" id="startBtn">Let&rsquo;s start</button>
+          <button class="btnGhost" id="schedBtn">&#128197; Schedule for later</button>
+        </div>`;
+      document.getElementById('startBtn').onclick = () => go('t1intro');
+      document.getElementById('schedBtn').onclick = () => go('schedule');
+    }
+  }
+  paint();
+};
+
+// ── TIER 1 INTRO ─────────────────────────────────────────────────────────────
+// mode is shared across t1 and t2 via a module-level variable
+let kycMode = 'voice'; // 'voice' | 'text'
+
+RENDERERS.t1intro = function(){
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="background:var(--navy);padding:26px;">
+        <div>
+          <div style="display:inline-block;padding:5px 12px;border-radius:20px;background:rgba(201,162,75,.18);border:1px solid rgba(201,162,75,.35);margin-bottom:20px;">
+            <span style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--goldSoft);">TIER 1 &middot; THE ESSENTIALS</span>
+          </div>
+          <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);line-height:1.25;margin:0 0 14px;">5 questions.<br>About 3 minutes.</h1>
+          <p style="font-size:14px;color:rgba(255,252,246,.7);line-height:1.6;margin-bottom:22px;">These are the foundations — relationship intent, life context, who you are in your own words. Naomi needs these to find your first matches.</p>
+
+          <div style="margin-bottom:22px;">
+            <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,252,246,.45);margin-bottom:10px;">How would you like to answer?</div>
+            <div style="display:flex;gap:8px;">
+              <button id="modeVoice" style="flex:1;padding:14px;border-radius:13px;border:1.5px solid ${kycMode==='voice'?'var(--gold)':'rgba(255,252,246,.18)'};background:${kycMode==='voice'?'rgba(201,162,75,.14)':'rgba(255,252,246,.05)'};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <span style="font-size:22px;">🎤</span>
+                <span style="font-family:var(--fontBody);font-size:13px;font-weight:600;color:${kycMode==='voice'?'var(--gold)':'rgba(255,252,246,.6)'};">Voice</span>
+                <span style="font-family:var(--fontBody);font-size:11px;color:rgba(255,252,246,.35);">Speak freely</span>
+              </button>
+              <button id="modeText" style="flex:1;padding:14px;border-radius:13px;border:1.5px solid ${kycMode==='text'?'var(--gold)':'rgba(255,252,246,.18)'};background:${kycMode==='text'?'rgba(201,162,75,.14)':'rgba(255,252,246,.05)'};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <span style="font-size:22px;">✍️</span>
+                <span style="font-family:var(--fontBody);font-size:13px;font-weight:600;color:${kycMode==='text'?'var(--gold)':'rgba(255,252,246,.6)'};">Text</span>
+                <span style="font-family:var(--fontBody);font-size:11px;color:rgba(255,252,246,.35);">Type at your pace</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${["What you're looking for","Life context — kids, work","How you'd describe yourself","What a perfect day looks like"].map(l => `
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div>
+                <span style="font-size:13.5px;color:rgba(255,252,246,.8);">${l}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:rgba(255,252,246,.4);text-align:center;margin-bottom:12px;font-family:var(--fontMono);">Required to unlock your first matches</div>
+          <button class="btn gold" id="t1Start">I'm ready — let's go</button>
+        </div>
+      </div>`;
+    document.getElementById('modeVoice').onclick = () => { kycMode = 'voice'; paint(); };
+    document.getElementById('modeText').onclick = () => { kycMode = 'text'; paint(); };
+    document.getElementById('t1Start').onclick = () => go('t1questions');
+  }
+  paint();
+};
+
+// ── TIER 1 QUESTIONS — voice + text modes ────────────────────────────────────
+RENDERERS.t1questions = function(){
+  let qi = 0;
+  let answers = new Array(T1_QUESTIONS.length).fill('');
+  let recording = false;
+  let transcriptTimer = null;
+  const TRANSCRIPT_SIMS = [
+    "I'm looking for something serious, ideally leading to marriage...",
+    "I have one daughter, seven years old. I'd love more kids someday...",
+    "I work in marketing — brand strategy for a tech company in Manhattan...",
+    "People say I'm warm but direct. I care a lot and I move fast when I trust someone...",
+    "A perfect day starts with a run, good coffee, then something creative in the afternoon...",
+  ];
+
+  function stopRecording(){
+    recording = false;
+    if (transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
+  }
+
+  function paint(){
+    const q = T1_QUESTIONS[qi];
+    const progress = (qi / T1_QUESTIONS.length) * 100;
+    const isVoice = kycMode === 'voice';
+
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:22px;background:var(--navy);">
+        <div style="flex:1;display:flex;flex-direction:column;">
+
+          <!-- Header: back + progress + mode toggle -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+            <button id="t1Back" style="padding:6px 13px;border-radius:9px;border:1px solid rgba(255,252,246,.2);background:transparent;color:var(--goldSoft);font-size:12px;cursor:pointer;">&larr;</button>
+            <div style="flex:1;">
+              <div style="height:3px;border-radius:3px;background:rgba(255,252,246,.12);overflow:hidden;">
+                <div style="height:100%;width:${progress}%;background:var(--gold);border-radius:3px;transition:width .4s ease;"></div>
+              </div>
+              <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T1_QUESTIONS.length} &middot; The Essentials</div>
+            </div>
+            <button id="toggleMode" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,252,246,.2);background:transparent;font-family:var(--fontBody);font-size:11.5px;color:rgba(255,252,246,.55);cursor:pointer;">${isVoice ? '✍️ Text' : '🎤 Voice'}</button>
+          </div>
+
+          <!-- Question + hint -->
+          <div style="font-family:var(--fontDisplay);font-size:21px;color:var(--cream);line-height:1.4;margin-bottom:8px;">${q.q}</div>
+          <div style="font-size:12px;color:rgba(255,252,246,.4);margin-bottom:${isVoice?'20px':'16px'};font-style:italic;">${q.hint}</div>
+
+          ${isVoice ? `
+          <!-- VOICE INPUT -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+            <!-- Waveform rings (animated when recording) -->
+            <div style="position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+              ${recording ? `
+                <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:1.5px solid rgba(201,162,75,.2);animation:ripple1 1.6s ease-out infinite;"></div>
+                <div style="position:absolute;width:80px;height:80px;border-radius:50%;border:1.5px solid rgba(201,162,75,.3);animation:ripple1 1.6s ease-out infinite .4s;"></div>` : ''}
+              <button id="micBtn" style="width:64px;height:64px;border-radius:50%;border:none;background:${recording?'var(--clay)':'rgba(201,162,75,.2)'};border:2px solid ${recording?'var(--clay)':'var(--gold)'};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;z-index:1;transition:all .2s ease;">
+                ${recording ? '⏹' : '🎤'}
+              </button>
+            </div>
+
+            <!-- Status label -->
+            <div style="font-family:var(--fontMono);font-size:11px;letter-spacing:.1em;color:${recording?'var(--gold)':'rgba(255,252,246,.4)'};margin-bottom:14px;">
+              ${recording ? 'RECORDING — tap to stop' : answers[qi] ? 'RECORDED — tap to re-record' : 'TAP TO START'}
+            </div>
+
+            <!-- Transcript preview -->
+            <div style="width:100%;border-radius:12px;border:1px solid rgba(255,252,246,.12);background:rgba(255,252,246,.05);padding:12px 14px;min-height:72px;flex:1;">
+              <div style="font-size:11px;font-family:var(--fontMono);color:rgba(255,252,246,.3);letter-spacing:.08em;margin-bottom:6px;">TRANSCRIPT</div>
+              <div id="transcriptArea" style="font-size:13.5px;color:${answers[qi]?'rgba(255,252,246,.85)':'rgba(255,252,246,.3)'};line-height:1.55;font-style:${answers[qi]?'normal':'italic'};">
+                ${answers[qi] || 'Your words will appear here as you speak...'}
+              </div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,252,246,.3);margin-top:8px;">Only you can see this transcript</div>
+          </div>
+          ` : `
+          <!-- TEXT INPUT -->
+          <textarea id="t1Answer" placeholder="Type your answer here…" style="flex:1;min-height:130px;border-radius:14px;border:1px solid rgba(255,252,246,.18);background:rgba(255,252,246,.07);color:var(--cream);font-family:var(--fontBody);font-size:15px;padding:14px 16px;resize:none;outline:none;line-height:1.5;">${answers[qi]}</textarea>
+          `}
+        </div>
+
+        <!-- CTA -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+          <button class="btn gold" id="t1Next">${qi < T1_QUESTIONS.length - 1 ? 'Next question' : 'Done — see my results'}</button>
+        </div>
+      </div>
+      <style>
+        @keyframes ripple1 { 0%{transform:scale(.85);opacity:.7} 100%{transform:scale(1.4);opacity:0} }
+      </style>`;
+
+    // Wire back
+    document.getElementById('t1Back').onclick = () => {
+      stopRecording();
+      if (qi === 0) back(); else { qi--; paint(); }
+    };
+
+    // Wire mode toggle
+    document.getElementById('toggleMode').onclick = () => {
+      stopRecording();
+      kycMode = kycMode === 'voice' ? 'text' : 'voice';
+      paint();
+    };
+
+    // Wire voice mic
+    if (isVoice) {
+      document.getElementById('micBtn').onclick = () => {
+        if (recording) {
+          stopRecording();
+          if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
+          paint();
+        } else {
+          recording = true;
+          answers[qi] = '';
+          paint();
+          // Simulate words appearing character by character
+          const sim = TRANSCRIPT_SIMS[qi] || 'Thinking out loud...';
+          const $t = document.getElementById('transcriptArea');
+          if ($t) {
+            $t.style.color = 'rgba(255,252,246,.85)';
+            $t.style.fontStyle = 'normal';
+            $t.textContent = '';
+            let ci = 0;
+            transcriptTimer = setInterval(() => {
+              if (!$t.isConnected) { stopRecording(); return; }
+              if (ci <= sim.length) { $t.textContent = sim.slice(0, ci); ci++; }
+              else { stopRecording(); answers[qi] = sim; paint(); }
+            }, 38);
+            timers.push(transcriptTimer);
+          }
+        }
+      };
+    } else {
+      const $ta = document.getElementById('t1Answer');
+      if ($ta) { $ta.focus(); $ta.oninput = () => { answers[qi] = $ta.value; }; }
+    }
+
+    // Wire next
+    document.getElementById('t1Next').onclick = () => {
+      stopRecording();
+      if (!isVoice) {
+        const $ta = document.getElementById('t1Answer');
+        if ($ta) answers[qi] = $ta.value.trim();
+      }
+      if (qi < T1_QUESTIONS.length - 1) { qi++; paint(); }
+      else go('t1done');
+    };
+  }
+  paint();
+};
+
+// ── TIER 1 DONE ───────────────────────────────────────────────────────────────
+RENDERERS.t1done = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--navy);text-align:center;padding:28px;">
+      <div>
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+          <span style="font-size:22px;color:var(--gold);">✓</span>
+        </div>
+        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--goldSoft);margin-bottom:10px;">TIER 1 COMPLETE</div>
+        <h2 style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:12px;line-height:1.3;">Naomi knows enough<br>to find your first matches.</h2>
+        <p style="font-size:13.5px;color:rgba(255,252,246,.6);margin-bottom:32px;line-height:1.6;">There's one more layer — 8 questions that help Naomi understand who you really are, not just what you're looking for. Takes about 5 minutes.</p>
+        <button class="btn gold" id="goT2" style="margin-bottom:12px;">Continue — 8 more questions</button>
+        <button id="skipT2" style="width:100%;background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px;">I'll do this later →</button>
+      </div>
+    </div>`;
+  document.getElementById('goT2').onclick = () => go('t2intro');
+  document.getElementById('skipT2').onclick = () => go('interviewdone');
+};
+
+// ── TIER 2 INTRO ──────────────────────────────────────────────────────────────
+RENDERERS.t2intro = function(){
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:26px;">
+        <div>
+          <div style="display:inline-block;padding:5px 12px;border-radius:20px;background:var(--clayBg);border:1px solid rgba(184,100,90,.25);margin-bottom:20px;">
+            <span style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--clayDeep);">TIER 2 &middot; WHO YOU REALLY ARE</span>
+          </div>
+          <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.25;margin:0 0 14px;">8 questions.<br>About 5 minutes.</h1>
+          <p style="font-size:14px;color:var(--inkSoft);line-height:1.6;margin-bottom:20px;">These go deeper — your values, quirks, what you care about. The more Naomi knows, the more intentional your matches become.</p>
+
+          <!-- Mode selector (remembers T1 choice, user can change) -->
+          <div style="margin-bottom:18px;">
+            <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:10px;">Continue with</div>
+            <div style="display:flex;gap:8px;">
+              <button id="t2ModeVoice" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid ${kycMode==='voice'?'var(--clay)':'var(--line)'};background:${kycMode==='voice'?'var(--clayBg)':'var(--cream)'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <span style="font-size:18px;">🎤</span>
+                <span style="font-size:13px;font-weight:600;color:${kycMode==='voice'?'var(--clayDeep)':'var(--inkSoft)'};">Voice</span>
+              </button>
+              <button id="t2ModeText" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid ${kycMode==='text'?'var(--clay)':'var(--line)'};background:${kycMode==='text'?'var(--clayBg)':'var(--cream)'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <span style="font-size:18px;">✍️</span>
+                <span style="font-size:13px;font-weight:600;color:${kycMode==='text'?'var(--clayDeep)':'var(--inkSoft)'};">Text</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="padding:14px 16px;border-radius:13px;background:var(--paperDeep);border:1px solid var(--line);">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:6px;">You can skip any question</div>
+            <p style="font-size:13px;color:var(--inkSoft);margin:0;line-height:1.55;">Each answer sharpens your matches, but nothing here is mandatory.</p>
+          </div>
+        </div>
+        <div class="col">
+          <button class="btn" id="t2Start">Let's go</button>
+          <button class="btnGhost" id="t2Later">Do this later</button>
+        </div>
+      </div>`;
+    document.getElementById('t2ModeVoice').onclick = () => { kycMode = 'voice'; paint(); };
+    document.getElementById('t2ModeText').onclick = () => { kycMode = 'text'; paint(); };
+    document.getElementById('t2Start').onclick = () => go('t2questions');
+    document.getElementById('t2Later').onclick = () => go('t2deferred');
+  }
+  paint();
+};
+
+// ── TIER 2 QUESTIONS — voice + text modes ────────────────────────────────────
+RENDERERS.t2questions = function(){
+  let qi = 0;
+  let answers = new Array(T2_QUESTIONS.length).fill('');
+  let skipped = new Array(T2_QUESTIONS.length).fill(false);
+  let recording = false;
+  let transcriptTimer = null;
+  const TRANSCRIPT_SIMS = [
+    "My best friend is someone I can call at 2am. That kind of loyalty is everything...",
+    "Right now it's urban planning — how cities are designed for people or against them...",
+    "I irrationally hate when people don't reply to the last message in a conversation...",
+    "Always. I rehearse everything. I think it's about wanting to show up well for people...",
+    "I've always wanted to write a book. I keep saying 'not the right time' but honestly I'm scared...",
+    "Success is waking up genuinely excited about what I'm doing that day...",
+    "Anything with a real build — the moment the piano drops in a song you weren't expecting...",
+    "I started baking sourdough last month. First loaf was terrible. Last one was actually good...",
+  ];
+
+  function stopRecording(){
+    recording = false;
+    if (transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
+  }
+
+  function paint(){
+    const q = T2_QUESTIONS[qi];
+    const progress = (qi / T2_QUESTIONS.length) * 100;
+    const isVoice = kycMode === 'voice';
+
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:22px;">
+        <div style="flex:1;display:flex;flex-direction:column;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+            <button id="t2Back" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+            <div style="flex:1;">
+              <div style="height:3px;border-radius:3px;background:var(--paperDeep);overflow:hidden;">
+                <div style="height:100%;width:${progress}%;background:var(--clay);border-radius:3px;transition:width .4s ease;"></div>
+              </div>
+              <div style="font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T2_QUESTIONS.length} &middot; Who You Really Are</div>
+            </div>
+            <button id="t2ToggleMode" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:11.5px;color:var(--inkSoft);cursor:pointer;">${isVoice ? '✍️ Text' : '🎤 Voice'}</button>
+          </div>
+
+          <!-- Question + hint -->
+          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--ink);line-height:1.4;margin-bottom:8px;">${q.q}</div>
+          <div style="font-size:12px;color:var(--inkSoft);margin-bottom:${isVoice?'18px':'14px'};font-style:italic;">${q.hint}</div>
+
+          ${isVoice ? `
+          <!-- VOICE INPUT -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+            <!-- Mic with rings -->
+            <div style="position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+              ${recording ? `
+                <div style="position:absolute;width:90px;height:90px;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:ripple1 1.6s ease-out infinite;"></div>
+                <div style="position:absolute;width:72px;height:72px;border-radius:50%;border:1.5px solid rgba(184,100,90,.3);animation:ripple1 1.6s ease-out infinite .4s;"></div>` : ''}
+              <button id="t2Mic" style="width:58px;height:58px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--clayBg)'};border:2px solid ${recording?'var(--clay)':'var(--line)'};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;z-index:1;transition:all .2s ease;">
+                ${recording ? '⏹' : '🎤'}
+              </button>
+            </div>
+            <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.1em;color:${recording?'var(--clay)':'var(--inkSoft)'};margin-bottom:12px;">
+              ${recording ? 'RECORDING — tap to stop' : answers[qi] ? 'RECORDED — tap to redo' : 'TAP TO SPEAK'}
+            </div>
+            <!-- Transcript -->
+            <div style="width:100%;border-radius:12px;border:1px solid var(--line);background:var(--cream);padding:12px 14px;min-height:68px;flex:1;">
+              <div style="font-size:10.5px;font-family:var(--fontMono);color:var(--inkSoft);letter-spacing:.08em;margin-bottom:5px;">TRANSCRIPT</div>
+              <div id="t2Transcript" style="font-size:13.5px;color:${answers[qi]?'var(--ink)':'var(--inkSoft)'};line-height:1.55;font-style:${answers[qi]?'normal':'italic'};">
+                ${answers[qi] || 'Your words will appear here as you speak...'}
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--inkSoft);margin-top:6px;">Only you can see this transcript</div>
+          </div>
+          ` : `
+          <!-- TEXT INPUT -->
+          <textarea id="t2Answer" placeholder="Share whatever comes to mind…" style="flex:1;min-height:120px;border-radius:14px;border:1px solid var(--line);background:var(--cream);color:var(--ink);font-family:var(--fontBody);font-size:15px;padding:14px 16px;resize:none;outline:none;line-height:1.5;">${answers[qi]}</textarea>
+          `}
+        </div>
+
+        <!-- CTAs -->
+        <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
+          <button class="btn" id="t2Next">${qi < T2_QUESTIONS.length - 1 ? 'Next' : 'Finish'}</button>
+          <button id="t2Skip" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:8px;text-decoration:underline;text-decoration-color:var(--line);">Skip this one →</button>
+        </div>
+      </div>`;
+
+    // Wire back
+    document.getElementById('t2Back').onclick = () => {
+      stopRecording();
+      if (qi === 0) back(); else { qi--; paint(); }
+    };
+
+    // Wire mode toggle
+    document.getElementById('t2ToggleMode').onclick = () => {
+      stopRecording();
+      kycMode = kycMode === 'voice' ? 'text' : 'voice';
+      paint();
+    };
+
+    // Wire voice mic
+    if (isVoice) {
+      document.getElementById('t2Mic').onclick = () => {
+        if (recording) {
+          stopRecording();
+          if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
+          paint();
+        } else {
+          recording = true;
+          answers[qi] = '';
+          paint();
+          const sim = TRANSCRIPT_SIMS[qi] || 'Thinking...';
+          const $t = document.getElementById('t2Transcript');
+          if ($t) {
+            $t.style.color = 'var(--ink)';
+            $t.style.fontStyle = 'normal';
+            $t.textContent = '';
+            let ci = 0;
+            transcriptTimer = setInterval(() => {
+              if (!$t.isConnected) { stopRecording(); return; }
+              if (ci <= sim.length) { $t.textContent = sim.slice(0, ci); ci++; }
+              else { stopRecording(); answers[qi] = sim; paint(); }
+            }, 38);
+            timers.push(transcriptTimer);
+          }
+        }
+      };
+    } else {
+      const $ta = document.getElementById('t2Answer');
+      if ($ta) { $ta.focus(); $ta.oninput = () => { answers[qi] = $ta.value; skipped[qi] = false; }; }
+    }
+
+    // Wire next + skip
+    const advance = () => {
+      if (qi < T2_QUESTIONS.length - 1) { qi++; paint(); }
+      else go('interviewdone');
+    };
+    document.getElementById('t2Next').onclick = () => {
+      stopRecording();
+      if (!isVoice) {
+        const $ta = document.getElementById('t2Answer');
+        if ($ta) answers[qi] = $ta.value.trim();
+      }
+      advance();
+    };
+    document.getElementById('t2Skip').onclick = () => {
+      stopRecording();
+      skipped[qi] = true; answers[qi] = '';
+      advance();
+    };
+  }
+  paint();
+};
+
+// ── TIER 2 DEFERRED ───────────────────────────────────────────────────────────
+RENDERERS.t2deferred = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="text-align:center;padding:28px;">
+      <div>
+        <div style="font-size:36px;margin-bottom:18px;">&#128338;</div>
+        <h2 style="font-family:var(--fontDisplay);font-size:22px;margin-bottom:12px;line-height:1.3;">No rush.</h2>
+        <p style="font-size:14px;color:var(--inkSoft);margin-bottom:10px;line-height:1.6;">Naomi will remind you to complete this layer after your first match. Your answers will sharpen every introduction from that point on.</p>
+        <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:32px;font-style:italic;">Tier 2 questions will appear in your profile to complete any time.</p>
+        <button class="btn" id="t2DeferCont">Continue to my Relationship DNA</button>
+      </div>
+    </div>`;
+  document.getElementById('t2DeferCont').onclick = () => go('interviewdone');
+};
+
+// ── SCHEDULE (keep for "schedule for later" branch) ───────────────────────────
+RENDERERS.schedule = function(){
+  let confirmed = false;
+  const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  let day = 2;
+  const times = ["9:00 AM","1:30 PM","6:00 PM","8:15 PM"];
+  let time = 2;
+  function paint(){
+    if (confirmed){
+      $body.innerHTML = `
+        <div class="screen justifyCenter">
+          <div style="text-align:center;">
+            <div style="font-size:40px;margin-bottom:16px;">&#128197;</div>
+            <h2 style="font-family:var(--fontDisplay);font-size:22px;margin-bottom:10px;">Perfect.</h2>
+            <p class="bodyMuted" style="margin-bottom:28px;">I&rsquo;ll be ready when you are. I&rsquo;ll send a reminder 1 hour before.</p>
+            <button class="btn" id="backStart">Back to start</button>
+          </div>
+        </div>`;
+      document.getElementById('backStart').onclick = () => go('naomiintro');
+      return;
+    }
+    $body.innerHTML = `
+      <div class="screen justifyBetween">
+        <div>
+          <div class="screenLabel">schedule for later</div>
+          <h1 class="disp" style="font-size:25px;">Let&rsquo;s find a better time</h1>
+          <div class="row" style="margin-bottom:22px;" id="dayRow"></div>
+          <div class="col" id="timeCol"></div>
+        </div>
+        <button class="btn" id="confirmSched">Confirm</button>
+      </div>`;
+    const $dayRow = document.getElementById('dayRow');
+    $dayRow.innerHTML = days.map((d,i) => `<button class="dayBtn" data-i="${i}" style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid ${day===i?'var(--clay)':'var(--line)'};background:${day===i?'var(--clay)':'var(--cream)'};color:${day===i?'var(--cream)':'var(--ink)'};font-size:12px;cursor:pointer;">${d}</button>`).join('');
+    $dayRow.querySelectorAll('.dayBtn').forEach(b => b.onclick = () => { day = +b.dataset.i; paint(); });
+    const $timeCol = document.getElementById('timeCol');
+    $timeCol.innerHTML = times.map((t,i) => `<button class="timeBtn" data-i="${i}" style="text-align:left;padding:13px 16px;border-radius:12px;border:1.5px solid ${time===i?'var(--clay)':'var(--line)'};background:${time===i?'var(--clayBg)':'var(--cream)'};cursor:pointer;font-size:14px;">${t}</button>`).join('');
+    $timeCol.querySelectorAll('.timeBtn').forEach(b => b.onclick = () => { time = +b.dataset.i; paint(); });
+    document.getElementById('confirmSched').onclick = () => { confirmed = true; paint(); };
+  }
+  paint();
+};
+
+
+RENDERERS.interviewdone = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="padding:28px;">
+      <div style="text-align:center;">
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--okBg);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;color:var(--ok);">&#10003;</div>
+        <h2 style="font-family:var(--fontDisplay);font-size:24px;margin-bottom:12px;line-height:1.3;">That&rsquo;s everything Naomi needs.</h2>
+        <p class="bodyMuted" style="margin-bottom:10px;line-height:1.6;">Now she&rsquo;ll build your Relationship DNA &mdash; a profile of who you are and what you&rsquo;re really looking for.</p>
+        <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:32px;font-style:italic;">Tier 2 and 3 questions can be completed any time from your profile to sharpen future matches.</p>
+        <button class="btn" id="contBtn">See my Relationship DNA</button>
+      </div>
+    </div>`;
+  document.getElementById('contBtn').onclick = () => go('processing');
+};
+
+RENDERERS.processing = function(){
+  const messages = ["Analyzing conversation&hellip;","Building Relationship DNA&hellip;","Identifying values&hellip;","Understanding relationship goals&hellip;","Creating compatibility profile&hellip;"];
+  let mi = 0;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyCenter" style="background:var(--navy);">
+        <div style="text-align:center;">
+          <div style="margin:0 auto;width:70px;height:70px;position:relative;">
+            <svg width="70" height="70" viewBox="0 0 70 70">
+              <g id="dnaSpin" style="transform-origin:35px 35px;">
+                ${[0,1,2,3,4,5].map(i => `<line x1="35" y1="10" x2="35" y2="60" stroke="var(--gold)" stroke-width="1.3" opacity="${0.25+i*0.12}" transform="rotate(${i*30} 35 35)"/>`).join('')}
+              </g>
+              <circle cx="35" cy="35" r="6" fill="var(--gold)"/>
+            </svg>
+          </div>
+          <div style="font-family:var(--fontDisplay);color:var(--cream);font-size:17px;margin-top:26px;">${messages[mi]}</div>
+        </div>
+      </div>
+      <style>
+        @keyframes dnaspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #dnaSpin { animation: dnaspin 2.2s linear infinite; }
+      </style>`;
+  }
+  paint();
+  function step(){
+    if (mi < messages.length - 1){
+      mi++;
+      paint();
+      timers.push(setTimeout(step, 750));
+    } else {
+      timers.push(setTimeout(() => go('profileready'), 900));
+    }
+  }
+  timers.push(setTimeout(step, 750));
+};
+
+RENDERERS.profileready = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">relationship dna</div>
+        <h1 class="disp" style="font-size:27px;line-height:1.25;">Your Relationship DNA is ready.</h1>
+        <p class="bodyMuted" style="font-size:14.5px;margin-bottom:26px;">Ready to discover how Naomi sees you?</p>
+        <div style="border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--cream);">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px;">Profile completeness</div>
+          <div class="progressTrack"><div class="progressFill" style="width:72%;"></div></div>
+          <div style="font-size:12px;color:var(--inkSoft);margin-bottom:14px;">72% complete</div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            ${["Identity verification","Phone verification","Trust verification"].map(t => `
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>${t}</span><span style="color:var(--ok);font-weight:700;">&#10003;</span></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <button class="btn" id="seeIt">Yes, let&rsquo;s see it</button>
+        <button class="btnGhost" id="finishFirst">Finish my profile first</button>
+      </div>
+    </div>`;
+  document.getElementById('seeIt').onclick = () => go('celebration');
+  document.getElementById('finishFirst').onclick = () => go('celebration');
+};
+
+RENDERERS.celebration = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--gold);">
+      <div style="text-align:center;">
+        <div style="font-size:44px;margin-bottom:14px;">&#127881;</div>
+        <div style="font-family:var(--fontMono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--navy);opacity:.7;margin-bottom:10px;">congratulations</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:28px;color:var(--navy);line-height:1.2;margin-bottom:30px;">Here is your Relationship DNA.</h1>
+        <button class="btn navy" id="revealBtn">Reveal it</button>
+      </div>
+    </div>`;
+  document.getElementById('revealBtn').onclick = () => go('dna');
+};
+
+RENDERERS.dna = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:24px;">
+      <div style="overflow-y:auto;">
+        <div class="screenLabel">naya weiss &middot; relationship dna</div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;">
+          <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg, var(--clay), var(--gold));"></div>
+          <div>
+            <div style="font-family:var(--fontDisplay);font-size:19px;">Naya, 33</div>
+            <div style="font-size:12px;color:var(--inkSoft);">Senior Marketing Director &middot; Manhattan</div>
+          </div>
+        </div>
+        <div class="dnaCard"><div class="dnaCardTitle">Personality overview</div>
+          <em style="font-family:var(--fontDisplay);font-size:14.5px;font-style:italic;color:var(--inkSoft);">&ldquo;Warm, emotionally intelligent, thoughtful, and family-oriented. Values deep connection over casual dating.&rdquo;</em>
+        </div>
+        <div class="dnaCard"><div class="dnaCardTitle">Core values</div>
+          <div class="tagRow">${["Family","Loyalty","Growth","Trust","Kindness"].map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        </div>
+        <div class="dnaCard"><div class="dnaCardTitle">Compatibility drivers &mdash; what Naomi optimizes for</div>
+          ${["Emotional compatibility","Communication style","Life goals","Family vision","Values alignment"].map((t,i) => `<div class="orderedItem"><span class="num">${String(i+1).padStart(2,'0')}</span><span>${t}</span></div>`).join('')}
+        </div>
+        <div class="dnaCard"><div class="dnaCardTitle">Strengths</div>
+          <div class="tagRow">${["Empathetic","Communicative","Reliable","Self-aware"].map(t => `<span class="tag ok">${t}</span>`).join('')}</div>
+        </div>
+        <div class="dnaCard"><div class="dnaCardTitle">Growth areas</div>
+          <div class="tagRow">${["Overthinking","Perfectionism","Hard to delegate"].map(t => `<span class="tag muted">${t}</span>`).join('')}</div>
+        </div>
+      </div>
+      <button class="btn" id="contVerify">Continue to verification</button>
+    </div>`;
+  document.getElementById('contVerify').onclick = () => go('badge1intro');
+};
+
+const BADGE_META = {
+  1: { title:"Confirm your identity.", sub:"Unlock your profile.", items:["Government ID &mdash; passport or driver&rsquo;s license","Live selfie match","Age verification"], cta:"Begin identity check" },
+  2: { title:"Unlock photos &amp; direct conversation.", sub:"Step 1 &middot; Proof of address", items:["Bank statement, utility bill, or government letter","Must be dated within 3 months"], cta:"Begin address check" },
+  3: { title:"One last step before we introduce you to anyone.", sub:"Background check", items:["NAOMI runs a standard criminal background check","Takes 24&ndash;48 hours &mdash; we&rsquo;ll notify you"], cta:"Start background check" },
+};
+function renderBadgeIntro(level, nextId){
+  const meta = BADGE_META[level];
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div class="screenLabel">verification &middot; level ${level} of 3</div>
+        <div style="margin:10px 0 22px;">${trustThreadHTML(level - 1)}</div>
+        <h1 class="disp" style="font-size:24px;margin-bottom:6px;line-height:1.25;">${meta.title}</h1>
+        <p class="bodyMuted" style="margin-bottom:22px;">${meta.sub}</p>
+        <div class="navyBox">
+          <div class="navyBoxLabel">What we&rsquo;ll need</div>
+          ${meta.items.map(it => `<div class="navyBoxItem"><span style="color:var(--gold);">&bull;</span><span>${it}</span></div>`).join('')}
+        </div>
+        <p style="font-size:12px;color:var(--inkSoft);margin-top:16px;line-height:1.5;">This extra step is what makes every introduction on NAOMI trustworthy &mdash; it&rsquo;s why members feel safe being themselves here.</p>
+      </div>
+      <button class="btn" id="badgeCta">${meta.cta}</button>
+    </div>`;
+  document.getElementById('badgeCta').onclick = () => go(nextId);
+}
+RENDERERS.badge1intro = () => renderBadgeIntro(1, 'badge1doc');
+RENDERERS.badge2intro = () => renderBadgeIntro(2, 'badge2doc');
+RENDERERS.badge3intro = () => renderBadgeIntro(3, 'badge3wait');
+
+function renderDocCapture(title, sub, nextId){
+  let captured = false;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:26px;">
+        <div>
+          <div class="screenLabel">${sub}</div>
+          <h1 class="disp" style="font-size:22px;">${title}</h1>
+          <div class="docBox ${captured ? 'captured' : ''}" id="docBox">
+            <span style="font-size:30px;">${captured ? '&#10003;' : '&#128196;'}</span>
+            <span style="font-size:13px;color:${captured ? 'var(--ok)' : 'var(--inkSoft)'};">${captured ? 'Captured &mdash; looks good' : 'Tap to scan'}</span>
+          </div>
+          <div class="trustNote" style="margin-top:18px;">&#128274; Encrypted end-to-end. Reviewed only for verification, never shared with other members.</div>
+        </div>
+        <button class="btn" id="confirmDoc" ${captured ? '' : 'disabled'} style="opacity:${captured ? 1 : .4};">Confirm &amp; continue</button>
+      </div>`;
+    document.getElementById('docBox').onclick = () => { captured = true; paint(); };
+    document.getElementById('confirmDoc').onclick = () => { if (captured) go(nextId); };
+  }
+  paint();
+}
+RENDERERS.badge1doc = () => renderDocCapture("Scan your government ID", "level 1 &middot; document", "badge1bio");
+RENDERERS.badge2doc = () => renderDocCapture("Upload proof of address", "level 2 &middot; address", "badge2done");
+
+RENDERERS.badge1bio = function(){
+  let status = 'idle';
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:26px;">
+        <div>
+          <div class="screenLabel">biometric face match</div>
+          <h1 class="disp" style="font-size:22px;">Quick face match</h1>
+          <div style="height:220px;border-radius:50% 50% 46% 46%;background:var(--navy);display:flex;align-items:center;justify-content:center;position:relative;">
+            <span style="font-size:56px;">${status === 'match' ? '&#9989;' : '&#128578;'}</span>
+            ${status === 'scanning' ? `<div style="position:absolute;inset:0;border:2px solid var(--gold);border-radius:50% 50% 46% 46%;animation:pulseScan 1s ease-in-out infinite;"></div>` : ''}
+          </div>
+          <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--inkSoft);">
+            ${status === 'idle' ? 'Center your face in frame, good lighting helps.' : ''}
+            ${status === 'scanning' ? 'Comparing to your ID photo&hellip;' : ''}
+            ${status === 'match' ? '<span style="color:var(--ok);font-weight:700;">99.2% match confidence</span>' : ''}
+          </div>
+        </div>
+        <button class="btn" id="bioBtn">${status === 'match' ? 'Continue' : (status === 'scanning' ? 'Scanning&hellip;' : 'Start face scan')}</button>
+      </div>
+      <style>@keyframes pulseScan { 0%,100% { opacity:.3; } 50% { opacity:1; } }</style>`;
+    document.getElementById('bioBtn').onclick = () => {
+      if (status === 'match') go('badge1age');
+      else if (status === 'idle') { status = 'scanning'; paint(); timers.push(setTimeout(() => { status = 'match'; paint(); }, 1400)); }
+    };
+  }
+  paint();
+};
+
+RENDERERS.badge1age = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:26px;">
+      <div>
+        <div class="screenLabel">age verification</div>
+        <h1 class="disp" style="font-size:22px;margin-bottom:16px;">Confirming you&rsquo;re 18+</h1>
+        <div style="border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--cream);">
+          <div style="font-size:13px;color:var(--inkSoft);margin-bottom:10px;">Date of birth, from your ID</div>
+          <div style="font-family:var(--fontDisplay);font-size:24px;">March 14, 1993</div>
+          <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
+            <span style="color:var(--ok);font-size:14px;">&#10003;</span>
+            <span style="font-size:13px;color:var(--ok);font-weight:600;">Age requirement met &mdash; auto-approved</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--inkSoft);margin-top:16px;">85%+ of members are approved instantly here. A small number are held briefly for manual review.</p>
+      </div>
+      <button class="btn" id="ageCont">Continue</button>
+    </div>`;
+  document.getElementById('ageCont').onclick = () => go('badge1done');
+};
+
+function renderTurnaround(level, nextId){
+  const copy = {
+    1: { title:"Verification turnaround", body:"Most members are approved instantly. If we need a closer look, it&rsquo;s usually under an hour &mdash; you can keep going in the meantime.", unlocks:["Unlock photos &amp; direct conversation","Complete your Relationship DNA"] },
+    2: { title:"Verification success", body:"You&rsquo;re now Address Verified. This is the trust badge other members will see.", unlocks:["Unlock matching","Complete Relationship DNA"] },
+  }[level];
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:26px;">
+      <div>
+        <div class="screenLabel">level ${level} complete</div>
+        <div style="margin:12px 0 22px;">${trustThreadHTML(level)}</div>
+        <h1 class="disp" style="font-size:23px;">${copy.title}</h1>
+        <p class="bodyMuted" style="font-size:13.5px;margin-bottom:22px;">${copy.body}</p>
+        <div>${copy.unlocks.map(u => `<div class="unlockItem"><span style="color:var(--clay);">&#10022;</span><span style="font-size:13px;">${u}</span></div>`).join('')}</div>
+      </div>
+      <button class="btn" id="turnCont">Continue</button>
+    </div>`;
+  document.getElementById('turnCont').onclick = () => go(nextId);
+}
+RENDERERS.badge1done = () => renderTurnaround(1, 'badge2intro');
+RENDERERS.badge2done = () => renderTurnaround(2, 'badge3intro');
+
+RENDERERS.badge3wait = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:26px;">
+      <div>
+        <div class="screenLabel">level 3 &middot; in progress</div>
+        <div style="margin:12px 0 22px;">${trustThreadHTML(2)}</div>
+        <h1 class="disp" style="font-size:23px;line-height:1.3;">Your background check is underway.</h1>
+        <p class="bodyMuted" style="font-size:13.5px;margin-bottom:22px;">24&ndash;48 hours, used well: this is exactly the time you need to complete your Relationship DNA questionnaire and profile. No wasted time.</p>
+        <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+          <div style="font-size:12px;color:var(--inkSoft);margin-bottom:8px;">While you wait</div>
+          <div class="progressTrack"><div class="progressFill" style="width:40%;background:var(--gold);"></div></div>
+          <div style="font-size:12px;color:var(--inkSoft);">Relationship DNA: 40% complete</div>
+        </div>
+      </div>
+      <button class="btn" id="waitCont">Continue completing my profile</button>
+    </div>`;
+  document.getElementById('waitCont').onclick = () => go('badge3done');
+};
+
+RENDERERS.badge3done = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--gold);">
+      <div style="text-align:center;">
+        <div style="margin:0 auto 22px;display:flex;justify-content:center;">${trustThreadHTML(3)}</div>
+        <div style="font-size:38px;margin-bottom:12px;">&#128737;&#65039;</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:25px;color:var(--navy);margin-bottom:12px;line-height:1.25;">You&rsquo;re ready to match.</h1>
+        <p style="font-size:13.5px;color:var(--navy);opacity:.75;margin-bottom:28px;">Fully verified. NAOMI&rsquo;s social-link badge is also available if you&rsquo;d like to link a social profile &mdash; entirely optional.</p>
+        <button class="btn navy" id="fvCont">Complete my Relationship DNA</button>
+      </div>
+    </div>`;
+  document.getElementById('fvCont').onclick = () => go('paywall');
+};
+
+RENDERERS.activation = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="background:var(--navy);">
+      <div style="margin-top:30px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div class="naomiAvatar onDark">N</div>
+          <div style="font-family:var(--fontDisplay);font-size:19px;color:var(--cream);line-height:1.4;">Your Relationship DNA has been created. I can now begin searching for highly compatible introductions.</div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--goldSoft);margin-bottom:14px;font-family:var(--fontMono);letter-spacing:.04em;">
+          <span>IDENTITY &#10003;</span><span>ADDRESS &#10003;</span><span>BACKGROUND &#10003;</span>
+        </div>
+        <button class="btn gold" id="startMatching">Start matchmaking</button>
+      </div>
+    </div>`;
+  document.getElementById('startMatching').onclick = () => go('paywall');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SUBSCRIPTION PAYWALL
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.paywall = function(){
+  let plan = 'monthly';
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen" style="background:var(--navy);padding:24px;overflow-y:auto;">
+        <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.14em;color:var(--goldSoft);margin-bottom:6px;">UNLOCK PREMIUM MATCHMAKING</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin:0 0 4px;line-height:1.2;">Before we introduce<br>anyone, let us help you<br>become your best self.</h1>
+        <p style="font-size:13px;color:rgba(255,252,246,.55);margin-bottom:20px;">NAOMI earns only when you find love. Your subscription funds the search.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+          ${[['monthly','$25 / month','Billed monthly, cancel anytime'],['quarterly','$19 / month','$57 billed every 3 months'],['annual','$14 / month','$168 billed annually &mdash; best value']].map(([id,price,sub]) => `
+            <div class="planOpt" data-id="${id}" style="padding:16px 18px;border-radius:14px;border:1.5px solid ${plan===id?'var(--gold)':'rgba(255,252,246,.14)'};background:${plan===id?'rgba(201,162,75,.14)':'rgba(255,252,246,.05)'};cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-family:var(--fontBody);font-size:15px;font-weight:600;color:${plan===id?'var(--gold)':'var(--cream)'};">${price}</div>
+                <div style="font-size:12px;color:rgba(255,252,246,.5);margin-top:3px;">${sub}</div>
+              </div>
+              <div style="width:18px;height:18px;border-radius:50%;border:1.5px solid ${plan===id?'var(--gold)':'rgba(255,252,246,.3)'};background:${plan===id?'var(--gold)':'transparent'};display:flex;align-items:center;justify-content:center;">
+                ${plan===id?'<span style="font-size:10px;color:var(--navy);">&#10003;</span>':''}
+              </div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px;">
+          ${['AI Matchmaker access','Relationship DNA analysis','Priority curated introductions','Verified member network'].map(f=>`
+            <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:rgba(255,252,246,.75);">
+              <span style="color:var(--gold);font-size:12px;">&#10003;</span>${f}
+            </div>`).join('')}
+        </div>
+        <button class="btn gold" id="subscribeBtn" style="margin-bottom:10px;">Unlock Premium</button>
+        <div style="text-align:center;margin-bottom:14px;">
+          <button id="matchmakerBtn" style="background:none;border:none;color:var(--goldSoft);font-size:13px;cursor:pointer;text-decoration:underline;font-family:var(--fontBody);">Interested in Personal Matchmaker tier? &rarr;</button>
+        </div>
+        <p style="font-size:11px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">Women join free. Success fee applies when you reach a relationship milestone &mdash; aligned incentives, by design.</p>
+      </div>`;
+    document.querySelectorAll('.planOpt').forEach(el => {
+      el.onclick = () => { plan = el.dataset.id; paint(); };
+    });
+    document.getElementById('subscribeBtn').onclick = () => go('photoupload');
+    document.getElementById('matchmakerBtn').onclick = () => go('photoupload');
+  }
+  paint();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PHOTO UPLOAD
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.photoupload = function(){
+  let uploaded = false;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:26px;">
+        <div>
+          <div class="screenLabel">photo setup</div>
+          <h1 class="disp" style="font-size:23px;line-height:1.25;">Do you want to upload<br>your photo?</h1>
+          <p class="bodyMuted" style="margin-bottom:22px;">Photos are only revealed after both parties match on personality &mdash; this keeps the focus on who you really are.</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div id="photoDropzone" style="height:180px;border-radius:16px;border:2px dashed ${uploaded?'var(--ok)':'var(--line)'};background:${uploaded?'var(--okBg)':'var(--cream)'};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;">
+              <span style="font-size:36px;">${uploaded?'&#9989;':'&#128247;'}</span>
+              <div style="font-size:13.5px;color:${uploaded?'var(--ok)':'var(--inkSoft)'};">${uploaded?'Photo uploaded &mdash; looks great':'Tap to upload'}</div>
+              ${!uploaded?`<div style="font-size:11.5px;color:var(--inkSoft);">JPG, PNG &middot; max 10MB</div>`:''}
+            </div>
+          </div>
+          <div style="margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--paperDeep);font-size:12.5px;color:var(--inkSoft);line-height:1.5;">
+            &#128274; Your photo is only shared with verified matches who have passed all 3 verification tiers.
+          </div>
+        </div>
+        <div class="col">
+          <button class="btn" id="photoYes">${uploaded?'Continue':'Upload a photo'}</button>
+          <button class="btnGhost" id="photoLater">I&rsquo;ll do this later</button>
+          <button id="photoHelp" style="background:none;border:none;color:var(--inkSoft);font-size:13px;cursor:pointer;text-decoration:underline;font-family:var(--fontBody);">I need help with my photos &rarr;</button>
+        </div>
+      </div>`;
+    document.getElementById('photoDropzone').onclick = () => { uploaded = true; paint(); };
+    document.getElementById('photoYes').onclick = () => go('startmatching');
+    document.getElementById('photoLater').onclick = () => go('startmatching');
+    document.getElementById('photoHelp').onclick = () => go('photocoach');
+  }
+  paint();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PHOTO COACHING
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.photocoach = function(){
+  const services = [
+    { icon:'&#128247;', title:'Photo shoot guide', sub:'Lighting, angles, locations that work for your face and style.' },
+    { icon:'&#128084;', title:'Style & presentation', sub:'What to wear for your shoot. Colour, fit, energy.' },
+    { icon:'&#128203;', title:'Profile coaching', sub:'How to write a profile that sounds like you, not a CV.' },
+    { icon:'&#128149;', title:'Dating confidence', sub:'A 30-min session with a NAOMI coach before your first date.' },
+  ];
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <button id="coachBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+        <div class="screenLabel" style="margin-bottom:0;">photo &amp; confidence coaching</div>
+      </div>
+      <h1 class="disp" style="font-size:22px;line-height:1.25;margin-bottom:6px;">Let&rsquo;s make sure you&rsquo;re showing up as your best self.</h1>
+      <p class="bodyMuted" style="font-size:13px;margin-bottom:22px;">These are optional add-ons. Pick what feels useful.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        ${services.map((s,i) => `
+          <div class="coachItem" data-i="${i}" style="padding:16px 18px;border-radius:14px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;display:flex;gap:14px;align-items:flex-start;">
+            <span style="font-size:24px;flex-shrink:0;">${s.icon}</span>
+            <div>
+              <div style="font-weight:700;font-size:14.5px;margin-bottom:3px;">${s.title}</div>
+              <div style="font-size:12.5px;color:var(--inkSoft);">${s.sub}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" id="coachCont">Continue to matching</button>
+    </div>`;
+  document.getElementById('coachBack').onclick = () => back();
+  document.querySelectorAll('.coachItem').forEach(el => {
+    el.onclick = () => {
+      el.style.border = el.style.border.includes('clay') ? '1.5px solid var(--line)' : '1.5px solid var(--clay)';
+      el.style.background = el.style.background.includes('clayBg') ? 'var(--cream)' : 'var(--clayBg)';
+    };
+  });
+  document.getElementById('coachCont').onclick = () => go('startmatching');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// START MATCHING CONFIRMATION
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.startmatching = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:28px;">
+      <div>
+        <div class="screenLabel">matching</div>
+        <h1 class="disp" style="font-size:26px;line-height:1.25;">Are you ready to start<br>your matching?</h1>
+        <p class="bodyMuted" style="margin-bottom:28px;">Naomi will search for introductions based on your Relationship DNA. You&rsquo;ll hear from her when she has your first curated matches ready.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${["Your Relationship DNA is complete","Profile verified across 3 tiers","Photos ready (reveals after personality match)","Naomi is working only on your best options"].map(t=>`
+            <div style="display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--paperDeep);">
+              <span style="color:var(--ok);font-size:14px;flex-shrink:0;">&#10003;</span>
+              <span style="font-size:13.5px;">${t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <button class="btn" id="confirmStart">Confirm &mdash; start my matching</button>
+    </div>`;
+  document.getElementById('confirmStart').onclick = () => go('matchwaiting');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MATCHING WAITING SCREEN
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.matchwaiting = function(){
+  let dots = 0;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyCenter" style="background:var(--navy);text-align:center;padding:28px;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(201,162,75,.15);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:28px;color:var(--gold);">N</span>
+        </div>
+        <h2 style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:14px;line-height:1.3;">I&rsquo;ll notify you when I got<br>your first matches.</h2>
+        <p style="font-size:13.5px;color:rgba(255,252,246,.6);margin-bottom:10px;line-height:1.6;">Not because they&rsquo;re the only options &mdash; but because we&rsquo;re working on bringing you the <em style="color:var(--gold);">best</em> options.</p>
+        <p style="font-family:var(--fontMono);font-size:11px;letter-spacing:.1em;color:rgba(255,252,246,.35);margin-bottom:40px;">WE&rsquo;LL BRING ONLY 3 OPTIONS PER WEEK</p>
+        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:40px;">
+          ${[0,1,2].map(i=>`<div style="width:8px;height:8px;border-radius:50%;background:${i===dots%3?'var(--gold)':'rgba(255,252,246,.2)'};transition:background .4s ease;"></div>`).join('')}
+        </div>
+        <button id="skipWait" style="background:none;border:none;color:rgba(255,252,246,.45);font-family:var(--fontBody);font-size:13px;cursor:pointer;text-decoration:underline;">Skip ahead &rarr; see your matches</button>
+      </div>`;
+    document.getElementById('skipWait').onclick = () => go('matchnotif');
+  }
+  paint();
+  const t = setInterval(() => { dots++; paint(); }, 700);
+  timers.push(t);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH NOTIFICATION
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.matchnotif = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:26px;">
+      <div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:28px;">
+          <div class="naomiAvatar">N</div>
+          <div class="naomiBubble" style="font-size:15px;">Hey Naya! Got your first 3 matches. Are you ready to see them?</div>
+        </div>
+        <div style="padding:16px 18px;border-radius:16px;background:var(--paperDeep);border:1px solid var(--line);margin-bottom:18px;">
+          <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.1em;color:var(--inkSoft);margin-bottom:10px;">WHAT YOU&rsquo;LL SEE FIRST</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${["His personality &amp; values","His communication style","Why Naomi thinks you&rsquo;d connect","His photos &mdash; only after you&rsquo;re curious"].map(t=>`
+              <div style="display:flex;gap:10px;align-items:center;font-size:13px;"><span style="color:var(--clay);">&bull;</span>${t}</div>`).join('')}
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;font-style:italic;">Photos come last &mdash; by design. This gives the connection somewhere to grow from.</p>
+      </div>
+      <button class="btn" id="seeMatches">See my 3 matches</button>
+    </div>`;
+  document.getElementById('seeMatches').onclick = () => go('matchreveal');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH REVEAL — 3 CURATED MATCHES
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.matchreveal = function(){
+  const matches = [
+    { name:'Daniel', age:36, job:'Architect, NYC', compat:91, tag:'Shared curiosity & communication style' },
+    { name:'Amir', age:34, job:'VC, Manhattan', compat:87, tag:'Family values & ambition alignment' },
+    { name:'Luca', age:37, job:'Chef & restaurateur', compat:84, tag:'Creative energy & emotional depth' },
+  ];
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div class="screenLabel">here are your 3 matches</div>
+      <div style="display:flex;gap:8px;align-items:baseline;margin-bottom:6px;">
+        <h1 style="font-family:var(--fontDisplay);font-size:26px;margin:0;">Here are your first<br>3 matches.</h1>
+      </div>
+      <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:20px;font-style:italic;">Not because they&rsquo;re the only options &mdash; because they&rsquo;re the best options.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        ${matches.map((m,i) => `
+          <div class="matchCard" data-i="${i}" style="border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--cream);cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--navy),#2e5a52);display:flex;align-items:center;justify-content:center;font-family:var(--fontDisplay);font-size:18px;color:var(--goldSoft);font-style:italic;flex-shrink:0;">${m.name[0]}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:15px;">${m.name}, ${m.age}</div>
+                <div style="font-size:12px;color:var(--inkSoft);">${m.job}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:var(--fontMono);font-size:18px;font-weight:700;color:var(--clay);">${m.compat}%</div>
+                <div style="font-size:10px;color:var(--inkSoft);">match</div>
+              </div>
+            </div>
+            <div style="padding:10px 12px;border-radius:10px;background:var(--paperDeep);font-size:12.5px;color:var(--inkSoft);font-style:italic;">&ldquo;${m.tag}&rdquo;</div>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <div style="flex:1;padding:8px;border-radius:10px;border:1px dashed var(--line);text-align:center;font-size:12px;color:var(--inkSoft);">&#128247; Photo hidden</div>
+              <button class="deepDiveBtn" data-i="${i}" style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--clay);color:var(--cream);font-size:12.5px;font-weight:600;cursor:pointer;">Meet his mind &rarr;</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  document.querySelectorAll('.deepDiveBtn').forEach(btn => {
+    btn.onclick = () => go('matchdeepdive');
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH DEEP DIVE — personality before photos
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.matchdeepdive = function(){
+  let mode = 'voice'; // voice | text
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <button id="ddBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+        <div class="screenLabel" style="margin-bottom:0;">before his photos, meet his mind</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;">
+        <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--navy),#2e5a52);display:flex;align-items:center;justify-content:center;font-family:var(--fontDisplay);font-size:20px;color:var(--goldSoft);font-style:italic;">D</div>
+        <div>
+          <div style="font-weight:700;font-size:16px;">Daniel, 36</div>
+          <div style="font-size:12px;color:var(--inkSoft);">Architect &middot; NYC &middot; 91% match</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div class="dnaCard"><div class="dnaCardTitle">Values</div><div class="tagRow"><span class="tag">Depth</span><span class="tag">Curiosity</span><span class="tag">Family</span><span class="tag">Craft</span></div></div>
+        <div class="dnaCard"><div class="dnaCardTitle">Communication style</div><div style="font-size:13.5px;color:var(--inkSoft);">Direct, warm, thoughtful. Listens before speaking. Rarely texts &mdash; prefers calls or in person.</div></div>
+        <div class="dnaCard"><div class="dnaCardTitle">In his own words</div><div style="font-size:14px;font-family:var(--fontDisplay);font-style:italic;color:var(--inkSoft);">&ldquo;A perfect day ends with a long dinner and someone worth disagreeing with.&rdquo;</div></div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:10px;">10-minute interaction before you see photos</div>
+        <div style="display:flex;gap:8px;">
+          <button id="modeVoice" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid ${mode==='voice'?'var(--clay)':'var(--line)'};background:${mode==='voice'?'var(--clayBg)':'var(--cream)'};font-size:13px;font-weight:600;cursor:pointer;">&#127908; Voice intro</button>
+          <button id="modeText" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid ${mode==='text'?'var(--clay)':'var(--line)'};background:${mode==='text'?'var(--clayBg)':'var(--cream)'};font-size:13px;font-weight:600;cursor:pointer;">&#128172; Text chat</button>
+        </div>
+      </div>
+      <button class="btn" id="ddCont">Start 10-min conversation</button>
+    </div>`;
+  document.getElementById('ddBack').onclick = () => back();
+  document.getElementById('modeVoice').onclick = () => go('whyyoufit');
+  document.getElementById('modeText').onclick = () => go('whyyoufit');
+  document.getElementById('ddCont').onclick = () => go('whyyoufit');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// WHY YOU FIT
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.whyyoufit = function(){
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <button id="wyfBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+        <div class="screenLabel" style="margin-bottom:0;">why you fit</div>
+      </div>
+      <h1 class="disp" style="font-size:22px;margin-bottom:18px;">Why Naomi thinks<br>you&rsquo;d connect.</h1>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        ${[
+          ["Emotional compatibility","You both protect feelings with logic first &mdash; then let people in slowly. This creates trust, not distance."],
+          ["Communication match","He\\'s direct. You\\'re warm. The combination tends to produce unusually honest early conversations."],
+          ["Life goals","Both prioritizing depth over speed. Neither is looking to rush anything. That alignment is rarer than it sounds."],
+          ["Shared curiosity","His obsession with spatial design. Your obsession with how people work. Different domains, same underlying drive."],
+        ].map(([t,d]) => `
+          <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkSoft);margin-bottom:6px;">${t}</div>
+            <div style="font-size:13.5px;line-height:1.5;">${d}</div>
+          </div>`).join('')}
+      </div>
+      <div style="padding:14px 16px;border-radius:12px;background:var(--paperDeep);font-size:12.5px;color:var(--inkSoft);margin-bottom:20px;">
+        Naomi&rsquo;s compatibility score: <strong style="color:var(--clay);">91%</strong> &mdash; based on 13 dimensions of your Relationship DNA.
+      </div>
+      <button class="btn" id="goReveal">I&rsquo;m ready &mdash; reveal his photos</button>
+    </div>`;
+  document.getElementById('wyfBack').onclick = () => back();
+  document.getElementById('goReveal').onclick = () => go('thereveal');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// THE REVEAL — photos last
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.thereveal = function(){
+  let revealed = false;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="background:${revealed?'var(--paper)':'var(--navy)'};padding:26px;">
+        <div>
+          ${!revealed ? `
+            <div class="screenLabel" style="color:var(--goldSoft);">the reveal</div>
+            <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);margin-bottom:14px;line-height:1.3;">Ready?<br>Here&rsquo;s what may help.</h1>
+            <p style="font-size:14px;color:rgba(255,252,246,.65);line-height:1.6;margin-bottom:28px;">You&rsquo;ve spent 10 minutes with his mind. His values. His words. That context changes what you see next.</p>
+            <div style="padding:18px;border-radius:14px;background:rgba(255,252,246,.07);border:1px solid rgba(255,252,246,.12);font-size:13.5px;color:rgba(255,252,246,.75);line-height:1.6;">
+              3 curated venues &mdash; not a generic restaurant list. Chosen for your shared love of good conversation and unhurried evenings.
+            </div>` :
+          `
+            <div class="screenLabel">daniel, 36</div>
+            <div style="height:240px;border-radius:20px;background:linear-gradient(160deg,#2a4a42,#1a3330);display:flex;align-items:center;justify-content:center;margin-bottom:16px;position:relative;">
+              <div style="font-family:var(--fontDisplay);font-size:64px;color:var(--goldSoft);font-style:italic;">D</div>
+              <div style="position:absolute;bottom:14px;right:14px;padding:5px 11px;border-radius:20px;background:rgba(255,252,246,.12);border:1px solid rgba(255,252,246,.2);">
+                <span style="font-family:var(--fontMono);font-size:10px;color:var(--goldSoft);letter-spacing:.08em;">VERIFIED</span>
+              </div>
+            </div>
+            <div class="tagRow" style="margin-bottom:14px;">
+              <span style="padding:5px 12px;border-radius:20px;background:var(--okBg);color:var(--ok);font-size:12px;">Identity verified</span>
+              <span style="padding:5px 12px;border-radius:20px;background:var(--okBg);color:var(--ok);font-size:12px;">Background cleared</span>
+              <span style="padding:5px 12px;border-radius:20px;background:var(--clayBg);color:var(--clayDeep);font-size:12px;">91% match</span>
+            </div>
+            <p style="font-size:13px;color:var(--inkSoft);font-style:italic;margin-bottom:18px;">&ldquo;A perfect day ends with a long dinner and someone worth disagreeing with.&rdquo;</p>`}
+        </div>
+        <div class="col">
+          ${!revealed ?
+            `<button class="btn gold" id="revealBtn">Reveal Daniel&rsquo;s photos</button>
+             <button id="skipReveal" style="background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;">Not right now</button>` :
+            `<button class="btn" id="mutualBtn">I&rsquo;m interested &mdash; let Daniel know</button>
+             <button class="btnGhost" id="passBtn">Not for me</button>`}
+        </div>
+      </div>`;
+    if (!revealed) {
+      document.getElementById('revealBtn').onclick = () => { revealed = true; paint(); };
+      document.getElementById('skipReveal').onclick = () => go('matchreveal');
+    } else {
+      document.getElementById('mutualBtn').onclick = () => go('mutualmatch');
+      document.getElementById('passBtn').onclick = () => go('matchreveal');
+    }
+  }
+  paint();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MUTUAL MATCH
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.mutualmatch = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="background:var(--gold);text-align:center;padding:28px;">
+      <div>
+        <div style="font-size:42px;margin-bottom:16px;">&#10024;</div>
+        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.14em;color:var(--navy);opacity:.6;margin-bottom:8px;">MUTUAL MATCH</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--navy);margin-bottom:12px;line-height:1.25;">You and Daniel<br>are connected.</h1>
+        <p style="font-size:14px;color:var(--navy);opacity:.75;margin-bottom:32px;line-height:1.6;">He expressed interest too. Naomi has notified him. Now, who messages first?</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" id="msgFirst" style="background:var(--navy);">I&rsquo;ll message first</button>
+          <button id="naomiMsg" style="padding:14px;border-radius:14px;border:1.5px solid rgba(31,58,53,.3);background:transparent;font-family:var(--fontBody);font-size:14.5px;font-weight:600;color:var(--navy);cursor:pointer;">Let Naomi break the ice</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('msgFirst').onclick = () => go('datebriefing');
+  document.getElementById('naomiMsg').onclick = () => go('datebriefing');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// DATE BRIEFING
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.datebriefing = function(){
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div class="screenLabel">first date prep</div>
+      <h1 class="disp" style="font-size:23px;margin-bottom:18px;">Ready? Here&rsquo;s what<br>may help.</h1>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+          <div class="dnaCardTitle">What to know about Daniel</div>
+          <div style="font-size:13.5px;color:var(--inkSoft);line-height:1.55;">He tends to ask deep questions early. Don&rsquo;t be surprised &mdash; he&rsquo;s genuinely curious, not intense. He&rsquo;s nervous about first dates too.</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+          <div class="dnaCardTitle">Conversation sparks</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${["Ask him about his favourite building he&rsquo;s ever designed","Tell him about your \"what makes a house a home\" answer &mdash; it&rsquo;ll resonate","Don&rsquo;t ask about his last relationship first &mdash; let that come naturally"].map(t=>`<div style="display:flex;gap:8px;font-size:13px;"><span style="color:var(--clay);flex-shrink:0;">&bull;</span>${t}</div>`).join('')}
+          </div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+          <div class="dnaCardTitle">Potential friction points</div>
+          <div style="font-size:13px;color:var(--inkSoft);line-height:1.5;">He values punctuality. He may not be expressive at first &mdash; that&rsquo;s not disinterest. He opens up slowly.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" id="goVenue" style="flex:1;">See venue suggestions</button>
+      </div>
+    </div>`;
+  document.getElementById('goVenue').onclick = () => go('venueengine');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// VENUE ENGINE
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.venueengine = function(){
+  const venues = [
+    { name:'Gramercy Tavern', area:'Flatiron, NYC', why:'Warm, unhurried, great acoustics for conversation. Neither of you will feel rushed.' },
+    { name:'The Raines Law Room', area:'Chelsea, NYC', why:'Intimate, low-light. The kind of place where you slow down and actually talk.' },
+    { name:'Via Carota', area:'West Village, NYC', why:'Neighbourhood feel. Unpretentious. Good for seeing how someone is with staff.' },
+  ];
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <button id="venueBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+        <div class="screenLabel" style="margin-bottom:0;">venue suggestions</div>
+      </div>
+      <p class="bodyMuted" style="margin-bottom:18px;font-size:13px;">3 curated venues &mdash; not a generic list. Chosen for your shared energy and conversation style.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        ${venues.map((v,i)=>`
+          <div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--cream);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+              <div>
+                <div style="font-weight:700;font-size:15px;">${v.name}</div>
+                <div style="font-size:12px;color:var(--inkSoft);">${v.area}</div>
+              </div>
+              <button style="padding:6px 12px;border-radius:9px;border:1px solid var(--line);background:var(--paperDeep);font-size:11.5px;cursor:pointer;color:var(--inkSoft);">See map</button>
+            </div>
+            <div style="font-size:12.5px;color:var(--inkSoft);font-style:italic;line-height:1.5;">${v.why}</div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" id="venueCont">I&rsquo;m prepared &mdash; let&rsquo;s go</button>
+    </div>`;
+  document.getElementById('venueBack').onclick = () => back();
+  document.getElementById('venueCont').onclick = () => go('dayoftoolkit');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// DAY-OF TOOLKIT
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.dayoftoolkit = function(){
+  $body.innerHTML = `
+    <div class="screen" style="padding:24px;overflow-y:auto;">
+      <div class="screenLabel">day-of toolkit</div>
+      <h1 class="disp" style="font-size:22px;margin-bottom:18px;">You&rsquo;ve got this, Naya.</h1>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        <div style="padding:16px 18px;border-radius:14px;background:var(--okBg);border:1px solid rgba(95,127,92,.2);">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ok);margin-bottom:8px;">Confidence reminder</div>
+          <div style="font-size:14px;font-family:var(--fontDisplay);font-style:italic;color:var(--ink);line-height:1.5;">&ldquo;You&rsquo;re not auditioning. You&rsquo;re exploring.&rdquo;</div>
+        </div>
+        ${[
+          ['&#8987;','Arrive 5 minutes early','Gives you a moment to settle. You&rsquo;ll feel calmer when he walks in.'],
+          ['&#128172;','If there&rsquo;s a silence, use it','He&rsquo;s comfortable with silence. Don&rsquo;t rush to fill it &mdash; it&rsquo;s not awkward to him.'],
+          ['&#10024;','Friction point heads-up','He tends to ask direct questions. It&rsquo;s warmth, not pressure.'],
+        ].map(([icon,title,body])=>`
+          <div style="border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:var(--cream);display:flex;gap:12px;align-items:flex-start;">
+            <span style="font-size:20px;flex-shrink:0;">${icon}</span>
+            <div><div style="font-weight:700;font-size:14px;margin-bottom:4px;">${title}</div><div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${body}</div></div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" id="dateGo">Check in after the date</button>
+    </div>`;
+  document.getElementById('dateGo').onclick = () => go('postdatecheckin');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// POST-DATE CHECK-IN
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.postdatecheckin = function(){
+  let feeling = null, rating = 3;
+  function paint(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:26px;">
+        <div>
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:22px;">
+            <div class="naomiAvatar">N</div>
+            <div class="naomiBubble">Hey Naya. How did it go with Daniel?</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+            ${[['yes','&#129321; Yes, I&rsquo;d see him again'],['no','&#128533; No, not for me'],['notsure','&#129300; Not sure yet']].map(([id,label])=>`
+              <button class="feelBtn" data-id="${id}" style="padding:14px 18px;border-radius:13px;border:1.5px solid ${feeling===id?'var(--clay)':'var(--line)'};background:${feeling===id?'var(--clayBg)':'var(--cream)'};text-align:left;font-size:14.5px;font-weight:600;cursor:pointer;">${label}</button>`).join('')}
+          </div>
+          <div style="margin-bottom:20px;">
+            <div style="font-size:12.5px;font-weight:700;color:var(--inkSoft);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">Emotional rating</div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+              ${['&#128534;','&#128528;','&#128512;','&#129321;','&#10024;'].map((e,i)=>`
+                <button class="ratingBtn" data-i="${i}" style="width:44px;height:44px;border-radius:50%;border:2px solid ${rating===i?'var(--clay)':'transparent'};background:${rating===i?'var(--clayBg)':'transparent'};font-size:22px;cursor:pointer;">${e}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+        <button class="btn" id="checkinSend" ${feeling?'':'disabled'} style="opacity:${feeling?1:.4};">Send to Naomi</button>
+      </div>`;
+    document.querySelectorAll('.feelBtn').forEach(b => {
+      b.onclick = () => { feeling = b.dataset.id; paint(); };
+    });
+    document.querySelectorAll('.ratingBtn').forEach(b => {
+      b.onclick = () => { rating = +b.dataset.i; paint(); };
+    });
+    document.getElementById('checkinSend').onclick = () => { if(feeling) go('relationshipbuilding'); };
+  }
+  paint();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// RELATIONSHIP BUILDING
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.relationshipbuilding = function(){
+  $body.innerHTML = `
+    <div class="screen" style="padding:26px;overflow-y:auto;">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:22px;">
+        <div class="naomiAvatar">N</div>
+        <div class="naomiBubble" style="font-size:14px;line-height:1.5;">You found someone worth exploring. Now let me help you build something real. I&rsquo;ll support you both &mdash; neither of you sees the other&rsquo;s private responses.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        ${[
+          ['Long-term relationship support','Check-ins, friction point coaching, communication guidance as you build.'],
+          ['Mutual NAOMI sign-on','Both of you can log in. Naomi holds space for the relationship, not just the individuals.'],
+          ['Surprise question','One question from Naomi every week &mdash; designed to deepen the conversation.'],
+        ].map(([t,d])=>`
+          <div style="border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:var(--cream);">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${t}</div>
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${d}</div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" id="goMilestone">Continue</button>
+    </div>`;
+  document.getElementById('goMilestone').onclick = () => go('milestone');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MILESTONES
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.milestone = function(){
+  const milestones = [
+    { label:'3 dates', status:'reached', note:'Naomi checks in: "Still going?" Both say yes.' },
+    { label:'Exclusive', status:'active', note:'You both confirm. Naomi logs the milestone privately.' },
+    { label:'6 months', status:'upcoming', note:'Optional deeper check-in &mdash; how are things going, really?' },
+    { label:'Relationship', status:'upcoming', note:'Both confirm. Success fee is triggered. Naomi celebrates with you.' },
+  ];
+  $body.innerHTML = `
+    <div class="screen" style="padding:26px;overflow-y:auto;">
+      <div class="screenLabel">milestones</div>
+      <h1 class="disp" style="font-size:22px;margin-bottom:6px;">After 3+ dates &mdash;</h1>
+      <p class="bodyMuted" style="font-size:13px;margin-bottom:22px;">Naomi tracks privately. Nothing shared without both of you confirming.</p>
+      <div style="position:relative;padding-left:26px;margin-bottom:24px;">
+        <div style="position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--line);"></div>
+        ${milestones.map(m=>`
+          <div style="position:relative;margin-bottom:18px;">
+            <div style="position:absolute;left:-21px;top:3px;width:12px;height:12px;border-radius:50%;border:2px solid ${m.status==='upcoming'?'var(--line)':m.status==='active'?'var(--clay)':'var(--ok)'};background:${m.status==='upcoming'?'var(--paper)':m.status==='active'?'var(--clayBg)':'var(--okBg)'};"></div>
+            <div style="font-weight:700;font-size:14.5px;color:${m.status==='upcoming'?'var(--inkSoft)':'var(--ink)'};">${m.label}</div>
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${m.note}</div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" id="goFee">Continue</button>
+    </div>`;
+  document.getElementById('goFee').onclick = () => go('successfee');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SUCCESS FEE
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.successfee = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="background:var(--gold);padding:28px;">
+      <div style="text-align:center;">
+        <div style="font-size:40px;margin-bottom:16px;">&#127881;</div>
+        <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.16em;color:var(--navy);opacity:.6;margin-bottom:8px;">THE BUSINESS MODEL MADE VISIBLE</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:24px;color:var(--navy);margin-bottom:12px;line-height:1.25;">You found someone.<br>Naomi earned it.</h1>
+        <p style="font-size:14px;color:var(--navy);opacity:.75;margin-bottom:22px;line-height:1.6;">A one-time success fee applies now &mdash; because this is exactly what NAOMI exists to do. Our incentives were always aligned with yours.</p>
+        <div style="background:rgba(31,58,53,.12);border-radius:14px;padding:18px;margin-bottom:24px;text-align:left;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--navy);opacity:.7;margin-bottom:10px;">What this fee means</div>
+          ${["We didn&rsquo;t earn when you subscribed","We didn&rsquo;t earn by keeping you swiping","We earned when you actually found someone"].map(t=>`
+            <div style="display:flex;gap:8px;font-size:13.5px;color:var(--navy);margin-bottom:7px;"><span>&#10003;</span>${t}</div>`).join('')}
+        </div>
+      </div>
+      <div class="col">
+        <button class="btn" id="feeAccept" style="background:var(--navy);">Accept &mdash; continue to next chapter</button>
+        <button id="feeLater" style="background:none;border:none;font-family:var(--fontBody);font-size:13px;color:var(--navy);opacity:.6;cursor:pointer;">I&rsquo;ll review the details first</button>
+      </div>
+    </div>`;
+  document.getElementById('feeAccept').onclick = () => go('offboarding');
+  document.getElementById('feeLater').onclick = () => go('offboarding');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// OFFBOARDING
+// ═══════════════════════════════════════════════════════════════
+RENDERERS.offboarding = function(){
+  $body.innerHTML = `
+    <div class="screen justifyCenter" style="padding:28px;text-align:center;">
+      <div>
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--okBg);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;">&#128149;</div>
+        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--inkSoft);margin-bottom:10px;">NAYA IS NOT USING NAOMI ANYMORE</div>
+        <h1 style="font-family:var(--fontDisplay);font-size:24px;margin-bottom:12px;line-height:1.3;">That was always<br>the goal.</h1>
+        <p style="font-size:14px;color:var(--inkSoft);line-height:1.6;margin-bottom:28px;">We hope you and Daniel build something beautiful. Naomi will always be here if you ever need her again &mdash; for yourself, or for someone you love.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" id="referBtn">Refer a friend to NAOMI</button>
+          <button class="btnGhost" id="restartBtn">Restart prototype from the beginning</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('referBtn').onclick = () => { history = ['splash']; render('splash'); };
+  document.getElementById('restartBtn').onclick = () => { history = ['splash']; render('splash'); };
+};
+
+/* ============================================================
+   Frame orchestration
+   ============================================================ */
+function render(id, skipPush){
+  clearTimers();
+  RENDERERS[id]();
+  setStatusDark(DARK_STATUS_SCREENS.has(id));
+  const idx = FLOW_ORDER.indexOf(id);
+  $stepBadge.textContent = `${SECTION_LABELS[id] || '—'} · ${idx >= 0 ? idx + 1 : '?'}/${FLOW_ORDER.length}`;
+  $backBtn.disabled = history.length < 2;
+  paintJumpNav(id);
+}
+
+function paintJumpNav(current){
+  const groups = {};
+  FLOW_ORDER.forEach(id => {
+    const sec = SECTION_LABELS[id] || '—';
+    (groups[sec] = groups[sec] || []).push(id);
+  });
+  $jumpNavContent.innerHTML = Object.entries(groups).map(([sec, ids]) => `
+    <div class="jnSection">
+      <div class="jnSecLabel">${sec}</div>
+      ${ids.map(id => `<button class="jnBtn ${id === current ? 'active' : ''}" data-id="${id}">${id}</button>`).join('')}
+    </div>`).join('');
+  $jumpNavContent.querySelectorAll('.jnBtn').forEach(b => {
+    b.onclick = () => jumpTo(b.dataset.id);
+  });
+}
+
+$backBtn.onclick = back;
+
+render('splash');
+</script>
+</body>
+</html>
