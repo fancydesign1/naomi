@@ -442,7 +442,7 @@ const TRANSCRIPT_SIMS = {
 const GENERIC_SIM = "I've thought about this a lot. The honest answer is... it depends on the situation, but what I've noticed about myself is...";
 
 const FLOW_ORDER = [
-  "splash","trailer","trust","register","genderselect","phoneinput","mobileotp",
+  "splash","trailer","trust","register","mobileotp",
   "devicetrust","naomiintro",
   "kycquestions","kycdone","kycdeepdive",
   "processing","profileready",
@@ -460,7 +460,7 @@ const FLOW_ORDER = [
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
-  entry:"Onboarding", register:"Onboarding", genderselect:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
+  entry:"Onboarding", register:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
   naomiintro:"Interview",
   kycquestions:"About You", kycdone:"About You", kycdeepdive:"About You",
   textintro:"Interview", schedule:"Interview",
@@ -742,9 +742,9 @@ RENDERERS.register = function(){
       </div>
       <button class="btn" id="goPhone">Continue</button>
     </div>`;
-  document.getElementById('goPhone').onclick = () => go('genderselect');
-  document.getElementById('googleBtn').onclick = () => go('genderselect');
-  document.getElementById('appleBtn').onclick = () => go('genderselect');
+  document.getElementById('goPhone').onclick = () => go('mobileotp');
+  document.getElementById('googleBtn').onclick = () => go('mobileotp');
+  document.getElementById('appleBtn').onclick = () => go('mobileotp');
 };
 
 function renderOtp(title, sub, nextId, digits){
@@ -787,74 +787,6 @@ function renderOtp(title, sub, nextId, digits){
   $resend.onclick = () => { seconds = 42; };
   $verify.onclick = () => { if (code.filter(Boolean).length === digits) go(nextId); };
 }
-RENDERERS.genderselect = function(){
-  const options = [
-    { id:'woman', emoji:'♀', label:'Woman',       sub:'Free membership — Naomi is your advocate.' },
-    { id:'man',   emoji:'♂', label:'Man',          sub:'Subscription required after verification.' },
-    { id:'other', emoji:'✦', label:'Non-binary / prefer not to say', sub:'' },
-  ];
-  function paint(sel){
-    $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:28px;">
-        <div>
-          <h1 class="disp" style="font-size:26px;margin-bottom:8px;">I identify as&hellip;</h1>
-          <p class="bodyMuted" style="font-size:13px;margin-bottom:26px;">This helps Naomi personalise your experience. You can update this any time.</p>
-          <div class="col" style="gap:10px;">
-            ${options.map(o => `
-              <div class="genderOpt" data-id="${o.id}" style="
-                padding:18px 20px;border-radius:16px;cursor:pointer;
-                border:1.5px solid ${sel===o.id?'var(--clay)':'var(--line)'};
-                background:${sel===o.id?'var(--clayBg)':'var(--cream)'};
-                display:flex;align-items:center;gap:14px;
-                transition:border-color .15s ease,background .15s ease;">
-                <span style="font-size:22px;color:var(--clay);width:28px;text-align:center;">${o.emoji}</span>
-                <div>
-                  <div style="font-size:15px;font-weight:700;color:var(--ink);">${o.label}</div>
-                  ${o.sub?`<div style="font-size:12px;color:var(--inkSoft);margin-top:2px;">${o.sub}</div>`:''}
-                </div>
-                ${sel===o.id?`<div style="margin-left:auto;width:18px;height:18px;border-radius:50%;background:var(--clay);display:flex;align-items:center;justify-content:center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`:''}
-              </div>`).join('')}
-          </div>
-        </div>
-        <button class="btn" id="genderCont" style="opacity:${sel?1:.4};">Continue</button>
-      </div>`;
-
-    document.querySelectorAll('.genderOpt').forEach(el => {
-      el.onclick = () => {
-        userGender = el.dataset.id;
-        paint(userGender);
-      };
-    });
-    document.getElementById('genderCont').onclick = () => {
-      if (userGender) go('phoneinput');
-    };
-  }
-  paint(userGender);
-};
-
-
-RENDERERS.phoneinput = function(){
-  $body.innerHTML = `
-        </div>
-        <h1 class="disp" style="font-size:25px;margin-bottom:8px;">What&rsquo;s your<br>phone number?</h1>
-        <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">We&rsquo;ll send a one-time code to verify it&rsquo;s really you. No spam, ever.</p>
-        <div style="display:flex;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--cream);">
-          <div style="padding:15px 14px;border-right:1px solid var(--line);background:var(--paperDeep);font-size:14.5px;color:var(--inkSoft);white-space:nowrap;display:flex;align-items:center;gap:6px;">
-            <span>🇺🇸</span> +1
-          </div>
-          <input id="phoneField" type="tel" placeholder="(646) 555-0148" value="(646) 555-0148"
-            style="flex:1;padding:15px 16px;border:none;background:transparent;font-family:var(--fontBody);font-size:15px;outline:none;color:var(--ink);" />
-        </div>
-        <div style="margin-top:14px;font-size:12px;color:var(--inkSoft);line-height:1.5;">
-          &#128274; Your number is used only for verification and security. It&rsquo;s never shown on your profile.
-        </div>
-      </div>
-      <button class="btn" id="sendCode">Send verification code</button>
-    </div>`;
-  document.getElementById('phoneBack').onclick = () => back();
-  document.getElementById('sendCode').onclick = () => go('mobileotp');
-};
-
 RENDERERS.mobileotp = () => renderOtp("Verify your phone", "", "devicetrust", 6);
 
 RENDERERS.devicetrust = function(){
