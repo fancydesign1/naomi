@@ -259,49 +259,193 @@ function setStatusDark(dark){
   document.querySelectorAll('.sigstroke').forEach(el => el.setAttribute('stroke', dark ? '#FFFCF6' : '#1C1B19'));
 }
 
-// ── 3-tier KYC question bank ─────────────────────────────────────────────────
-// Tier 1 — Essentials (required, gates first matches, ~3 min)
-// Goal: relationship intent + life context. Low-stakes, easy to answer.
-const T1_QUESTIONS = [
-  { q: "What kind of relationship are you looking for?",         hint: "Marriage, long-term, still figuring it out — all honest answers." },
-  { q: "Do you have kids? Do you want kids?",                    hint: "Both questions in one — answer however feels natural." },
-  { q: "What do you do for work — in your own words?",          hint: "Not your job title. What you actually do." },
-  { q: "How would you describe yourself in a few sentences?",   hint: "Not the dating-profile version. The real one." },
-  { q: "What would a perfect day look like for you?",           hint: "From morning to night. Don\'t edit it." },
+// ── QUESTION BANK — 8 psychologically sequenced blocks ───────────────────────
+// Block 1–2 are REQUIRED (5 Qs). Block 3–4 are CORE (strongly encouraged, individually skippable).
+// Blocks 5–8 are OPTIONAL (can be deferred entirely, returned to later).
+
+const KYC_BLOCKS = [
+  {
+    id: "b1",
+    label: "About you",
+    color: "var(--navy)",
+    textColor: "var(--cream)",
+    barColor: "var(--gold)",
+    required: true,
+    goal: "A light introduction — your daily life and where you are right now.",
+    questions: [
+      { id:"b1q1", q:"Where do you live, and do you love it there?",              hint:"City, neighbourhood, or just the vibe — whatever feels true." },
+      { id:"b1q2", q:"What do you do for work — in your own words?",              hint:"Not your job title. What you actually do day to day." },
+      { id:"b1q3", q:"What does a typical day look like for you?",                hint:"Walk us through it. Morning through evening." },
+      { id:"b1q4", q:"What do you enjoy doing in your free time?",               hint:"The things you actually do, not just the things you say you do." },
+      { id:"b1q5", q:"What kind of relationship are you looking for?",           hint:"There's no wrong answer — just an honest one." },
+    ]
+  },
+  {
+    id: "b2",
+    label: "What drives you",
+    color: "var(--navy)",
+    textColor: "var(--cream)",
+    barColor: "var(--gold)",
+    required: true,
+    goal: "What engages and motivates you internally.",
+    questions: [
+      { id:"b2q1", q:"What are you genuinely passionate about right now?",        hint:"Not what you think sounds good. What actually lights you up." },
+      { id:"b2q2", q:"What activities make you lose track of time?",              hint:"The thing where you look up and two hours have passed." },
+      { id:"b2q3", q:"What motivates you most in life?",                         hint:"Recognition, growth, freedom, love — or something else entirely?" },
+      { id:"b2q4", q:"What's something new you've recently become interested in?", hint:"Could be anything. Big or small." },
+      { id:"b2q5", q:"Do you prefer stability, growth, or adventure right now?",  hint:"Or a combination — tell Naomi how you'd put it." },
+    ]
+  },
+  {
+    id: "b3",
+    label: "How you think",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Your decision-making style and how you handle uncertainty.",
+    questions: [
+      { id:"b3q1", q:"How do you usually make important decisions?",               hint:"Gut feeling, research, talking it through — what's your process?" },
+      { id:"b3q2", q:"Do you rely more on logic, intuition, or a mix of both?",   hint:"No right answer. Naomi just wants to understand how your mind works.", optional: true },
+      { id:"b3q3", q:"Do you prefer planning ahead or going with the flow?",       hint:"Or does it depend? Tell Naomi when and why." },
+      { id:"b3q4", q:"What is harder for you — starting something new or finishing what you started?", hint:"Most people have a clear answer.", optional: true },
+      { id:"b3q5", q:"How do you handle uncertainty?",                             hint:"The moments when you don't know what comes next.", optional: true },
+    ]
+  },
+  {
+    id: "b4",
+    label: "Emotions & stress",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Emotional regulation and how you behave under pressure.",
+    questions: [
+      { id:"b4q1", q:"How do you usually react when you're stressed?",            hint:"What does stress actually look like for you?" },
+      { id:"b4q2", q:"How do you behave during disagreements?",                   hint:"Do you go quiet, talk it out, need space, or something else?" },
+      { id:"b4q3", q:"Do you prefer to talk things out immediately or take space first?", hint:"In relationships and with people close to you.", optional: true },
+      { id:"b4q4", q:"What kinds of behaviour from others bother you most?",       hint:"Not a dealbreaker list — just what genuinely gets to you.", optional: true },
+      { id:"b4q5", q:"How long does it usually take you to cool down after an argument?", hint:"Be honest. There's no impressive answer here.", optional: true },
+    ]
+  },
+  {
+    id: "b5",
+    label: "People & connection",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Empathy, social style, and how you relate to others.",
+    questions: [
+      { id:"b5q1", q:"What kind of people do you naturally connect with?",         hint:"What do they tend to have in common?", optional: true },
+      { id:"b5q2", q:"How do you usually react when someone disappoints you?",     hint:"Your first instinct and what you do with it.", optional: true },
+      { id:"b5q3", q:"Do you find it easy or difficult to forgive others?",        hint:"Be specific if you can.", optional: true },
+      { id:"b5q4", q:"How important is loyalty in friendships and relationships?", hint:"What does loyalty actually mean to you?", optional: true },
+      { id:"b5q5", q:"Who do you genuinely admire, and why?",                      hint:"Someone real — living or not.", optional: true },
+    ]
+  },
+  {
+    id: "b6",
+    label: "Values",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Your ethical foundation and what you won't compromise on.",
+    questions: [
+      { id:"b6q1", q:"What is absolutely unacceptable for you in a relationship?",  hint:"The things you know, not just the things you think.", optional: true },
+      { id:"b6q2", q:"What does honesty mean to you in practice?",                  hint:"Not the definition — how you actually live it.", optional: true },
+      { id:"b6q3", q:"Are there things you would never forgive?",                   hint:"This takes courage to answer honestly.", optional: true },
+      { id:"b6q4", q:"What matters more to you: honesty or emotional comfort?",     hint:"When they conflict — which wins?", optional: true },
+      { id:"b6q5", q:"Do you think people can change their core values over time?",  hint:"And has it ever happened to you?", optional: true },
+    ]
+  },
+  {
+    id: "b7",
+    label: "Self-awareness",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Introspection, psychological depth, and how well you know yourself.",
+    questions: [
+      { id:"b7q1", q:"What do you think is your biggest weakness?",                 hint:"The one you'd actually admit to.", optional: true },
+      { id:"b7q2", q:"What criticism do you hear most often from others?",          hint:"Even if you don't fully agree with it.", optional: true },
+      { id:"b7q3", q:"What do people often misunderstand about you?",               hint:"Something that surprises people once they know you better.", optional: true },
+      { id:"b7q4", q:"What is something you are still learning about yourself?",    hint:"It's okay if the answer is uncertain.", optional: true },
+      { id:"b7q5", q:"In what situations do you act differently than you'd like to?", hint:"No judgement. Just honesty.", optional: true },
+    ]
+  },
+  {
+    id: "b8",
+    label: "Relationships",
+    color: "var(--paper)",
+    textColor: "var(--ink)",
+    barColor: "var(--clay)",
+    required: false,
+    goal: "Romantic patterns, attachment style, and what you're actually like in love.",
+    questions: [
+      { id:"b8q1", q:"What does a healthy relationship look like to you?",          hint:"The day-to-day, not just the big picture.", optional: true },
+      { id:"b8q2", q:"How do you usually show care in relationships?",              hint:"Actions, words, presence — how does it show up?", optional: true },
+      { id:"b8q3", q:"What is most difficult for you in relationships?",            hint:"The pattern you keep running into.", optional: true },
+      { id:"b8q4", q:"Do you have kids, or would you like to?",                    hint:"There's no wrong answer — Naomi just needs to know.", optional: true },
+      { id:"b8q5", q:"Do you prefer closeness or independence in relationships?",   hint:"Or somewhere in between — and where exactly?", optional: true },
+    ]
+  },
 ];
 
-// Tier 2 — High-signal personality layer (~5 min, shown post-T1, deferrable)
-// Goal: values, quirks, emotional patterns. Indirect questions reveal the most.
-const T2_QUESTIONS = [
-  { q: "What do you value most in a friendship?",               hint: "Think of your closest friend. What makes them irreplaceable?" },
-  { q: "What are you obsessed about right now?",                hint: "The thing you can\'t stop thinking or talking about." },
-  { q: "What do you irrationally hate?",                        hint: "Something small that bothers you more than it should." },
-  { q: "Before making a phone call, do you rehearse what to say? Why?",   hint: "No wrong answer — this tells us how your mind works." },
-  { q: "Is there something you\'ve dreamt of doing for a long time?",    hint: "And why haven\'t you done it yet?" },
-  { q: "How do you define success?",                            hint: "Not the LinkedIn version." },
-  { q: "What music gives you goosebumps?",                      hint: "Name a specific song or moment if you can." },
-  { q: "What have you made recently?",                          hint: "Cooked, built, written, grown — anything counts." },
-];
+// Flatten questions with block metadata for the question renderer
+const ALL_QUESTIONS = KYC_BLOCKS.flatMap(b =>
+  b.questions.map(q => ({ ...q, blockId: b.id, blockLabel: b.label, blockColor: b.color, blockTextColor: b.textColor, blockBarColor: b.barColor, blockRequired: b.required }))
+);
 
-// Tier 3 — Depth layer (optional, unlocked after first match, shown in-app)
-// Goal: vulnerability, emotional range, self-awareness. Never shown during onboarding.
-const T3_QUESTIONS = [
-  { q: "When did you last cry in front of another person?",     hint: "And were you okay with it?" },
-  { q: "What\'s the hardest thing you\'ve ever done?",        hint: "Not necessarily the most dramatic." },
-  { q: "If a crystal ball could tell you the truth about anything — what would you ask?", hint: "Take your time." },
-  { q: "What would you do if you had no fear?",                 hint: "Be specific." },
-  { q: "What\'s your proudest accomplishment?",                hint: "Something only you would think to mention." },
-  { q: "What do you wish you were better at saying no to?",     hint: "Be honest." },
-  { q: "If you could wake up tomorrow with one new ability — what would it be?", hint: "Not a superpower. Something real." },
-  { q: "What makes a house a home?",                            hint: "Objects, people, feelings — go wherever this takes you." },
-];
+// Required questions (blocks 1-2, all 10)
+const REQUIRED_IDS = new Set(
+  KYC_BLOCKS.filter(b => b.required).flatMap(b => b.questions.map(q => q.id))
+);
+
+// Core questions (blocks 3-4, not optional-flagged)
+const CORE_IDS = new Set(
+  KYC_BLOCKS.filter(b => !b.required).slice(0,2).flatMap(b => b.questions.filter(q => !q.optional).map(q => q.id))
+);
+
+// Progress save/load via localStorage
+const SAVE_KEY = 'naomi_kyc_v1';
+function saveProgress(answers, blockIdx, qIdx){
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ answers, blockIdx, qIdx, ts: Date.now() })); } catch(e){}
+}
+function loadProgress(){
+  try { const d = localStorage.getItem(SAVE_KEY); return d ? JSON.parse(d) : null; } catch(e){ return null; }
+}
+function clearProgress(){
+  try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+}
+
+// Transcript simulations per question ID (subset — others get generic)
+const TRANSCRIPT_SIMS = {
+  b1q1: "I live in Manhattan, the West Village. I love it — it's the right amount of chaotic.",
+  b1q2: "I work in marketing — brand strategy for a B2B SaaS company. Mostly I build narratives.",
+  b1q3: "Early mornings are mine. Run, coffee, inbox. Afternoons are meetings. Evenings I try to protect.",
+  b1q4: "Cooking on weekends, reading when I can, running when I need to think. That's pretty much it.",
+  b1q5: "I'm looking for something serious. Long-term, maybe marriage. I'm done with ambiguity.",
+  b2q1: "Right now, emotional intelligence. How people work. Why we do what we do in relationships.",
+  b2q2: "Reading and cooking. I completely lose track of time in both.",
+  b2q3: "Growth, honestly. But not restless growth. Growth with roots.",
+  b2q4: "Urban design. I've been obsessed with how cities are built for — or against — people.",
+  b2q5: "Growth. Definitely growth. But I want stability underneath it.",
+  b3q1: "I research a lot, then trust my gut for the final call. The gut is usually right.",
+  b4q1: "I go quiet first. Then I need to talk it out. The quiet can last a while.",
+  b4q2: "I need space first. Then I want to talk. If I talk too soon I say things I regret.",
+  b7q1: "Overthinking. I can run laps around a decision before I make it.",
+  b8q3: "I can be too independent. I'm still learning to ask for support.",
+};
+const GENERIC_SIM = "I've thought about this a lot. The honest answer is... it depends on the situation, but what I've noticed about myself is...";
 
 const FLOW_ORDER = [
-  "splash","trailer","trust","entry","register","phoneinput","mobileotp",
+  "splash","trailer","trust","register","genderselect","phoneinput","mobileotp",
   "devicetrust","naomiintro",
-  "t1intro","t1questions","t1done",
-  "t2intro","t2questions","t2deferred",
-  "interviewdone","processing","profileready",
+  "kycquestions","kycdone","kycdeepdive",
+  "processing","profileready",
   "dna",
   "badge1intro","badge1doc","badge1bio","badge1age","badge1done",
   "badge2intro","badge2doc","badge2done",
@@ -316,11 +460,10 @@ const FLOW_ORDER = [
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
-  entry:"Onboarding", register:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
-  naomiintro:"The Essentials",
-  t1intro:"The Essentials", t1questions:"The Essentials", t1done:"The Essentials",
-  t2intro:"Who You Really Are", t2questions:"Who You Really Are", t2deferred:"Who You Really Are",
-  textintro:"Interview", schedule:"Interview", interviewdone:"Interview",
+  entry:"Onboarding", register:"Onboarding", genderselect:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
+  naomiintro:"Interview",
+  kycquestions:"About You", kycdone:"About You", kycdeepdive:"About You",
+  textintro:"Interview", schedule:"Interview",
   processing:"DNA Profile", profileready:"DNA Profile", dna:"DNA Profile",
   badge1intro:"Verification L1", badge1doc:"Verification L1", badge1bio:"Verification L1", badge1age:"Verification L1", badge1done:"Verification L1",
   badge2intro:"Verification L2", badge2doc:"Verification L2", badge2done:"Verification L2",
@@ -333,7 +476,7 @@ const SECTION_LABELS = {
   datebriefing:"First Date", venueengine:"First Date", dayoftoolkit:"First Date", postdatecheckin:"First Date",
   relationshipbuilding:"Relationship & Beyond", milestone:"Relationship & Beyond", successfee:"Relationship & Beyond", offboarding:"Relationship & Beyond",
 };
-const DARK_STATUS_SCREENS = new Set(["splash","trailer","devicetrust","processing","activation","t1questions","matchwaiting","paywall","thereveal"]);
+const DARK_STATUS_SCREENS = new Set(["splash","trailer","devicetrust","processing","activation","kycquestions","matchwaiting","paywall","thereveal"]);
 
 function go(id){
   if (!RENDERERS[id]) return;
@@ -369,116 +512,217 @@ const RENDERERS = {};
 
 RENDERERS.splash = function(){
   $body.innerHTML = `
-    <div class="screen justifyCenter" style="background:var(--navy);align-items:center;">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
-        <div style="width:64px;height:64px;border-radius:50%;border:1.5px solid var(--goldSoft);display:flex;align-items:center;justify-content:center;">
-          <span style="font-family:var(--fontDisplay);font-size:28px;color:var(--cream);font-style:italic;">N</span>
+    <div class="screen justifyCenter" style="background:var(--navy);align-items:center;overflow:hidden;">
+
+      <!-- Ambient glow behind the logo -->
+      <div id="splashGlow" style="
+        position:absolute;width:280px;height:280px;border-radius:50%;
+        background:radial-gradient(circle, rgba(201,162,75,.18) 0%, transparent 70%);
+        opacity:0;transition:opacity 1.2s ease;pointer-events:none;">
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0;position:relative;z-index:1;">
+
+        <!-- Ring + N mark -->
+        <div style="position:relative;width:88px;height:88px;margin-bottom:22px;">
+
+          <!-- SVG ring that draws itself -->
+          <svg width="88" height="88" viewBox="0 0 88 88" style="position:absolute;top:0;left:0;">
+            <circle id="splashRing" cx="44" cy="44" r="40"
+              fill="none"
+              stroke="rgba(201,162,75,.7)"
+              stroke-width="1"
+              stroke-linecap="round"
+              stroke-dasharray="251.3"
+              stroke-dashoffset="251.3"
+              transform="rotate(-90 44 44)"
+              style="transition:stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1);"
+            />
+          </svg>
+
+          <!-- N lettermark -->
+          <div id="splashN" style="
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            opacity:0;transform:scale(.75);
+            transition:opacity .5s ease, transform .5s cubic-bezier(.34,1.56,.64,1);">
+            <span style="font-family:var(--fontDisplay);font-size:36px;color:var(--cream);font-style:italic;line-height:1;">N</span>
+          </div>
         </div>
-        <div style="font-family:var(--fontDisplay);font-size:30px;color:var(--cream);letter-spacing:.02em;">naomi</div>
-        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--goldSoft);margin-top:4px;">
+
+        <!-- Wordmark: letters staggered -->
+        <div id="splashWord" style="overflow:hidden;height:42px;display:flex;align-items:center;">
+          ${'naomi'.split('').map((l,i) => `
+            <span class="splashLetter" style="
+              font-family:var(--fontDisplay);font-size:34px;color:var(--cream);
+              letter-spacing:.06em;display:inline-block;
+              opacity:0;transform:translateY(18px);
+              transition:opacity .35s ease ${500 + i*70}ms, transform .45s cubic-bezier(.22,1,.36,1) ${500 + i*70}ms;">
+              ${l}
+            </span>`).join('')}
+        </div>
+
+        <!-- Tagline -->
+        <div id="splashTag" style="
+          font-family:var(--fontMono);font-size:10.5px;letter-spacing:.2em;
+          text-transform:uppercase;color:var(--goldSoft);
+          margin-top:16px;opacity:0;transform:translateY(8px);
+          transition:opacity .6s ease 1.35s, transform .6s ease 1.35s;">
           the world&rsquo;s first ai matchmaker
         </div>
+
+      </div>
+
+      <!-- Full-screen fade-out overlay -->
+      <div id="splashFade" style="
+        position:absolute;inset:0;background:var(--navy);
+        opacity:0;pointer-events:none;
+        transition:opacity .55s ease;">
       </div>
     </div>`;
-  timers.push(setTimeout(() => go('trailer'), 2200));
+
+  // ── Sequence ─────────────────────────────────────────────────────────────
+  // t=100ms  ring starts drawing
+  timers.push(setTimeout(() => {
+    const ring = document.getElementById('splashRing');
+    const glow = document.getElementById('splashGlow');
+    if (ring) ring.style.strokeDashoffset = '0';
+    if (glow) glow.style.opacity = '1';
+  }, 100));
+
+  // t=550ms  N lettermark appears
+  timers.push(setTimeout(() => {
+    const n = document.getElementById('splashN');
+    if (n) { n.style.opacity = '1'; n.style.transform = 'scale(1)'; }
+  }, 550));
+
+  // t=750ms  wordmark letters cascade in (CSS transitions handle stagger)
+  timers.push(setTimeout(() => {
+    document.querySelectorAll('.splashLetter').forEach(el => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    });
+  }, 750));
+
+  // t=2600ms fade everything out then route to trailer
+  timers.push(setTimeout(() => {
+    const fade = document.getElementById('splashFade');
+    if (fade) fade.style.opacity = '1';
+    timers.push(setTimeout(() => go('trailer'), 580));
+  }, 2600));
 };
 
+
 RENDERERS.trailer = function(){
-  const lines = [
-    ["Meet Naomi.", 26],
-    ["Not another dating app.", 18],
-    ["Not endless swiping.", 18],
-    ["She gets to know your values, your goals, your Relationship DNA &mdash;", 18],
-    ["then searches for people who genuinely fit it.", 18],
+  const scenes = [
+    { line: "Meet Naomi.",                                                          size: 28 },
+    { line: "Not another dating app.",                                              size: 20 },
+    { line: "Not endless swiping.",                                                 size: 20 },
+    { line: "She gets to know your values, your goals, your Relationship DNA \u2014", size: 16 },
+    { line: "then finds people who genuinely fit it.",                              size: 20 },
   ];
+
   $body.innerHTML = `
-    <div class="screen justifyBetween" style="background:var(--navy);">
-      <div>
-        <div class="screenLabel" style="color:var(--goldSoft);">trailer</div>
-        <div style="margin-top:30px;display:flex;flex-direction:column;gap:16px;">
-          ${lines.map(([t,s]) => `<div style="font-family:var(--fontDisplay);font-size:${s}px;color:var(--cream);line-height:1.3;opacity:.95;">${t}</div>`).join('')}
-        </div>
+    <div style="height:100%;background:var(--navy);display:flex;flex-direction:column;position:relative;" id="trailerScroll">
+
+      <div style="flex:1;overflow-y:auto;padding:32px 28px 0;display:flex;flex-direction:column;gap:28px;" id="trailerContent">
+        ${scenes.map((s,i) => `
+          <div class="trailerBlock" data-i="${i}" style="opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);">
+            <div style="font-family:var(--fontDisplay);font-size:${s.size}px;color:var(--cream);line-height:1.35;">${s.line}</div>
+          </div>`).join('')}
       </div>
-      <button class="btn gold" id="goTrust">Continue</button>
+
+      <!-- Skip button — pinned to bottom, always visible -->
+      <div style="padding:20px 28px 32px;display:flex;justify-content:center;flex-shrink:0;">
+        <button id="trailerSkip" style="padding:10px 28px;border-radius:20px;border:1px solid rgba(255,252,246,.2);background:transparent;color:rgba(255,252,246,.5);font-family:var(--fontBody);font-size:13.5px;cursor:pointer;">Skip</button>
+      </div>
+
+      <!-- Fade-out overlay -->
+      <div id="trailerFade" style="position:absolute;inset:0;background:var(--navy);opacity:0;pointer-events:none;transition:opacity .6s ease;z-index:10;"></div>
     </div>`;
-  document.getElementById('goTrust').onclick = () => go('trust');
+
+  // ── Sequence: reveal each line then auto-route ────────────────────────────
+  const STAGGER = 1800;
+  const TOTAL   = scenes.length * STAGGER;
+
+
+  // Skip button
+  const skip = document.getElementById('trailerSkip');
+  if (skip) skip.onclick = () => {
+    const fade = document.getElementById('trailerFade');
+    if (fade) fade.style.opacity = '1';
+    timers.push(setTimeout(() => go('trust'), 650));
+  };
+
+  scenes.forEach((_, i) => {
+    timers.push(setTimeout(() => {
+      const block = document.querySelector(`.trailerBlock[data-i="${i}"]`);
+      if (block) {
+        block.style.opacity = '1';
+        block.style.transform = 'translateY(0)';
+        setTimeout(() => {
+          block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 200);
+      }
+    }, i * STAGGER));
+  });
+
+  // After all revealed: hold 1.2s then fade out → trust
+  timers.push(setTimeout(() => {
+    const fade = document.getElementById('trailerFade');
+    if (fade) fade.style.opacity = '1';
+    timers.push(setTimeout(() => go('trust'), 650));
+  }, TOTAL + 1200));
 };
+
 
 RENDERERS.trust = function(){
   const principles = [
-    ["Your privacy comes first.", "We never sell your data or sell you to advertisers."],
-    ["We don&rsquo;t optimize for swipes.", "Our algorithm isn&rsquo;t built to keep you scrolling."],
-    ["We only succeed when you do.", "Our incentives are tied to outcomes, not screen time."],
-    ["Every member is verified.", "Identity and trust checks, before anyone is introduced."],
+    ["Your privacy comes first.", "We never sell your data."],
+    ["We don\u2019t optimize for swipes.", "We optimize for outcomes."],
+    ["We only succeed when you do.", "Incentives aligned with yours."],
+    ["Every member is verified.", "Identity checks before any introduction."],
   ];
   $body.innerHTML = `
-    <div class="screen justifyBetween">
+    <div class="screen justifyBetween" style="padding:26px;">
       <div>
-        <div class="screenLabel">trust manifesto</div>
-        <h1 class="disp" style="font-size:30px;line-height:1.15;">Trust comes <span style="font-style:italic;color:var(--clay);">first.</span></h1>
-        <div style="display:flex;flex-direction:column;gap:18px;">
+        <h1 class="disp" style="font-size:28px;line-height:1.15;margin-bottom:22px;">Trust comes <span style="font-style:italic;color:var(--clay);">first.</span></h1>
+        <div style="display:flex;flex-direction:column;gap:11px;">
           ${principles.map(([t,d]) => `
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <div style="width:6px;height:6px;border-radius:50%;background:var(--clay);margin-top:8px;flex-shrink:0;"></div>
-              <div>
-                <div style="font-weight:700;font-size:14.5px;">${t}</div>
-                <div style="font-size:13px;color:var(--inkSoft);margin-top:2px;">${d}</div>
-              </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:5px;height:5px;border-radius:50%;background:var(--clay);margin-top:7px;flex-shrink:0;"></div>
+              <div style="font-size:13px;color:var(--inkSoft);"><span style="font-weight:700;color:var(--ink);">${t}</span> ${d}</div>
             </div>`).join('')}
         </div>
       </div>
-      <button class="btn" id="goEntry">Ready to get started</button>
-    </div>`;
-  document.getElementById('goEntry').onclick = () => go('entry');
-};
-
-RENDERERS.entry = function(){
-  let picked = null;
-  $body.innerHTML = `
-    <div class="screen justifyBetween">
       <div>
-        <div class="screenLabel">step 1 of 12</div>
-        <h1 class="disp" style="font-size:28px;margin-bottom:28px;">Why are you here today?</h1>
-        <div class="col">
-          <button class="entryOpt" data-id="love" style="text-align:left;padding:20px 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;display:flex;align-items:center;gap:14px;">
-            <span style="font-size:20px;color:var(--clay);">&hearts;</span>
-            <div><div style="font-weight:700;font-size:15px;">I&rsquo;m here to find love</div></div>
+        <p style="font-size:13px;color:var(--inkSoft);margin-bottom:14px;text-align:center;">Why are you here today?</p>
+        <div class="col" style="gap:10px;">
+          <button id="goLove" class="btn" style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;">
+            <span style="font-size:18px;">&#9825;</span> I&rsquo;m here to find love
           </button>
-          <button class="entryOpt" data-id="help" disabled style="text-align:left;padding:20px 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:not-allowed;opacity:.45;display:flex;align-items:center;gap:14px;">
-            <span style="font-size:20px;color:var(--clay);">&#10022;</span>
+          <button disabled style="text-align:left;padding:16px 18px;border-radius:14px;border:1px solid var(--line);background:transparent;cursor:not-allowed;opacity:.4;display:flex;align-items:center;gap:12px;font-family:var(--fontBody);">
+            <span style="font-size:16px;color:var(--clay);">&#10022;</span>
             <div>
-              <div style="font-weight:700;font-size:15px;">I&rsquo;m here to help others find love</div>
-              <div style="font-size:12px;color:var(--inkSoft);margin-top:2px;">Matchmaker &middot; Referrer &middot; Family</div>
-              <div style="font-size:11px;color:var(--inkSoft);margin-top:2px;">Coming soon</div>
+              <div style="font-weight:700;font-size:14px;color:var(--ink);">I\u2019m here to help others find love</div>
+              <div style="font-size:11.5px;color:var(--inkSoft);margin-top:2px;">Matchmaker \u00b7 Referrer \u00b7 Family \u00b7 Coming soon</div>
             </div>
           </button>
         </div>
       </div>
-      <button class="btn" id="goRegister" disabled>Continue</button>
     </div>`;
-  const $cont = document.getElementById('goRegister');
-  document.querySelectorAll('.entryOpt[data-id="love"]').forEach(btn => {
-    btn.onclick = () => {
-      picked = 'love';
-      btn.style.border = '1.5px solid var(--clay)';
-      btn.style.background = 'var(--clayBg)';
-      $cont.disabled = false;
-      $cont.style.opacity = 1;
-    };
-  });
-  $cont.onclick = () => { if (picked) go('register'); };
+  document.getElementById('goLove').onclick = () => go('register');
 };
 
 RENDERERS.register = function(){
   $body.innerHTML = `
     <div class="screen justifyBetween">
       <div>
-        <div class="screenLabel">step 2 &middot; create account</div>
-        <h1 class="disp" style="font-size:26px;margin-bottom:6px;">Create your account</h1>
-        <p class="bodyMuted" style="font-size:13px;margin-bottom:22px;">Your profile stays private until Naomi introduces you.</p>
+        <h1 class="disp" style="font-size:26px;margin-bottom:8px;">Create your account</h1>
+        <p class="bodyMuted" style="font-size:13px;margin-bottom:22px;">Your profile stays private until Naomi introduces you &mdash; we never sell your data.</p>
         <div class="col" style="margin-bottom:0;">
           <input class="field" value="Naya Weiss" placeholder="Your name" />
           <input class="field" placeholder="Email address" type="email" />
+          <input class="field" placeholder="Phone number" type="tel" value="+1 (646) 555-0148" />
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin:18px 0;">
           <div style="flex:1;height:1px;background:var(--line);"></div>
@@ -495,13 +739,12 @@ RENDERERS.register = function(){
             Apple
           </button>
         </div>
-        <div class="trustNote" style="margin-top:18px;">&#128274; We verify every member — never to sell your data.</div>
       </div>
       <button class="btn" id="goPhone">Continue</button>
     </div>`;
-  document.getElementById('goPhone').onclick = () => go('phoneinput');
-  document.getElementById('googleBtn').onclick = () => go('phoneinput');
-  document.getElementById('appleBtn').onclick = () => go('phoneinput');
+  document.getElementById('goPhone').onclick = () => go('genderselect');
+  document.getElementById('googleBtn').onclick = () => go('genderselect');
+  document.getElementById('appleBtn').onclick = () => go('genderselect');
 };
 
 function renderOtp(title, sub, nextId, digits){
@@ -510,13 +753,12 @@ function renderOtp(title, sub, nextId, digits){
   $body.innerHTML = `
     <div class="screen justifyBetween">
       <div>
-        <div class="screenLabel">${sub}</div>
+        ${sub ? `<div class="screenLabel">${sub}</div>` : ''}
         <h1 class="disp" style="font-size:24px;margin-bottom:8px;">${title}</h1>
         <p class="bodyMuted" style="margin-bottom:24px;">Enter the ${digits}-digit code we sent you.</p>
         <div class="otpRow" id="otpRow"></div>
-        <div style="display:flex;justify-content:space-between;margin-top:18px;">
+        <div style="display:flex;justify-content:flex-start;margin-top:18px;">
           <button class="textLink" id="resendLink">Resend in 0:42</button>
-          <button class="textLink">Wrong number?</button>
         </div>
       </div>
       <button class="btn" id="verifyBtn" style="opacity:.45;">Verify</button>
@@ -545,13 +787,54 @@ function renderOtp(title, sub, nextId, digits){
   $resend.onclick = () => { seconds = 42; };
   $verify.onclick = () => { if (code.filter(Boolean).length === digits) go(nextId); };
 }
+RENDERERS.genderselect = function(){
+  const options = [
+    { id:'woman', emoji:'♀', label:'Woman',       sub:'Free membership — Naomi is your advocate.' },
+    { id:'man',   emoji:'♂', label:'Man',          sub:'Subscription required after verification.' },
+    { id:'other', emoji:'✦', label:'Non-binary / prefer not to say', sub:'' },
+  ];
+  function paint(sel){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:28px;">
+        <div>
+          <h1 class="disp" style="font-size:26px;margin-bottom:8px;">I identify as&hellip;</h1>
+          <p class="bodyMuted" style="font-size:13px;margin-bottom:26px;">This helps Naomi personalise your experience. You can update this any time.</p>
+          <div class="col" style="gap:10px;">
+            ${options.map(o => `
+              <div class="genderOpt" data-id="${o.id}" style="
+                padding:18px 20px;border-radius:16px;cursor:pointer;
+                border:1.5px solid ${sel===o.id?'var(--clay)':'var(--line)'};
+                background:${sel===o.id?'var(--clayBg)':'var(--cream)'};
+                display:flex;align-items:center;gap:14px;
+                transition:border-color .15s ease,background .15s ease;">
+                <span style="font-size:22px;color:var(--clay);width:28px;text-align:center;">${o.emoji}</span>
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:var(--ink);">${o.label}</div>
+                  ${o.sub?`<div style="font-size:12px;color:var(--inkSoft);margin-top:2px;">${o.sub}</div>`:''}
+                </div>
+                ${sel===o.id?`<div style="margin-left:auto;width:18px;height:18px;border-radius:50%;background:var(--clay);display:flex;align-items:center;justify-content:center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`:''}
+              </div>`).join('')}
+          </div>
+        </div>
+        <button class="btn" id="genderCont" style="opacity:${sel?1:.4};">Continue</button>
+      </div>`;
+
+    document.querySelectorAll('.genderOpt').forEach(el => {
+      el.onclick = () => {
+        userGender = el.dataset.id;
+        paint(userGender);
+      };
+    });
+    document.getElementById('genderCont').onclick = () => {
+      if (userGender) go('phoneinput');
+    };
+  }
+  paint(userGender);
+};
+
+
 RENDERERS.phoneinput = function(){
   $body.innerHTML = `
-    <div class="screen justifyBetween">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-          <button id="phoneBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
-          <div class="screenLabel" style="margin-bottom:0;">step 3 &middot; phone number</div>
         </div>
         <h1 class="disp" style="font-size:25px;margin-bottom:8px;">What&rsquo;s your<br>phone number?</h1>
         <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">We&rsquo;ll send a one-time code to verify it&rsquo;s really you. No spam, ever.</p>
@@ -572,7 +855,7 @@ RENDERERS.phoneinput = function(){
   document.getElementById('sendCode').onclick = () => go('mobileotp');
 };
 
-RENDERERS.mobileotp = () => renderOtp("Verify your phone", "step 4 &middot; phone verification", "devicetrust", 6);
+RENDERERS.mobileotp = () => renderOtp("Verify your phone", "", "devicetrust", 6);
 
 RENDERERS.devicetrust = function(){
   const checks = ["Device fingerprint analysis","Fraud signal scoring","Risk assessment","Trust profile creation"];
@@ -610,298 +893,374 @@ RENDERERS.naomiintro = function(){
   let step = 0;
   function paint(){
     $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:20px;background:var(--paperDeep);">
-        <div>
-          <div class="screenLabel">naomi &middot; introduction</div>
-          <div style="margin-top:12px;">
-            <div class="naomiRow"><div class="naomiAvatar">N</div><div class="naomiBubble">Hi, I&rsquo;m Naomi. It&rsquo;s wonderful to have you here, Naya &mdash; just making sure I pronounce that right.</div></div>
-            ${step >= 1 ? `<div class="userRow"><div class="userBubble">Yes, that&rsquo;s right!</div></div>
-            <div class="naomiRow"><div class="naomiAvatar">N</div><div class="naomiBubble">For the next step I&rsquo;d love to get to know you a little. It takes about 3 minutes &mdash; and I think you&rsquo;ll enjoy it.</div></div>` : ''}
-          </div>
+      <div class="screen justifyCenter" style="padding:32px 28px;background:var(--paperDeep);text-align:center;">
+
+        <!-- Naomi avatar — centered, prominent -->
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;box-shadow:0 8px 24px rgba(31,58,53,.2);">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:30px;color:var(--goldSoft);">N</span>
         </div>
-        <div id="introActions"></div>
+
+        <!-- Message -->
+        <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--ink);line-height:1.5;margin-bottom:8px;max-width:280px;margin-left:auto;margin-right:auto;">
+          ${step === 0
+            ? `Hi, I&rsquo;m Naomi. It&rsquo;s wonderful to have you here, Naya &mdash; just making sure I pronounce that right.`
+            : `For the next step I&rsquo;d love to get to know you a little. It takes about 3 minutes &mdash; and I think you&rsquo;ll enjoy it.`}
+        </div>
+
+        <!-- Answer options -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:32px;width:100%;" id="introOptions"></div>
       </div>`;
-    const $actions = document.getElementById('introActions');
+
+    const $opts = document.getElementById('introOptions');
+
     if (step === 0){
-      $actions.innerHTML = `
-        <div class="row">
-          <button class="btn" style="flex:1;" id="yesName">Yes, that&rsquo;s right</button>
-          <button class="btnGhost" style="flex:1;" id="noName">No, it&rsquo;s not me</button>
-        </div>`;
-      document.getElementById('yesName').onclick = () => { step = 1; paint(); };
-      document.getElementById('noName').onclick = () => { step = 1; paint(); };
+      $opts.innerHTML = `
+        ${[
+          { id:'yes', label:'Yes, that\u2019s right' },
+          { id:'no',  label:'No, it\u2019s not me' },
+        ].map(o => `
+          <div class="choiceOpt" data-id="${o.id}" style="
+            padding:16px 20px;border-radius:14px;
+            border:1.5px solid var(--line);background:var(--cream);
+            cursor:pointer;font-size:15px;color:var(--ink);font-weight:500;
+            transition:border-color .15s ease,background .15s ease;">
+            ${o.label}
+          </div>`).join('')}`;
+      $opts.querySelectorAll('.choiceOpt').forEach(el => {
+        el.onclick = () => { step = 1; paint(); };
+      });
+
     } else {
-      $actions.innerHTML = `
-        <div class="col">
-          <button class="btn" id="startBtn">Let&rsquo;s start</button>
-          <button class="btnGhost" id="schedBtn">&#128197; Schedule for later</button>
-        </div>`;
-      document.getElementById('startBtn').onclick = () => go('t1intro');
-      document.getElementById('schedBtn').onclick = () => go('schedule');
+      $opts.innerHTML = `
+        ${[
+          { id:'start', label:'Let\u2019s start' },
+          { id:'sched', label:'&#128197; Schedule for later' },
+        ].map(o => `
+          <div class="choiceOpt" data-id="${o.id}" style="
+            padding:16px 20px;border-radius:14px;
+            border:1.5px solid var(--line);background:var(--cream);
+            cursor:pointer;font-size:15px;color:var(--ink);font-weight:500;
+            transition:border-color .15s ease,background .15s ease;">
+            ${o.label}
+          </div>`).join('')}`;
+      $opts.querySelectorAll('.choiceOpt').forEach(el => {
+        el.onmouseenter = () => { el.style.borderColor = 'var(--clay)'; el.style.background = 'var(--clayBg)'; };
+        el.onmouseleave = () => { el.style.borderColor = 'var(--line)'; el.style.background = 'var(--cream)'; };
+        el.onclick = () => {
+          el.style.borderColor = 'var(--clay)';
+          el.style.background = 'var(--clayBg)';
+          setTimeout(() => {
+            if (el.dataset.id === 'start') go('kycquestions');
+            else go('schedule');
+          }, 180);
+        };
+      });
     }
   }
   paint();
 };
 
-// ── TIER 1 INTRO ─────────────────────────────────────────────────────────────
-// mode is shared across t1 and t2 via a module-level variable
-let kycMode = 'voice'; // 'voice' | 'text'
+// ── UNIFIED KYC QUESTION RENDERER ───────────────────────────────────────────
+// One renderer handles all 8 blocks with progress saving, skip, and defer.
+let kycMode = 'voice';
+let userGender = null; // 'woman' | 'man' | 'other'
 
-RENDERERS.t1intro = function(){
-  function paint(){
-    $body.innerHTML = `
-      <div class="screen justifyBetween" style="background:var(--navy);padding:26px;">
-        <div>
-          <div style="display:inline-block;padding:5px 12px;border-radius:20px;background:rgba(201,162,75,.18);border:1px solid rgba(201,162,75,.35);margin-bottom:20px;">
-            <span style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--goldSoft);">TIER 1 &middot; THE ESSENTIALS</span>
-          </div>
-          <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);line-height:1.25;margin:0 0 14px;">5 questions.<br>About 3 minutes.</h1>
-          <p style="font-size:14px;color:rgba(255,252,246,.7);line-height:1.6;margin-bottom:22px;">These are the foundations — relationship intent, life context, who you are in your own words. Naomi needs these to find your first matches.</p>
+RENDERERS.kycquestions = function(){
 
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${["What you're looking for","Life context — kids, work","How you'd describe yourself","What a perfect day looks like"].map(l => `
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div>
-                <span style="font-size:13.5px;color:rgba(255,252,246,.8);">${l}</span>
-              </div>`).join('')}
-          </div>
-        </div>
-        <div>
-          <div style="font-size:11.5px;color:rgba(255,252,246,.4);text-align:center;margin-bottom:12px;font-family:var(--fontMono);">Required to unlock your first matches</div>
-          <button class="btn gold" id="t1Start">I'm ready — let's go</button>
-        </div>
-      </div>`;
-    document.getElementById('t1Start').onclick = () => go('t1questions');
-  }
-  paint();
-};
-
-// ── TIER 1 QUESTIONS — unified ChatGPT-style input bar ──────────────────────
-RENDERERS.t1questions = function(){
-  let qi = 0;
-  let answers = new Array(T1_QUESTIONS.length).fill('');
+  // Load saved progress or start fresh
+  const saved = loadProgress();
+  let blockIdx = saved ? saved.blockIdx : 0;
+  let qIdx     = saved ? saved.qIdx     : 0;
+  let answers  = saved ? saved.answers  : {};   // { questionId: string }
+  let skipped  = {};  // { questionId: true }
   let recording = false;
   let transcriptTimer = null;
-  const TRANSCRIPT_SIMS = [
-    "I'm looking for something serious, ideally leading to marriage...",
-    "I have one daughter, seven years old. I'd love more kids someday...",
-    "I work in marketing — brand strategy for a tech company in Manhattan...",
-    "People say I'm warm but direct. I care a lot and I move fast when I trust someone...",
-    "A perfect day starts with a run, good coffee, then something creative in the afternoon...",
-  ];
 
   function stopRecording(){
     recording = false;
     if (transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
   }
 
-  function paint(){
-    const q = T1_QUESTIONS[qi];
-    const progress = (qi / T1_QUESTIONS.length) * 100;
-    const hasAnswer = answers[qi] && answers[qi].trim().length > 0;
+  function save(){ saveProgress(answers, blockIdx, qIdx); }
+
+  // Total required Qs answered
+  function requiredDone(){
+    return [...REQUIRED_IDS].filter(id => answers[id] && answers[id].trim()).length;
+  }
+
+  // Block transition: shown between blocks
+  function showBlockTransition(){
+    const block = KYC_BLOCKS[blockIdx];
+    const isRequired = block.required;
+    const totalDone  = requiredDone();
+    const totalRequired = REQUIRED_IDS.size;
 
     $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:20px;background:var(--navy);">
+      <div class="screen justifyCenter" style="background:var(--navy);text-align:center;padding:32px;">
+        <div>
+          <div style="width:52px;height:52px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2 style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:10px;line-height:1.3;">${isRequired ? "Good start." : "You're doing great."}</h2>
+          <p style="font-size:14px;color:rgba(255,252,246,.6);margin-bottom:6px;line-height:1.6;">${block.goal}</p>
+          <p style="font-family:var(--fontMono);font-size:11px;color:rgba(255,252,246,.3);letter-spacing:.08em;margin-bottom:32px;">
+            ${block.questions.length} questions &middot; ${isRequired ? 'required' : 'optional — skip any'}
+          </p>
+          <button class="btn gold" id="blockCont" style="margin-bottom:12px;">
+            Start: ${block.label}
+          </button>
+          ${!isRequired ? `
+          <button id="blockDefer" style="width:100%;background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:8px;">
+            Save progress &amp; continue later &rarr;
+          </button>` : ''}
+        </div>
+      </div>`;
+
+    document.getElementById('blockCont').onclick = () => paint();
+    if (!isRequired){
+      document.getElementById('blockDefer').onclick = () => {
+        save();
+        go('kycdone');
+      };
+    }
+  }
+
+  function paint(){
+    const block = KYC_BLOCKS[blockIdx];
+    const q     = block.questions[qIdx];
+
+    // Total progress across all required + current optional questions
+    const totalRequired = REQUIRED_IDS.size;
+    const doneRequired  = [...REQUIRED_IDS].filter(id => answers[id] && answers[id].trim()).length;
+    const allDone       = blockIdx * 99 + qIdx; // rough visual
+    const isOpt         = q.optional;
+    const isDark        = block.color === 'var(--navy)';
+    const hasAnswer     = answers[q.id] && answers[q.id].trim().length > 0;
+
+    // Progress within current block
+    const blockProgress = (qIdx / block.questions.length) * 100;
+
+    // Overall required progress (only counts when in required blocks)
+    const reqProgress = Math.min(100, (doneRequired / totalRequired) * 100);
+
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:20px;background:${block.color};">
         <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
 
-          <!-- Header: back + progress -->
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-            <button id="t1Back" style="padding:6px 13px;border-radius:9px;border:1px solid rgba(255,252,246,.2);background:transparent;color:var(--goldSoft);font-size:12px;cursor:pointer;">&larr;</button>
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+            <button id="qBack" style="padding:6px 13px;border-radius:9px;border:1px solid ${isDark?'rgba(255,252,246,.2)':'var(--line)'};background:transparent;color:${isDark?'var(--goldSoft)':'var(--inkSoft)'};font-size:12px;cursor:pointer;">&larr;</button>
             <div style="flex:1;">
-              <div style="height:3px;border-radius:3px;background:rgba(255,252,246,.12);overflow:hidden;">
-                <div style="height:100%;width:${progress}%;background:var(--gold);border-radius:3px;transition:width .4s ease;"></div>
+              <div style="height:3px;border-radius:3px;background:${isDark?'rgba(255,252,246,.12)':'var(--paperDeep)'};overflow:hidden;">
+                <div style="height:100%;width:${blockProgress}%;background:${block.barColor};border-radius:3px;transition:width .4s ease;"></div>
               </div>
-              <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T1_QUESTIONS.length} &middot; The Essentials</div>
+              <div style="font-family:var(--fontMono);font-size:10px;color:${isDark?'rgba(255,252,246,.4)':'var(--inkSoft)'};margin-top:5px;letter-spacing:.06em;">
+                ${block.label} &middot; ${qIdx+1} of ${block.questions.length}
+                ${isOpt ? ' &middot; optional' : ''}
+              </div>
             </div>
           </div>
 
           <!-- Question + hint -->
-          <div style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);line-height:1.4;margin-bottom:8px;">${q.q}</div>
-          <div style="font-size:12.5px;color:rgba(255,252,246,.4);margin-bottom:20px;font-style:italic;">${q.hint}</div>
+          <div style="font-family:var(--fontDisplay);font-size:21px;color:${isDark?'var(--cream)':'var(--ink)'};line-height:1.4;margin-bottom:8px;">${q.q}</div>
+          <div style="font-size:12.5px;color:${isDark?'rgba(255,252,246,.4)':'var(--inkSoft)'};margin-bottom:18px;font-style:italic;">${q.hint}</div>
 
         </div>
 
-        <!-- ── Unified input bar (ChatGPT-style) ── -->
-        <div style="border-radius:16px;border:1.5px solid ${recording?'rgba(201,162,75,.5)':'rgba(255,252,246,.18)'};background:rgba(255,252,246,.07);padding:10px 12px;transition:border-color .2s ease;">
-          ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,252,246,.1);">
-            <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">
-              ${[1,2,3,4,3,2,1].map((h,i) => `<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--gold);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*0.1}s;"></div>`).join('')}
+        <!-- Unified input bar -->
+        <div>
+          <div style="border-radius:16px;border:1.5px solid ${recording?(isDark?'rgba(201,162,75,.5)':'var(--clay)'):(isDark?'rgba(255,252,246,.18)':'var(--line)')};background:${isDark?'rgba(255,252,246,.07)':'var(--cream)'};padding:10px 12px;transition:border-color .2s ease;">
+            ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid ${isDark?'rgba(255,252,246,.1)':'var(--line)'};">
+              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">
+                ${[1,2,3,4,3,2,1].map((h,i)=>`<div style="width:3px;height:${h*4}px;border-radius:2px;background:${isDark?'var(--gold)':'var(--clay)'};animation:wave 0.8s ease-in-out infinite;animation-delay:${i*.1}s;"></div>`).join('')}
+              </div>
+              <span style="font-family:var(--fontMono);font-size:10px;color:${isDark?'var(--gold)':'var(--clay)'};letter-spacing:.1em;">LISTENING</span>
+            </div>` : ''}
+            <textarea id="kycAnswer"
+              placeholder="${recording?'':'Type here, or tap the mic to speak\u2026'}"
+              style="width:100%;border:none;background:transparent;color:${isDark?'var(--cream)':'var(--ink)'};font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;"
+              rows="1">${answers[q.id]||''}</textarea>
+            <!-- Action row -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+              <button id="micBtn" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?(isDark?'var(--clay)':'var(--clay)'):(isDark?'rgba(255,252,246,.1)':'var(--paperDeep)')};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;flex-shrink:0;position:relative;">
+                ${recording?`<div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`:
+                `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="${isDark?'rgba(255,252,246,.6)':'var(--inkSoft)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`}
+              </button>
+              <button id="nextBtn" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?(isDark?'var(--gold)':'var(--clay)'):(isDark?'rgba(255,252,246,.1)':'var(--paperDeep)')};color:${hasAnswer?(isDark?'var(--navy)':'var(--cream)'):(isDark?'rgba(255,252,246,.35)':'var(--inkSoft)')};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s ease;display:flex;align-items:center;gap:6px;">
+                Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
-            <span style="font-family:var(--fontMono);font-size:10px;color:var(--gold);letter-spacing:.1em;">LISTENING</span>
-          </div>` : ''}
-          <!-- Textarea row -->
-          <textarea id="t1Answer"
-            placeholder="${recording ? '' : 'Type here, or tap the mic to speak…'}"
-            style="width:100%;border:none;background:transparent;color:var(--cream);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;"
-            rows="1">${answers[qi]}</textarea>
-
-          <!-- Bottom action row -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-            <!-- Mic button -->
-            <button id="micBtn" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?'var(--clay)':'rgba(255,252,246,.1)'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;flex-shrink:0;position:relative;">
-              ${recording ? `
-                <div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-                  <rect x="6" y="6" width="12" height="12" rx="2"/>
-                </svg>` :
-              `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>`}
-            </button>
-
-            <!-- Send / Next button -->
-            <button id="t1Next" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?'var(--gold)':'rgba(255,252,246,.1)'};color:${hasAnswer?'var(--navy)':'rgba(255,252,246,.35)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:${hasAnswer?'pointer':'default'};transition:all .2s ease;display:flex;align-items:center;gap:6px;">
-              ${qi < T1_QUESTIONS.length - 1 ? 'Next' : 'Done'}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
           </div>
+          ${isOpt ? `<button id="skipBtn" style="width:100%;background:none;border:none;color:${isDark?'rgba(255,252,246,.35)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px 0 2px;text-decoration:underline;text-decoration-color:${isDark?'rgba(255,252,246,.15)':'var(--line)'};">Skip for now &rarr;</button>` :
+          `<div style="font-size:11.5px;color:${isDark?'rgba(255,252,246,.25)':'var(--inkSoft)'};text-align:center;padding:8px 0 0;font-family:var(--fontMono);letter-spacing:.04em;">required</div>`}
         </div>
       </div>
       <style>
-        @keyframes ripple1 { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.7);opacity:0} }
-        @keyframes wave { 0%,100%{transform:scaleY(.4)} 50%{transform:scaleY(1)} }
-        #t1Answer { scrollbar-width:none; }
-        #t1Answer::-webkit-scrollbar { display:none; }
+        @keyframes ripple1{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
+        @keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+        #kycAnswer{scrollbar-width:none}#kycAnswer::-webkit-scrollbar{display:none}
       </style>`;
 
-    // Auto-grow textarea
-    const $ta = document.getElementById('t1Answer');
-    if ($ta) {
-      $ta.focus();
+    // Auto-grow + activate button
+    const $ta = document.getElementById('kycAnswer');
+    if ($ta){
       $ta.oninput = () => {
-        answers[qi] = $ta.value;
-        $ta.style.height = 'auto';
-        $ta.style.height = Math.min($ta.scrollHeight, 100) + 'px';
-        // Update preview live
-        // Dim/activate send button
-        const $next = document.getElementById('t1Next');
-        if ($next) {
-          const has = $ta.value.trim().length > 0;
-          $next.style.background = has ? 'var(--gold)' : 'rgba(255,252,246,.1)';
-          $next.style.color = has ? 'var(--navy)' : 'rgba(255,252,246,.35)';
-          $next.style.cursor = has ? 'pointer' : 'default';
+        answers[q.id] = $ta.value;
+        $ta.style.height='auto';
+        $ta.style.height = Math.min($ta.scrollHeight,100)+'px';
+        const $n = document.getElementById('nextBtn');
+        if($n){
+          const has = $ta.value.trim().length>0;
+          $n.style.background = has?(isDark?'var(--gold)':'var(--clay)'):(isDark?'rgba(255,252,246,.1)':'var(--paperDeep)');
+          $n.style.color = has?(isDark?'var(--navy)':'var(--cream)'):(isDark?'rgba(255,252,246,.35)':'var(--inkSoft)');
         }
       };
     }
 
     // Back
-    document.getElementById('t1Back').onclick = () => {
+    document.getElementById('qBack').onclick = () => {
       stopRecording();
-      if (qi === 0) back(); else { qi--; paint(); }
+      if (qIdx > 0){ qIdx--; paint(); }
+      else if (blockIdx > 0){ blockIdx--; qIdx = KYC_BLOCKS[blockIdx].questions.length-1; paint(); }
+      else back();
     };
 
-    // Mic toggle — starts/stops recording, transcript streams into the textarea
+
+    // Mic
     document.getElementById('micBtn').onclick = () => {
-      if (recording) {
+      if (recording){
         stopRecording();
-        if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
+        if (!answers[q.id]) answers[q.id] = TRANSCRIPT_SIMS[q.id] || GENERIC_SIM;
         paint();
       } else {
-        recording = true;
-        answers[qi] = '';
-        paint();
-        const sim = TRANSCRIPT_SIMS[qi] || 'Thinking out loud...';
-        const $inp = document.getElementById('t1Answer');
-        if ($inp) $inp.value = '';
-        let ci = 0;
-        transcriptTimer = setInterval(() => {
-          const $ta2 = document.getElementById('t1Answer');
-          if (!$ta2 || !$ta2.isConnected) { stopRecording(); return; }
-          if (ci <= sim.length) {
-            const chunk = sim.slice(0, ci);
-            $ta2.value = chunk; answers[qi] = chunk;
-            $ta2.style.height = 'auto';
-            $ta2.style.height = Math.min($ta2.scrollHeight, 100) + 'px';
+        recording = true; answers[q.id]=''; paint();
+        const sim = TRANSCRIPT_SIMS[q.id] || GENERIC_SIM;
+        const $inp = document.getElementById('kycAnswer');
+        if ($inp) $inp.value='';
+        let ci=0;
+        transcriptTimer = setInterval(()=>{
+          const $ta2=document.getElementById('kycAnswer');
+          if(!$ta2||!$ta2.isConnected){stopRecording();return;}
+          if(ci<=sim.length){
+            const chunk=sim.slice(0,ci);
+            $ta2.value=chunk; answers[q.id]=chunk;
+            $ta2.style.height='auto'; $ta2.style.height=Math.min($ta2.scrollHeight,100)+'px';
             ci++;
-          } else {
-            stopRecording();
-            answers[qi] = sim;
-            paint();
-          }
-        }, 38);
+          } else {stopRecording();answers[q.id]=sim;paint();}
+        },38);
         timers.push(transcriptTimer);
       }
     };
 
-    // Next / Done
-    document.getElementById('t1Next').onclick = () => {
+    // Advance
+    function advance(){
       stopRecording();
-      const $ta = document.getElementById('t1Answer');
-      if ($ta) answers[qi] = $ta.value.trim();
-      if (!answers[qi]) return; // require an answer
-      if (qi < T1_QUESTIONS.length - 1) { qi++; paint(); }
-      else go('t1done');
+      const $ta=document.getElementById('kycAnswer');
+      if($ta) answers[q.id]=$ta.value.trim();
+      save();
+
+      // Next question in block
+      if (qIdx < block.questions.length-1){ qIdx++; paint(); return; }
+
+      // End of block — move to next
+      blockIdx++;
+      qIdx=0;
+
+      // All blocks done
+      if (blockIdx >= KYC_BLOCKS.length){ go('kycdone'); return; }
+
+      // Required blocks: go straight into next block questions
+      if (KYC_BLOCKS[blockIdx].required){ paint(); return; }
+
+      // Optional block: show transition screen with defer option
+      showBlockTransition();
+    }
+
+    // Next button (require answer for required Qs)
+    document.getElementById('nextBtn').onclick = () => {
+      const $ta=document.getElementById('kycAnswer');
+      if($ta) answers[q.id]=$ta.value.trim();
+      if (!isOpt && !answers[q.id]) return; // soft block on required
+      advance();
+    };
+
+    // Skip (only for optional)
+    const $skip = document.getElementById('skipBtn');
+    if ($skip) $skip.onclick = () => {
+      stopRecording(); skipped[q.id]=true; answers[q.id]=''; advance();
     };
   }
+
+  // Check for saved progress — show resume prompt
+  if (saved && (Date.now() - saved.ts) < 48*60*60*1000){
+    const completedCount = Object.values(saved.answers).filter(a=>a&&a.trim()).length;
+    $body.innerHTML = `
+      <div class="screen justifyCenter" style="background:var(--navy);text-align:center;padding:32px;">
+        <div>
+          <div style="font-size:36px;margin-bottom:16px;">&#128190;</div>
+          <h2 style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:10px;">Welcome back.</h2>
+          <p style="font-size:14px;color:rgba(255,252,246,.6);margin-bottom:28px;line-height:1.6;">You answered ${completedCount} question${completedCount===1?'':'s'} last time.<br>Want to continue where you left off?</p>
+          <button class="btn gold" id="resumeBtn" style="margin-bottom:12px;">Continue from where I left off</button>
+          <button id="restartBtn" style="width:100%;background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:8px;">Start over</button>
+        </div>
+      </div>`;
+    document.getElementById('resumeBtn').onclick = () => paint();
+    document.getElementById('restartBtn').onclick = () => {
+      clearProgress(); blockIdx=0; qIdx=0; answers={}; paint();
+    };
+    return;
+  }
+
   paint();
 };
 
-// ── TIER 1 DONE ───────────────────────────────────────────────────────────────
-RENDERERS.t1done = function(){
+// ── KYC DONE (required complete) ──────────────────────────────────────────────
+RENDERERS.kycdone = function(){
+  const saved = loadProgress();
+  const answers = saved ? saved.answers : {};
+  const totalAnswered = Object.values(answers).filter(a=>a&&a.trim()).length;
+  const totalOptional = ALL_QUESTIONS.filter(q=>q.optional).length;
+  const optionalDone  = ALL_QUESTIONS.filter(q=>q.optional && answers[q.id] && answers[q.id].trim()).length;
+
   $body.innerHTML = `
     <div class="screen justifyCenter" style="background:var(--navy);text-align:center;padding:28px;">
       <div>
         <div style="width:56px;height:56px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-          <span style="font-size:22px;color:var(--gold);">✓</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--goldSoft);margin-bottom:10px;">TIER 1 COMPLETE</div>
         <h2 style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:12px;line-height:1.3;">Naomi knows enough<br>to find your first matches.</h2>
-        <p style="font-size:13.5px;color:rgba(255,252,246,.6);margin-bottom:32px;line-height:1.6;">There's one more layer — 8 questions that help Naomi understand who you really are, not just what you're looking for. Takes about 5 minutes.</p>
-        <button class="btn gold" id="goT2" style="margin-bottom:12px;">Continue — 8 more questions</button>
-        <button id="skipT2" style="width:100%;background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px;">I'll do this later →</button>
+        <p style="font-size:13.5px;color:rgba(255,252,246,.6);margin-bottom:24px;line-height:1.6;">The deeper you go, the better your matches become. You can always add more later from your profile.</p>
+        <div style="background:rgba(255,252,246,.06);border-radius:14px;padding:16px;margin-bottom:24px;border:1px solid rgba(255,252,246,.1);">
+          <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);letter-spacing:.1em;margin-bottom:8px;">YOUR PROGRESS</div>
+          <div style="height:6px;border-radius:4px;background:rgba(255,252,246,.1);overflow:hidden;margin-bottom:8px;">
+            <div style="height:100%;width:${Math.round((optionalDone/totalOptional)*100)}%;background:var(--gold);border-radius:4px;"></div>
+          </div>
+          <div style="font-size:12.5px;color:rgba(255,252,246,.5);">${optionalDone} of ${totalOptional} optional questions answered</div>
+        </div>
+        <button class="btn gold" id="contDeep" style="margin-bottom:12px;">Go deeper &mdash; keep answering</button>
+        <button id="skipDeep" style="width:100%;background:none;border:none;color:rgba(255,252,246,.4);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px;">See my Relationship DNA &rarr;</button>
       </div>
     </div>`;
-  document.getElementById('goT2').onclick = () => go('t2intro');
-  document.getElementById('skipT2').onclick = () => go('interviewdone');
+  document.getElementById('contDeep').onclick = () => go('kycdeepdive');
+  document.getElementById('skipDeep').onclick = () => go('processing');
 };
 
-// ── TIER 2 INTRO ──────────────────────────────────────────────────────────────
-RENDERERS.t2intro = function(){
-  function paint(){
-    $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:26px;">
-        <div>
-          <div style="display:inline-block;padding:5px 12px;border-radius:20px;background:var(--clayBg);border:1px solid rgba(184,100,90,.25);margin-bottom:20px;">
-            <span style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.12em;color:var(--clayDeep);">TIER 2 &middot; WHO YOU REALLY ARE</span>
-          </div>
-          <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.25;margin:0 0 14px;">8 questions.<br>About 5 minutes.</h1>
-          <p style="font-size:14px;color:var(--inkSoft);line-height:1.6;margin-bottom:20px;">These go deeper — your values, quirks, what you care about. The more Naomi knows, the more intentional your matches become.</p>
+// ── KYC DEEP DIVE (optional remaining Qs) ─────────────────────────────────────
+RENDERERS.kycdeepdive = function(){
+  const saved = loadProgress();
+  let answers = saved ? saved.answers : {};
 
-          <div style="padding:14px 16px;border-radius:13px;background:var(--paperDeep);border:1px solid var(--line);">
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:6px;">You can skip any question</div>
-            <p style="font-size:13px;color:var(--inkSoft);margin:0;line-height:1.55;">Each answer sharpens your matches, but nothing here is mandatory.</p>
-          </div>
-        </div>
-        <div class="col">
-          <button class="btn" id="t2Start">Let's go</button>
-          <button class="btnGhost" id="t2Later">Do this later</button>
-        </div>
-      </div>`;
-    document.getElementById('t2Start').onclick = () => go('t2questions');
-    document.getElementById('t2Later').onclick = () => go('t2deferred');
+  // Find first unanswered optional question
+  const remaining = ALL_QUESTIONS.filter(q => q.optional && (!answers[q.id] || !answers[q.id].trim()));
+
+  if (remaining.length === 0){
+    go('processing'); return;
   }
-  paint();
-};
 
-// ── TIER 2 QUESTIONS — unified ChatGPT-style input bar ──────────────────────
-RENDERERS.t2questions = function(){
-  let qi = 0;
-  let answers = new Array(T2_QUESTIONS.length).fill('');
-  let skipped = new Array(T2_QUESTIONS.length).fill(false);
+  let ri = 0;
   let recording = false;
   let transcriptTimer = null;
-  const TRANSCRIPT_SIMS = [
-    "My best friend is someone I can call at 2am. That kind of loyalty is everything...",
-    "Right now it's urban planning — how cities are designed for people or against them...",
-    "I irrationally hate when people don't reply to the last message in a conversation...",
-    "Always. I rehearse everything. I think it's about wanting to show up well for people...",
-    "I've always wanted to write a book. I keep saying 'not the right time' but honestly I'm scared...",
-    "Success is waking up genuinely excited about what I'm doing that day...",
-    "Anything with a real build — the moment the piano drops in a song you weren't expecting...",
-    "I started baking sourdough last month. First loaf was terrible. Last one was actually good...",
-  ];
 
   function stopRecording(){
     recording = false;
@@ -909,227 +1268,242 @@ RENDERERS.t2questions = function(){
   }
 
   function paint(){
-    const q = T2_QUESTIONS[qi];
-    const progress = (qi / T2_QUESTIONS.length) * 100;
-    const hasAnswer = answers[qi] && answers[qi].trim().length > 0;
+    if (ri >= remaining.length){ go('processing'); return; }
+    const q = remaining[ri];
+    const progress = (ri / remaining.length) * 100;
+    const hasAnswer = answers[q.id] && answers[q.id].trim().length > 0;
 
     $body.innerHTML = `
       <div class="screen justifyBetween" style="padding:20px;">
         <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
-
-          <!-- Header -->
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-            <button id="t2Back" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+            <button id="ddBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
             <div style="flex:1;">
               <div style="height:3px;border-radius:3px;background:var(--paperDeep);overflow:hidden;">
                 <div style="height:100%;width:${progress}%;background:var(--clay);border-radius:3px;transition:width .4s ease;"></div>
               </div>
-              <div style="font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T2_QUESTIONS.length} &middot; Who You Really Are</div>
+              <div style="font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);margin-top:5px;letter-spacing:.06em;">${q.blockLabel} &middot; ${ri+1} of ${remaining.length} remaining &middot; optional</div>
             </div>
           </div>
-
-          <!-- Question + hint -->
           <div style="font-family:var(--fontDisplay);font-size:21px;color:var(--ink);line-height:1.4;margin-bottom:8px;">${q.q}</div>
-          <div style="font-size:12.5px;color:var(--inkSoft);margin-bottom:20px;font-style:italic;">${q.hint}</div>
-
+          <div style="font-size:12.5px;color:var(--inkSoft);margin-bottom:18px;font-style:italic;">${q.hint}</div>
         </div>
-
-        <!-- ── Unified input bar ── -->
         <div>
           <div style="border-radius:16px;border:1.5px solid ${recording?'var(--clay)':'var(--line)'};background:var(--cream);padding:10px 12px;transition:border-color .2s ease;">
-            ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
-              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">
-                ${[1,2,3,4,3,2,1].map((h,i) => `<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*0.1}s;"></div>`).join('')}
-              </div>
+            ${recording?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
+              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">${[1,2,3,4,3,2,1].map((h,i)=>`<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*.1}s;"></div>`).join('')}</div>
               <span style="font-family:var(--fontMono);font-size:10px;color:var(--clay);letter-spacing:.1em;">LISTENING</span>
-            </div>` : ''}
-            <!-- Textarea -->
-            <textarea id="t2Answer"
-              placeholder="${recording ? '' : 'Type here, or tap the mic to speak…'}"
-              style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;"
-              rows="1">${answers[qi]}</textarea>
-
-            <!-- Action row -->
+            </div>`:''}
+            <textarea id="ddAnswer" placeholder="${recording?'':'Your answer\u2026'}" rows="1"
+              style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;">${answers[q.id]||''}</textarea>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-              <!-- Mic -->
-              <button id="t2Mic" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--paperDeep)'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;flex-shrink:0;position:relative;">
-                ${recording ? `
-                  <div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.35);animation:ripple1 1.4s ease-out infinite;"></div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-                    <rect x="6" y="6" width="12" height="12" rx="2"/>
-                  </svg>` :
-                `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>`}
+              <button id="ddMic" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--paperDeep)'};cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;">
+                ${recording?`<div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.35);animation:ripple1 1.4s ease-out infinite;"></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`:
+                `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`}
               </button>
-
-              <!-- Next / Finish -->
-              <button id="t2Next" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?'var(--clay)':'var(--paperDeep)'};color:${hasAnswer?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:${hasAnswer?'pointer':'default'};transition:all .2s ease;display:flex;align-items:center;gap:6px;">
-                ${qi < T2_QUESTIONS.length - 1 ? 'Next' : 'Finish'}
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <button id="ddNext" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?'var(--clay)':'var(--paperDeep)'};color:${hasAnswer?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             </div>
           </div>
-
-          <!-- Skip link sits outside/below the bar -->
-          <button id="t2Skip" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px 0 2px;text-decoration:underline;text-decoration-color:var(--line);">Skip this one &rarr;</button>
+          <button id="ddSkip" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px 0 2px;text-decoration:underline;text-decoration-color:var(--line);">Skip for now &rarr;</button>
+          <button id="ddStop" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:4px 0;">I'm done for now &mdash; show me my DNA</button>
         </div>
-      </div>
-      <style>
-        @keyframes ripple1 { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.7);opacity:0} }
-        @keyframes wave { 0%,100%{transform:scaleY(.4)} 50%{transform:scaleY(1)} }
-        #t2Answer { scrollbar-width:none; }
-        #t2Answer::-webkit-scrollbar { display:none; }
-      </style>`;
+      </div>`;
 
-    // Auto-grow textarea + live preview update
-    const $ta = document.getElementById('t2Answer');
+    const $ta = document.getElementById('ddAnswer');
     if ($ta) {
       $ta.oninput = () => {
-        answers[qi] = $ta.value; skipped[qi] = false;
-        $ta.style.height = 'auto';
-        $ta.style.height = Math.min($ta.scrollHeight, 100) + 'px';
-        const $n = document.getElementById('t2Next');
-        if ($n) {
-          const has = $ta.value.trim().length > 0;
-          $n.style.background = has ? 'var(--clay)' : 'var(--paperDeep)';
-          $n.style.color = has ? 'var(--cream)' : 'var(--inkSoft)';
-          $n.style.cursor = has ? 'pointer' : 'default';
-        }
+        answers[q.id] = $ta.value;
+        $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,100)+'px';
+        const $n=document.getElementById('ddNext');
+        if($n){ const has=$ta.value.trim().length>0; $n.style.background=has?'var(--clay)':'var(--paperDeep)'; $n.style.color=has?'var(--cream)':'var(--inkSoft)'; }
       };
     }
-
-    // Back
-    document.getElementById('t2Back').onclick = () => {
-      stopRecording();
-      if (qi === 0) back(); else { qi--; paint(); }
+    document.getElementById('ddBack').onclick=()=>{stopRecording(); if(ri>0){ri--;paint();}else go('kycdone');};
+    document.getElementById('ddMic').onclick=()=>{
+      if(recording){stopRecording();if(!answers[q.id])answers[q.id]=TRANSCRIPT_SIMS[q.id]||GENERIC_SIM;paint();}
+      else{recording=true;answers[q.id]='';paint();
+        const sim=TRANSCRIPT_SIMS[q.id]||GENERIC_SIM;
+        const $inp=document.getElementById('ddAnswer');if($inp)$inp.value='';
+        let ci=0;transcriptTimer=setInterval(()=>{const $t2=document.getElementById('ddAnswer');if(!$t2||!$t2.isConnected){stopRecording();return;}if(ci<=sim.length){const ch=sim.slice(0,ci);$t2.value=ch;answers[q.id]=ch;$t2.style.height='auto';$t2.style.height=Math.min($t2.scrollHeight,100)+'px';ci++;}else{stopRecording();answers[q.id]=sim;paint();}},38);timers.push(transcriptTimer);}
     };
-
-    // Mic
-    document.getElementById('t2Mic').onclick = () => {
-      if (recording) {
-        stopRecording();
-        if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
-        paint();
-      } else {
-        recording = true; answers[qi] = ''; paint();
-        const sim = TRANSCRIPT_SIMS[qi] || 'Thinking...';
-        const $inp = document.getElementById('t2Answer');
-        if ($inp) $inp.value = '';
-        let ci = 0;
-        transcriptTimer = setInterval(() => {
-          const $ta2 = document.getElementById('t2Answer');
-          if (!$ta2 || !$ta2.isConnected) { stopRecording(); return; }
-          if (ci <= sim.length) {
-            const chunk = sim.slice(0, ci);
-            $ta2.value = chunk; answers[qi] = chunk;
-            $ta2.style.height = 'auto';
-            $ta2.style.height = Math.min($ta2.scrollHeight, 100) + 'px';
-            ci++;
-          } else { stopRecording(); answers[qi] = sim; paint(); }
-        }, 38);
-        timers.push(transcriptTimer);
-      }
-    };
-
-    // Advance helper
-    const advance = () => {
-      if (qi < T2_QUESTIONS.length - 1) { qi++; paint(); }
-      else go('interviewdone');
-    };
-
-    // Next
-    document.getElementById('t2Next').onclick = () => {
-      stopRecording();
-      const $ta = document.getElementById('t2Answer');
-      if ($ta) answers[qi] = $ta.value.trim();
-      advance();
-    };
-
-    // Skip
-    document.getElementById('t2Skip').onclick = () => {
-      stopRecording(); skipped[qi] = true; answers[qi] = '';
-      advance();
-    };
+    const advance=()=>{stopRecording();const $t=document.getElementById('ddAnswer');if($t)answers[q.id]=$t.value.trim();saveProgress(answers,0,0);ri++;paint();};
+    document.getElementById('ddNext').onclick=advance;
+    document.getElementById('ddSkip').onclick=()=>{stopRecording();answers[q.id]='';ri++;paint();};
+    document.getElementById('ddStop').onclick=()=>go('processing');
   }
   paint();
 };
-// ── TIER 2 DEFERRED ───────────────────────────────────────────────────────────
-RENDERERS.t2deferred = function(){
-  $body.innerHTML = `
-    <div class="screen justifyCenter" style="text-align:center;padding:28px;">
-      <div>
-        <div style="font-size:36px;margin-bottom:18px;">&#128338;</div>
-        <h2 style="font-family:var(--fontDisplay);font-size:22px;margin-bottom:12px;line-height:1.3;">No rush.</h2>
-        <p style="font-size:14px;color:var(--inkSoft);margin-bottom:10px;line-height:1.6;">Naomi will remind you to complete this layer after your first match. Your answers will sharpen every introduction from that point on.</p>
-        <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:32px;font-style:italic;">Tier 2 questions will appear in your profile to complete any time.</p>
-        <button class="btn" id="t2DeferCont">Continue to my Relationship DNA</button>
-      </div>
-    </div>`;
-  document.getElementById('t2DeferCont').onclick = () => go('interviewdone');
-};
+
 
 // ── SCHEDULE (keep for "schedule for later" branch) ───────────────────────────
 RENDERERS.schedule = function(){
   let confirmed = false;
-  const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  let day = 2;
-  const times = ["9:00 AM","1:30 PM","6:00 PM","8:15 PM"];
-  let time = 2;
+
+  const MONTHS = ["January","February","March","April","May","June",
+                  "July","August","September","October","November","December"];
+  const DAYS_SHORT = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+  const today = new Date();
+  let viewYear  = today.getFullYear();
+  let viewMonth = today.getMonth();
+  let selDate   = null;   // Date object, null = none picked yet
+  let selTime   = null;   // string like "10:00 AM"
+
+  // Generate 1h slots 9am–8pm
+  const ALL_SLOTS = [];
+  for (let h = 9; h <= 20; h++){
+    const suffix = h < 12 ? 'AM' : 'PM';
+    const disp = h <= 12 ? h : h - 12;
+    ALL_SLOTS.push(`${disp}:00 ${suffix}`);
+  }
+
+  // Simulate availability: weekends unavailable, past days unavailable
+  function isAvailable(d){
+    const day = d.getDay();
+    const isPast = d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return day !== 0 && day !== 6 && !isPast;
+  }
+
+  function isSameDay(a, b){
+    return a && b && a.getFullYear()===b.getFullYear() &&
+           a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+
   function paint(){
+
+    // ── CONFIRMED ──────────────────────────────────────────────
     if (confirmed){
+      const label = `${MONTHS[selDate.getMonth()]} ${selDate.getDate()} · ${selTime}`;
       $body.innerHTML = `
-        <div class="screen justifyCenter">
-          <div style="text-align:center;">
-            <div style="font-size:40px;margin-bottom:16px;">&#128197;</div>
-            <h2 style="font-family:var(--fontDisplay);font-size:22px;margin-bottom:10px;">Perfect.</h2>
-            <p class="bodyMuted" style="margin-bottom:28px;">I&rsquo;ll be ready when you are. I&rsquo;ll send a reminder 1 hour before.</p>
-            <button class="btn" id="backStart">Back to start</button>
+        <div class="screen justifyCenter" style="padding:32px 28px;text-align:center;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--okBg);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
+          <h2 style="font-family:var(--fontDisplay);font-size:22px;margin-bottom:12px;">You&rsquo;re scheduled.</h2>
+          <div style="display:inline-block;padding:12px 22px;border-radius:14px;background:var(--paperDeep);border:1px solid var(--line);margin-bottom:18px;">
+            <div style="font-family:var(--fontMono);font-size:12px;color:var(--inkSoft);letter-spacing:.08em;">${label}</div>
+          </div>
+          <p class="bodyMuted" style="font-size:13.5px;margin-bottom:32px;">I&rsquo;ll be ready when you are. You&rsquo;ll get a reminder 1 hour before.</p>
+          <button class="btn" id="backStart">Back to start</button>
         </div>`;
       document.getElementById('backStart').onclick = () => go('naomiintro');
       return;
     }
+
+    // ── CALENDAR ───────────────────────────────────────────────
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= totalDays; d++) cells.push(new Date(viewYear, viewMonth, d));
+
+    // Pad to complete last row
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const hasSel = selDate && selDate.getMonth() === viewMonth && selDate.getFullYear() === viewYear;
+    const prevDisabled = viewYear === today.getFullYear() && viewMonth === today.getMonth();
+
     $body.innerHTML = `
-      <div class="screen justifyBetween">
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <div class="screen" style="padding:0;background:var(--paper);display:flex;flex-direction:column;height:100%;">
+
+        <!-- Header -->
+        <div style="padding:18px 20px 0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <button id="schedBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
             <div class="screenLabel" style="margin-bottom:0;">schedule for later</div>
           </div>
-          <h1 class="disp" style="font-size:25px;">Let&rsquo;s find a better time</h1>
-          <div class="row" style="margin-bottom:22px;" id="dayRow"></div>
-          <div class="col" id="timeCol"></div>
+          <h1 class="disp" style="font-size:21px;margin-bottom:16px;">When works for you?</h1>
+
+          <!-- Month nav -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <button id="prevMonth" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:${prevDisabled?.4:1};" ${prevDisabled?'disabled':''}>&#8249;</button>
+            <div style="font-family:var(--fontDisplay);font-size:17px;font-weight:600;">${MONTHS[viewMonth]} ${viewYear}</div>
+            <button id="nextMonth" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">&#8250;</button>
+          </div>
+
+          <!-- Day headers -->
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;">
+            ${DAYS_SHORT.map(d => `<div style="text-align:center;font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);padding:4px 0;">${d}</div>`).join('')}
+          </div>
+
+          <!-- Calendar grid -->
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:0;" id="calGrid">
+            ${cells.map(d => {
+              if (!d) return `<div></div>`;
+              const avail = isAvailable(d);
+              const isTod = isSameDay(d, today);
+              const isSel = isSameDay(d, selDate);
+              let bg = 'transparent', color = avail ? 'var(--ink)' : 'var(--line)', border = 'none', fw = '400';
+              if (isSel) { bg = 'var(--clay)'; color = 'var(--cream)'; fw = '700'; }
+              else if (isTod) { border = '1.5px solid var(--clay)'; color = 'var(--clay)'; fw = '600'; }
+              return `<button class="calDay" data-ts="${d.getTime()}" style="aspect-ratio:1;border-radius:50%;border:${border};background:${bg};color:${color};font-size:13px;font-weight:${fw};cursor:${avail?'pointer':'default'};display:flex;align-items:center;justify-content:center;">${d.getDate()}</button>`;
+            }).join('')}
+          </div>
         </div>
-        <button class="btn" id="confirmSched">Confirm</button>
+
+        <!-- Time slots — revealed after date pick -->
+        ${hasSel ? `
+        <div style="flex:1;overflow-y:auto;padding:16px 20px 20px;border-top:1px solid var(--line);margin-top:14px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:10px;">
+            ${MONTHS[selDate.getMonth()].slice(0,3)} ${selDate.getDate()} &middot; available times
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="timeList">
+            ${ALL_SLOTS.map(t => `
+              <button class="slotBtn" data-t="${t}" style="width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid ${selTime===t?'var(--clay)':'var(--line)'};background:${selTime===t?'var(--clayBg)':'var(--cream)'};color:${selTime===t?'var(--clayDeep)':'var(--ink)'};font-size:14px;font-weight:${selTime===t?'700':'400'};cursor:pointer;text-align:center;">${t}</button>`).join('')}
+          </div>
+        </div>
+        <div style="padding:14px 20px;flex-shrink:0;border-top:1px solid var(--line);">
+          <button class="btn" id="confirmSched" style="opacity:${selTime?1:.4};">Confirm ${selTime?selTime:''}</button>
+        </div>` : `
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
+          <p style="font-size:13.5px;color:var(--inkSoft);text-align:center;line-height:1.6;">Select a date above<br>to see available times.</p>
+        </div>`}
       </div>`;
+
+    // Wire back
     document.getElementById('schedBack').onclick = () => back();
-    const $dayRow = document.getElementById('dayRow');
-    $dayRow.innerHTML = days.map((d,i) => `<button class="dayBtn" data-i="${i}" style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid ${day===i?'var(--clay)':'var(--line)'};background:${day===i?'var(--clay)':'var(--cream)'};color:${day===i?'var(--cream)':'var(--ink)'};font-size:12px;cursor:pointer;">${d}</button>`).join('');
-    $dayRow.querySelectorAll('.dayBtn').forEach(b => b.onclick = () => { day = +b.dataset.i; paint(); });
-    const $timeCol = document.getElementById('timeCol');
-    $timeCol.innerHTML = times.map((t,i) => `<button class="timeBtn" data-i="${i}" style="text-align:left;padding:13px 16px;border-radius:12px;border:1.5px solid ${time===i?'var(--clay)':'var(--line)'};background:${time===i?'var(--clayBg)':'var(--cream)'};cursor:pointer;font-size:14px;">${t}</button>`).join('');
-    $timeCol.querySelectorAll('.timeBtn').forEach(b => b.onclick = () => { time = +b.dataset.i; paint(); });
-    document.getElementById('confirmSched').onclick = () => { confirmed = true; paint(); };
+
+    // Month nav
+    if (!prevDisabled) {
+      document.getElementById('prevMonth').onclick = () => {
+        if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
+        selDate = null; selTime = null; paint();
+      };
+    }
+    document.getElementById('nextMonth').onclick = () => {
+      if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
+      selDate = null; selTime = null; paint();
+    };
+
+    // Calendar day clicks
+    document.querySelectorAll('.calDay').forEach(btn => {
+      btn.onclick = () => {
+        const d = new Date(+btn.dataset.ts);
+        if (!isAvailable(d)) return;
+        selDate = d; selTime = null; paint();
+        // Scroll time list into view
+        setTimeout(() => {
+          const tl = document.getElementById('timeList');
+          if (tl) tl.scrollIntoView({ behavior:'smooth', block:'start' });
+        }, 100);
+      };
+    });
+
+    // Time slot clicks
+    document.querySelectorAll('.slotBtn').forEach(btn => {
+      btn.onclick = () => { selTime = btn.dataset.t; paint(); };
+    });
+
+    // Confirm
+    const $conf = document.getElementById('confirmSched');
+    if ($conf) $conf.onclick = () => { if (selTime) { confirmed = true; paint(); } };
   }
+
   paint();
 };
 
-
-RENDERERS.interviewdone = function(){
-  $body.innerHTML = `
-    <div class="screen justifyCenter" style="padding:28px;">
-      <div style="text-align:center;">
-        <div style="width:60px;height:60px;border-radius:50%;background:var(--okBg);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;color:var(--ok);">&#10003;</div>
-        <h2 style="font-family:var(--fontDisplay);font-size:24px;margin-bottom:12px;line-height:1.3;">That&rsquo;s everything Naomi needs.</h2>
-        <p class="bodyMuted" style="margin-bottom:10px;line-height:1.6;">Now she&rsquo;ll build your Relationship DNA &mdash; a profile of who you are and what you&rsquo;re really looking for.</p>
-        <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:32px;font-style:italic;">Tier 2 and 3 questions can be completed any time from your profile to sharpen future matches.</p>
-        <button class="btn" id="contBtn">See my Relationship DNA</button>
-      </div>
-    </div>`;
-  document.getElementById('contBtn').onclick = () => go('processing');
-};
 
 RENDERERS.processing = function(){
   const messages = ["Analyzing conversation&hellip;","Building Relationship DNA&hellip;","Identifying values&hellip;","Understanding relationship goals&hellip;","Creating compatibility profile&hellip;"];
@@ -1379,7 +1753,7 @@ RENDERERS.badge3done = function(){
         <button class="btn navy" id="fvCont">Complete my Relationship DNA</button>
       </div>
     </div>`;
-  document.getElementById('fvCont').onclick = () => go('paywall');
+  document.getElementById('fvCont').onclick = () => go(userGender === 'man' ? 'paywall' : 'activation');
 };
 
 RENDERERS.activation = function(){
@@ -1398,7 +1772,7 @@ RENDERERS.activation = function(){
         <button class="btn gold" id="startMatching">Start matchmaking</button>
       </div>
     </div>`;
-  document.getElementById('startMatching').onclick = () => go('paywall');
+  document.getElementById('startMatching').onclick = () => go(userGender === 'man' ? 'paywall' : 'photoupload');
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1434,7 +1808,7 @@ RENDERERS.paywall = function(){
         <div style="text-align:center;margin-bottom:14px;">
           <button id="matchmakerBtn" style="background:none;border:none;color:var(--goldSoft);font-size:13px;cursor:pointer;text-decoration:underline;font-family:var(--fontBody);">Interested in Personal Matchmaker tier? &rarr;</button>
         </div>
-        <p style="font-size:11px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">Women join free. Success fee applies when you reach a relationship milestone &mdash; aligned incentives, by design.</p>
+        <p style="font-size:11px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">Women join free. Men subscribe to access curated introductions. Success fee applies when you reach a relationship milestone &mdash; our incentives are aligned with yours.</p>
       </div>`;
     document.querySelectorAll('.planOpt').forEach(el => {
       el.onclick = () => { plan = el.dataset.id; paint(); };
