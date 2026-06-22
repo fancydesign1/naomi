@@ -297,12 +297,12 @@ const T3_QUESTIONS = [
 ];
 
 const FLOW_ORDER = [
-  "splash","trailer","trust","entry","register","mobileotp",
+  "splash","trailer","trust","entry","register","phoneinput","mobileotp",
   "devicetrust","naomiintro",
   "t1intro","t1questions","t1done",
   "t2intro","t2questions","t2deferred",
   "interviewdone","processing","profileready",
-  "celebration","dna",
+  "dna",
   "badge1intro","badge1doc","badge1bio","badge1age","badge1done",
   "badge2intro","badge2doc","badge2done",
   "badge3intro","badge3wait","badge3done",
@@ -316,12 +316,12 @@ const FLOW_ORDER = [
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
-  entry:"Onboarding", register:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
+  entry:"Onboarding", register:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding", devicetrust:"Onboarding",
   naomiintro:"The Essentials",
   t1intro:"The Essentials", t1questions:"The Essentials", t1done:"The Essentials",
   t2intro:"Who You Really Are", t2questions:"Who You Really Are", t2deferred:"Who You Really Are",
   textintro:"Interview", schedule:"Interview", interviewdone:"Interview",
-  processing:"DNA Profile", profileready:"DNA Profile", celebration:"DNA Profile", dna:"DNA Profile",
+  processing:"DNA Profile", profileready:"DNA Profile", dna:"DNA Profile",
   badge1intro:"Verification L1", badge1doc:"Verification L1", badge1bio:"Verification L1", badge1age:"Verification L1", badge1done:"Verification L1",
   badge2intro:"Verification L2", badge2doc:"Verification L2", badge2done:"Verification L2",
   badge3intro:"Verification L3", badge3wait:"Verification L3", badge3done:"Verification L3",
@@ -473,26 +473,35 @@ RENDERERS.register = function(){
   $body.innerHTML = `
     <div class="screen justifyBetween">
       <div>
-        <div class="screenLabel">step 2 &middot; identity</div>
-        <h1 class="disp" style="font-size:26px;margin-bottom:22px;">Create your account</h1>
-        <div class="col">
-          <input class="field" value="Naya" placeholder="Your name" />
-          <input class="field" placeholder="Phone number" type="tel" />
+        <div class="screenLabel">step 2 &middot; create account</div>
+        <h1 class="disp" style="font-size:26px;margin-bottom:6px;">Create your account</h1>
+        <p class="bodyMuted" style="font-size:13px;margin-bottom:22px;">Your profile stays private until Naomi introduces you.</p>
+        <div class="col" style="margin-bottom:0;">
+          <input class="field" value="Naya Weiss" placeholder="Your name" />
+          <input class="field" placeholder="Email address" type="email" />
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+        <div style="display:flex;align-items:center;gap:10px;margin:18px 0;">
           <div style="flex:1;height:1px;background:var(--line);"></div>
-          <span style="font-size:11px;color:var(--inkSoft);font-family:var(--fontMono);">or</span>
+          <span style="font-size:11px;color:var(--inkSoft);font-family:var(--fontMono);">or continue with</span>
           <div style="flex:1;height:1px;background:var(--line);"></div>
         </div>
-        <div class="col">
-          <button class="btnGhost">Continue with Google</button>
-          <button class="btnGhost">Continue with Apple</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btnGhost" id="googleBtn" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google
+          </button>
+          <button class="btnGhost" id="appleBtn" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 12px;">
+            <svg width="15" height="18" viewBox="0 0 814 1000"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-166.4-125.6c-75.4-108.6-132.8-268.3-132.8-420.8 0-230.5 150.7-353.4 298.6-353.4 78.8 0 144.4 51.7 193.5 51.7 47.3 0 121.6-54.6 211.4-54.6zm-41.3-166.1c39.5-47 66.6-112.5 66.6-178 0-9.1-.9-18.1-2.6-26.5-61 2.3-132.8 41-177.1 94.9-36.2 43-70.8 111.6-70.8 178.6 0 10.5 1.9 21.3 2.6 24.2 4.5.6 11.7 1.3 18.8 1.3 55.7 0 125.3-37.1 162.5-94.5z"/></svg>
+            Apple
+          </button>
         </div>
-        <div class="trustNote">&#128274; We verify every member to keep this a trusted relationship community &mdash; never to sell your data.</div>
+        <div class="trustNote" style="margin-top:18px;">&#128274; We verify every member — never to sell your data.</div>
       </div>
-      <button class="btn" id="goVerify">Continue</button>
+      <button class="btn" id="goPhone">Continue</button>
     </div>`;
-  document.getElementById('goVerify').onclick = () => go('mobileotp');
+  document.getElementById('goPhone').onclick = () => go('phoneinput');
+  document.getElementById('googleBtn').onclick = () => go('phoneinput');
+  document.getElementById('appleBtn').onclick = () => go('phoneinput');
 };
 
 function renderOtp(title, sub, nextId, digits){
@@ -536,7 +545,34 @@ function renderOtp(title, sub, nextId, digits){
   $resend.onclick = () => { seconds = 42; };
   $verify.onclick = () => { if (code.filter(Boolean).length === digits) go(nextId); };
 }
-RENDERERS.mobileotp = () => renderOtp("Verify your phone", "step 3 &middot; phone verification", "devicetrust", 6);
+RENDERERS.phoneinput = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <button id="phoneBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+          <div class="screenLabel" style="margin-bottom:0;">step 3 &middot; phone number</div>
+        </div>
+        <h1 class="disp" style="font-size:25px;margin-bottom:8px;">What&rsquo;s your<br>phone number?</h1>
+        <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">We&rsquo;ll send a one-time code to verify it&rsquo;s really you. No spam, ever.</p>
+        <div style="display:flex;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--cream);">
+          <div style="padding:15px 14px;border-right:1px solid var(--line);background:var(--paperDeep);font-size:14.5px;color:var(--inkSoft);white-space:nowrap;display:flex;align-items:center;gap:6px;">
+            <span>🇺🇸</span> +1
+          </div>
+          <input id="phoneField" type="tel" placeholder="(646) 555-0148" value="(646) 555-0148"
+            style="flex:1;padding:15px 16px;border:none;background:transparent;font-family:var(--fontBody);font-size:15px;outline:none;color:var(--ink);" />
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--inkSoft);line-height:1.5;">
+          &#128274; Your number is used only for verification and security. It&rsquo;s never shown on your profile.
+        </div>
+      </div>
+      <button class="btn" id="sendCode">Send verification code</button>
+    </div>`;
+  document.getElementById('phoneBack').onclick = () => back();
+  document.getElementById('sendCode').onclick = () => go('mobileotp');
+};
+
+RENDERERS.mobileotp = () => renderOtp("Verify your phone", "step 4 &middot; phone verification", "devicetrust", 6);
 
 RENDERERS.devicetrust = function(){
   const checks = ["Device fingerprint analysis","Fraud signal scoring","Risk assessment","Trust profile creation"];
@@ -622,22 +658,6 @@ RENDERERS.t1intro = function(){
           <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);line-height:1.25;margin:0 0 14px;">5 questions.<br>About 3 minutes.</h1>
           <p style="font-size:14px;color:rgba(255,252,246,.7);line-height:1.6;margin-bottom:22px;">These are the foundations — relationship intent, life context, who you are in your own words. Naomi needs these to find your first matches.</p>
 
-          <div style="margin-bottom:22px;">
-            <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,252,246,.45);margin-bottom:10px;">How would you like to answer?</div>
-            <div style="display:flex;gap:8px;">
-              <button id="modeVoice" style="flex:1;padding:14px;border-radius:13px;border:1.5px solid ${kycMode==='voice'?'var(--gold)':'rgba(255,252,246,.18)'};background:${kycMode==='voice'?'rgba(201,162,75,.14)':'rgba(255,252,246,.05)'};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                <span style="font-size:22px;">🎤</span>
-                <span style="font-family:var(--fontBody);font-size:13px;font-weight:600;color:${kycMode==='voice'?'var(--gold)':'rgba(255,252,246,.6)'};">Voice</span>
-                <span style="font-family:var(--fontBody);font-size:11px;color:rgba(255,252,246,.35);">Speak freely</span>
-              </button>
-              <button id="modeText" style="flex:1;padding:14px;border-radius:13px;border:1.5px solid ${kycMode==='text'?'var(--gold)':'rgba(255,252,246,.18)'};background:${kycMode==='text'?'rgba(201,162,75,.14)':'rgba(255,252,246,.05)'};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                <span style="font-size:22px;">✍️</span>
-                <span style="font-family:var(--fontBody);font-size:13px;font-weight:600;color:${kycMode==='text'?'var(--gold)':'rgba(255,252,246,.6)'};">Text</span>
-                <span style="font-family:var(--fontBody);font-size:11px;color:rgba(255,252,246,.35);">Type at your pace</span>
-              </button>
-            </div>
-          </div>
-
           <div style="display:flex;flex-direction:column;gap:8px;">
             ${["What you're looking for","Life context — kids, work","How you'd describe yourself","What a perfect day looks like"].map(l => `
               <div style="display:flex;align-items:center;gap:10px;">
@@ -651,14 +671,12 @@ RENDERERS.t1intro = function(){
           <button class="btn gold" id="t1Start">I'm ready — let's go</button>
         </div>
       </div>`;
-    document.getElementById('modeVoice').onclick = () => { kycMode = 'voice'; paint(); };
-    document.getElementById('modeText').onclick = () => { kycMode = 'text'; paint(); };
     document.getElementById('t1Start').onclick = () => go('t1questions');
   }
   paint();
 };
 
-// ── TIER 1 QUESTIONS — voice + text modes ────────────────────────────────────
+// ── TIER 1 QUESTIONS — unified ChatGPT-style input bar ──────────────────────
 RENDERERS.t1questions = function(){
   let qi = 0;
   let answers = new Array(T1_QUESTIONS.length).fill('');
@@ -680,14 +698,14 @@ RENDERERS.t1questions = function(){
   function paint(){
     const q = T1_QUESTIONS[qi];
     const progress = (qi / T1_QUESTIONS.length) * 100;
-    const isVoice = kycMode === 'voice';
+    const hasAnswer = answers[qi] && answers[qi].trim().length > 0;
 
     $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:22px;background:var(--navy);">
-        <div style="flex:1;display:flex;flex-direction:column;">
+      <div class="screen justifyBetween" style="padding:20px;background:var(--navy);">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
 
-          <!-- Header: back + progress + mode toggle -->
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+          <!-- Header: back + progress -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
             <button id="t1Back" style="padding:6px 13px;border-radius:9px;border:1px solid rgba(255,252,246,.2);background:transparent;color:var(--goldSoft);font-size:12px;cursor:pointer;">&larr;</button>
             <div style="flex:1;">
               <div style="height:3px;border-radius:3px;background:rgba(255,252,246,.12);overflow:hidden;">
@@ -695,108 +713,124 @@ RENDERERS.t1questions = function(){
               </div>
               <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T1_QUESTIONS.length} &middot; The Essentials</div>
             </div>
-            <button id="toggleMode" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,252,246,.2);background:transparent;font-family:var(--fontBody);font-size:11.5px;color:rgba(255,252,246,.55);cursor:pointer;">${isVoice ? '✍️ Text' : '🎤 Voice'}</button>
           </div>
 
           <!-- Question + hint -->
-          <div style="font-family:var(--fontDisplay);font-size:21px;color:var(--cream);line-height:1.4;margin-bottom:8px;">${q.q}</div>
-          <div style="font-size:12px;color:rgba(255,252,246,.4);margin-bottom:${isVoice?'20px':'16px'};font-style:italic;">${q.hint}</div>
+          <div style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);line-height:1.4;margin-bottom:8px;">${q.q}</div>
+          <div style="font-size:12.5px;color:rgba(255,252,246,.4);margin-bottom:20px;font-style:italic;">${q.hint}</div>
 
-          ${isVoice ? `
-          <!-- VOICE INPUT -->
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-            <!-- Waveform rings (animated when recording) -->
-            <div style="position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-              ${recording ? `
-                <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:1.5px solid rgba(201,162,75,.2);animation:ripple1 1.6s ease-out infinite;"></div>
-                <div style="position:absolute;width:80px;height:80px;border-radius:50%;border:1.5px solid rgba(201,162,75,.3);animation:ripple1 1.6s ease-out infinite .4s;"></div>` : ''}
-              <button id="micBtn" style="width:64px;height:64px;border-radius:50%;border:none;background:${recording?'var(--clay)':'rgba(201,162,75,.2)'};border:2px solid ${recording?'var(--clay)':'var(--gold)'};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;z-index:1;transition:all .2s ease;">
-                ${recording ? '⏹' : '🎤'}
-              </button>
-            </div>
-
-            <!-- Status label -->
-            <div style="font-family:var(--fontMono);font-size:11px;letter-spacing:.1em;color:${recording?'var(--gold)':'rgba(255,252,246,.4)'};margin-bottom:14px;">
-              ${recording ? 'RECORDING — tap to stop' : answers[qi] ? 'RECORDED — tap to re-record' : 'TAP TO START'}
-            </div>
-
-            <!-- Transcript preview -->
-            <div style="width:100%;border-radius:12px;border:1px solid rgba(255,252,246,.12);background:rgba(255,252,246,.05);padding:12px 14px;min-height:72px;flex:1;">
-              <div style="font-size:11px;font-family:var(--fontMono);color:rgba(255,252,246,.3);letter-spacing:.08em;margin-bottom:6px;">TRANSCRIPT</div>
-              <div id="transcriptArea" style="font-size:13.5px;color:${answers[qi]?'rgba(255,252,246,.85)':'rgba(255,252,246,.3)'};line-height:1.55;font-style:${answers[qi]?'normal':'italic'};">
-                ${answers[qi] || 'Your words will appear here as you speak...'}
-              </div>
-            </div>
-            <div style="font-size:11px;color:rgba(255,252,246,.3);margin-top:8px;">Only you can see this transcript</div>
-          </div>
-          ` : `
-          <!-- TEXT INPUT -->
-          <textarea id="t1Answer" placeholder="Type your answer here…" style="flex:1;min-height:130px;border-radius:14px;border:1px solid rgba(255,252,246,.18);background:rgba(255,252,246,.07);color:var(--cream);font-family:var(--fontBody);font-size:15px;padding:14px 16px;resize:none;outline:none;line-height:1.5;">${answers[qi]}</textarea>
-          `}
         </div>
 
-        <!-- CTA -->
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
-          <button class="btn gold" id="t1Next">${qi < T1_QUESTIONS.length - 1 ? 'Next question' : 'Done — see my results'}</button>
+        <!-- ── Unified input bar (ChatGPT-style) ── -->
+        <div style="border-radius:16px;border:1.5px solid ${recording?'rgba(201,162,75,.5)':'rgba(255,252,246,.18)'};background:rgba(255,252,246,.07);padding:10px 12px;transition:border-color .2s ease;">
+          ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,252,246,.1);">
+            <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">
+              ${[1,2,3,4,3,2,1].map((h,i) => `<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--gold);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*0.1}s;"></div>`).join('')}
+            </div>
+            <span style="font-family:var(--fontMono);font-size:10px;color:var(--gold);letter-spacing:.1em;">LISTENING</span>
+          </div>` : ''}
+          <!-- Textarea row -->
+          <textarea id="t1Answer"
+            placeholder="${recording ? '' : 'Type here, or tap the mic to speak…'}"
+            style="width:100%;border:none;background:transparent;color:var(--cream);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;"
+            rows="1">${answers[qi]}</textarea>
+
+          <!-- Bottom action row -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+            <!-- Mic button -->
+            <button id="micBtn" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?'var(--clay)':'rgba(255,252,246,.1)'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;flex-shrink:0;position:relative;">
+              ${recording ? `
+                <div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                  <rect x="6" y="6" width="12" height="12" rx="2"/>
+                </svg>` :
+              `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>`}
+            </button>
+
+            <!-- Send / Next button -->
+            <button id="t1Next" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?'var(--gold)':'rgba(255,252,246,.1)'};color:${hasAnswer?'var(--navy)':'rgba(255,252,246,.35)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:${hasAnswer?'pointer':'default'};transition:all .2s ease;display:flex;align-items:center;gap:6px;">
+              ${qi < T1_QUESTIONS.length - 1 ? 'Next' : 'Done'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <style>
-        @keyframes ripple1 { 0%{transform:scale(.85);opacity:.7} 100%{transform:scale(1.4);opacity:0} }
+        @keyframes ripple1 { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.7);opacity:0} }
+        @keyframes wave { 0%,100%{transform:scaleY(.4)} 50%{transform:scaleY(1)} }
+        #t1Answer { scrollbar-width:none; }
+        #t1Answer::-webkit-scrollbar { display:none; }
       </style>`;
 
-    // Wire back
+    // Auto-grow textarea
+    const $ta = document.getElementById('t1Answer');
+    if ($ta) {
+      $ta.focus();
+      $ta.oninput = () => {
+        answers[qi] = $ta.value;
+        $ta.style.height = 'auto';
+        $ta.style.height = Math.min($ta.scrollHeight, 100) + 'px';
+        // Update preview live
+        // Dim/activate send button
+        const $next = document.getElementById('t1Next');
+        if ($next) {
+          const has = $ta.value.trim().length > 0;
+          $next.style.background = has ? 'var(--gold)' : 'rgba(255,252,246,.1)';
+          $next.style.color = has ? 'var(--navy)' : 'rgba(255,252,246,.35)';
+          $next.style.cursor = has ? 'pointer' : 'default';
+        }
+      };
+    }
+
+    // Back
     document.getElementById('t1Back').onclick = () => {
       stopRecording();
       if (qi === 0) back(); else { qi--; paint(); }
     };
 
-    // Wire mode toggle
-    document.getElementById('toggleMode').onclick = () => {
-      stopRecording();
-      kycMode = kycMode === 'voice' ? 'text' : 'voice';
-      paint();
+    // Mic toggle — starts/stops recording, transcript streams into the textarea
+    document.getElementById('micBtn').onclick = () => {
+      if (recording) {
+        stopRecording();
+        if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
+        paint();
+      } else {
+        recording = true;
+        answers[qi] = '';
+        paint();
+        const sim = TRANSCRIPT_SIMS[qi] || 'Thinking out loud...';
+        const $inp = document.getElementById('t1Answer');
+        if ($inp) $inp.value = '';
+        let ci = 0;
+        transcriptTimer = setInterval(() => {
+          const $ta2 = document.getElementById('t1Answer');
+          if (!$ta2 || !$ta2.isConnected) { stopRecording(); return; }
+          if (ci <= sim.length) {
+            const chunk = sim.slice(0, ci);
+            $ta2.value = chunk; answers[qi] = chunk;
+            $ta2.style.height = 'auto';
+            $ta2.style.height = Math.min($ta2.scrollHeight, 100) + 'px';
+            ci++;
+          } else {
+            stopRecording();
+            answers[qi] = sim;
+            paint();
+          }
+        }, 38);
+        timers.push(transcriptTimer);
+      }
     };
 
-    // Wire voice mic
-    if (isVoice) {
-      document.getElementById('micBtn').onclick = () => {
-        if (recording) {
-          stopRecording();
-          if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
-          paint();
-        } else {
-          recording = true;
-          answers[qi] = '';
-          paint();
-          // Simulate words appearing character by character
-          const sim = TRANSCRIPT_SIMS[qi] || 'Thinking out loud...';
-          const $t = document.getElementById('transcriptArea');
-          if ($t) {
-            $t.style.color = 'rgba(255,252,246,.85)';
-            $t.style.fontStyle = 'normal';
-            $t.textContent = '';
-            let ci = 0;
-            transcriptTimer = setInterval(() => {
-              if (!$t.isConnected) { stopRecording(); return; }
-              if (ci <= sim.length) { $t.textContent = sim.slice(0, ci); ci++; }
-              else { stopRecording(); answers[qi] = sim; paint(); }
-            }, 38);
-            timers.push(transcriptTimer);
-          }
-        }
-      };
-    } else {
-      const $ta = document.getElementById('t1Answer');
-      if ($ta) { $ta.focus(); $ta.oninput = () => { answers[qi] = $ta.value; }; }
-    }
-
-    // Wire next
+    // Next / Done
     document.getElementById('t1Next').onclick = () => {
       stopRecording();
-      if (!isVoice) {
-        const $ta = document.getElementById('t1Answer');
-        if ($ta) answers[qi] = $ta.value.trim();
-      }
+      const $ta = document.getElementById('t1Answer');
+      if ($ta) answers[qi] = $ta.value.trim();
+      if (!answers[qi]) return; // require an answer
       if (qi < T1_QUESTIONS.length - 1) { qi++; paint(); }
       else go('t1done');
     };
@@ -835,21 +869,6 @@ RENDERERS.t2intro = function(){
           <h1 style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.25;margin:0 0 14px;">8 questions.<br>About 5 minutes.</h1>
           <p style="font-size:14px;color:var(--inkSoft);line-height:1.6;margin-bottom:20px;">These go deeper — your values, quirks, what you care about. The more Naomi knows, the more intentional your matches become.</p>
 
-          <!-- Mode selector (remembers T1 choice, user can change) -->
-          <div style="margin-bottom:18px;">
-            <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:10px;">Continue with</div>
-            <div style="display:flex;gap:8px;">
-              <button id="t2ModeVoice" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid ${kycMode==='voice'?'var(--clay)':'var(--line)'};background:${kycMode==='voice'?'var(--clayBg)':'var(--cream)'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                <span style="font-size:18px;">🎤</span>
-                <span style="font-size:13px;font-weight:600;color:${kycMode==='voice'?'var(--clayDeep)':'var(--inkSoft)'};">Voice</span>
-              </button>
-              <button id="t2ModeText" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid ${kycMode==='text'?'var(--clay)':'var(--line)'};background:${kycMode==='text'?'var(--clayBg)':'var(--cream)'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                <span style="font-size:18px;">✍️</span>
-                <span style="font-size:13px;font-weight:600;color:${kycMode==='text'?'var(--clayDeep)':'var(--inkSoft)'};">Text</span>
-              </button>
-            </div>
-          </div>
-
           <div style="padding:14px 16px;border-radius:13px;background:var(--paperDeep);border:1px solid var(--line);">
             <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:6px;">You can skip any question</div>
             <p style="font-size:13px;color:var(--inkSoft);margin:0;line-height:1.55;">Each answer sharpens your matches, but nothing here is mandatory.</p>
@@ -860,15 +879,13 @@ RENDERERS.t2intro = function(){
           <button class="btnGhost" id="t2Later">Do this later</button>
         </div>
       </div>`;
-    document.getElementById('t2ModeVoice').onclick = () => { kycMode = 'voice'; paint(); };
-    document.getElementById('t2ModeText').onclick = () => { kycMode = 'text'; paint(); };
     document.getElementById('t2Start').onclick = () => go('t2questions');
     document.getElementById('t2Later').onclick = () => go('t2deferred');
   }
   paint();
 };
 
-// ── TIER 2 QUESTIONS — voice + text modes ────────────────────────────────────
+// ── TIER 2 QUESTIONS — unified ChatGPT-style input bar ──────────────────────
 RENDERERS.t2questions = function(){
   let qi = 0;
   let answers = new Array(T2_QUESTIONS.length).fill('');
@@ -894,14 +911,14 @@ RENDERERS.t2questions = function(){
   function paint(){
     const q = T2_QUESTIONS[qi];
     const progress = (qi / T2_QUESTIONS.length) * 100;
-    const isVoice = kycMode === 'voice';
+    const hasAnswer = answers[qi] && answers[qi].trim().length > 0;
 
     $body.innerHTML = `
-      <div class="screen justifyBetween" style="padding:22px;">
-        <div style="flex:1;display:flex;flex-direction:column;">
+      <div class="screen justifyBetween" style="padding:20px;">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
 
           <!-- Header -->
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
             <button id="t2Back" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
             <div style="flex:1;">
               <div style="height:3px;border-radius:3px;background:var(--paperDeep);overflow:hidden;">
@@ -909,117 +926,135 @@ RENDERERS.t2questions = function(){
               </div>
               <div style="font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);margin-top:5px;letter-spacing:.08em;">${qi+1} of ${T2_QUESTIONS.length} &middot; Who You Really Are</div>
             </div>
-            <button id="t2ToggleMode" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:11.5px;color:var(--inkSoft);cursor:pointer;">${isVoice ? '✍️ Text' : '🎤 Voice'}</button>
           </div>
 
           <!-- Question + hint -->
-          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--ink);line-height:1.4;margin-bottom:8px;">${q.q}</div>
-          <div style="font-size:12px;color:var(--inkSoft);margin-bottom:${isVoice?'18px':'14px'};font-style:italic;">${q.hint}</div>
+          <div style="font-family:var(--fontDisplay);font-size:21px;color:var(--ink);line-height:1.4;margin-bottom:8px;">${q.q}</div>
+          <div style="font-size:12.5px;color:var(--inkSoft);margin-bottom:20px;font-style:italic;">${q.hint}</div>
 
-          ${isVoice ? `
-          <!-- VOICE INPUT -->
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-            <!-- Mic with rings -->
-            <div style="position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
-              ${recording ? `
-                <div style="position:absolute;width:90px;height:90px;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:ripple1 1.6s ease-out infinite;"></div>
-                <div style="position:absolute;width:72px;height:72px;border-radius:50%;border:1.5px solid rgba(184,100,90,.3);animation:ripple1 1.6s ease-out infinite .4s;"></div>` : ''}
-              <button id="t2Mic" style="width:58px;height:58px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--clayBg)'};border:2px solid ${recording?'var(--clay)':'var(--line)'};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;z-index:1;transition:all .2s ease;">
-                ${recording ? '⏹' : '🎤'}
+        </div>
+
+        <!-- ── Unified input bar ── -->
+        <div>
+          <div style="border-radius:16px;border:1.5px solid ${recording?'var(--clay)':'var(--line)'};background:var(--cream);padding:10px 12px;transition:border-color .2s ease;">
+            ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
+              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">
+                ${[1,2,3,4,3,2,1].map((h,i) => `<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*0.1}s;"></div>`).join('')}
+              </div>
+              <span style="font-family:var(--fontMono);font-size:10px;color:var(--clay);letter-spacing:.1em;">LISTENING</span>
+            </div>` : ''}
+            <!-- Textarea -->
+            <textarea id="t2Answer"
+              placeholder="${recording ? '' : 'Type here, or tap the mic to speak…'}"
+              style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:100px;overflow-y:auto;display:block;"
+              rows="1">${answers[qi]}</textarea>
+
+            <!-- Action row -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+              <!-- Mic -->
+              <button id="t2Mic" style="width:36px;height:36px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--paperDeep)'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;flex-shrink:0;position:relative;">
+                ${recording ? `
+                  <div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.35);animation:ripple1 1.4s ease-out infinite;"></div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                  </svg>` :
+                `<svg width="15" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>`}
+              </button>
+
+              <!-- Next / Finish -->
+              <button id="t2Next" style="padding:8px 18px;border-radius:12px;border:none;background:${hasAnswer?'var(--clay)':'var(--paperDeep)'};color:${hasAnswer?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:${hasAnswer?'pointer':'default'};transition:all .2s ease;display:flex;align-items:center;gap:6px;">
+                ${qi < T2_QUESTIONS.length - 1 ? 'Next' : 'Finish'}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             </div>
-            <div style="font-family:var(--fontMono);font-size:10.5px;letter-spacing:.1em;color:${recording?'var(--clay)':'var(--inkSoft)'};margin-bottom:12px;">
-              ${recording ? 'RECORDING — tap to stop' : answers[qi] ? 'RECORDED — tap to redo' : 'TAP TO SPEAK'}
-            </div>
-            <!-- Transcript -->
-            <div style="width:100%;border-radius:12px;border:1px solid var(--line);background:var(--cream);padding:12px 14px;min-height:68px;flex:1;">
-              <div style="font-size:10.5px;font-family:var(--fontMono);color:var(--inkSoft);letter-spacing:.08em;margin-bottom:5px;">TRANSCRIPT</div>
-              <div id="t2Transcript" style="font-size:13.5px;color:${answers[qi]?'var(--ink)':'var(--inkSoft)'};line-height:1.55;font-style:${answers[qi]?'normal':'italic'};">
-                ${answers[qi] || 'Your words will appear here as you speak...'}
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--inkSoft);margin-top:6px;">Only you can see this transcript</div>
           </div>
-          ` : `
-          <!-- TEXT INPUT -->
-          <textarea id="t2Answer" placeholder="Share whatever comes to mind…" style="flex:1;min-height:120px;border-radius:14px;border:1px solid var(--line);background:var(--cream);color:var(--ink);font-family:var(--fontBody);font-size:15px;padding:14px 16px;resize:none;outline:none;line-height:1.5;">${answers[qi]}</textarea>
-          `}
-        </div>
 
-        <!-- CTAs -->
-        <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
-          <button class="btn" id="t2Next">${qi < T2_QUESTIONS.length - 1 ? 'Next' : 'Finish'}</button>
-          <button id="t2Skip" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:8px;text-decoration:underline;text-decoration-color:var(--line);">Skip this one →</button>
+          <!-- Skip link sits outside/below the bar -->
+          <button id="t2Skip" style="width:100%;background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;padding:10px 0 2px;text-decoration:underline;text-decoration-color:var(--line);">Skip this one &rarr;</button>
         </div>
-      </div>`;
+      </div>
+      <style>
+        @keyframes ripple1 { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.7);opacity:0} }
+        @keyframes wave { 0%,100%{transform:scaleY(.4)} 50%{transform:scaleY(1)} }
+        #t2Answer { scrollbar-width:none; }
+        #t2Answer::-webkit-scrollbar { display:none; }
+      </style>`;
 
-    // Wire back
+    // Auto-grow textarea + live preview update
+    const $ta = document.getElementById('t2Answer');
+    if ($ta) {
+      $ta.oninput = () => {
+        answers[qi] = $ta.value; skipped[qi] = false;
+        $ta.style.height = 'auto';
+        $ta.style.height = Math.min($ta.scrollHeight, 100) + 'px';
+        const $n = document.getElementById('t2Next');
+        if ($n) {
+          const has = $ta.value.trim().length > 0;
+          $n.style.background = has ? 'var(--clay)' : 'var(--paperDeep)';
+          $n.style.color = has ? 'var(--cream)' : 'var(--inkSoft)';
+          $n.style.cursor = has ? 'pointer' : 'default';
+        }
+      };
+    }
+
+    // Back
     document.getElementById('t2Back').onclick = () => {
       stopRecording();
       if (qi === 0) back(); else { qi--; paint(); }
     };
 
-    // Wire mode toggle
-    document.getElementById('t2ToggleMode').onclick = () => {
-      stopRecording();
-      kycMode = kycMode === 'voice' ? 'text' : 'voice';
-      paint();
+    // Mic
+    document.getElementById('t2Mic').onclick = () => {
+      if (recording) {
+        stopRecording();
+        if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
+        paint();
+      } else {
+        recording = true; answers[qi] = ''; paint();
+        const sim = TRANSCRIPT_SIMS[qi] || 'Thinking...';
+        const $inp = document.getElementById('t2Answer');
+        if ($inp) $inp.value = '';
+        let ci = 0;
+        transcriptTimer = setInterval(() => {
+          const $ta2 = document.getElementById('t2Answer');
+          if (!$ta2 || !$ta2.isConnected) { stopRecording(); return; }
+          if (ci <= sim.length) {
+            const chunk = sim.slice(0, ci);
+            $ta2.value = chunk; answers[qi] = chunk;
+            $ta2.style.height = 'auto';
+            $ta2.style.height = Math.min($ta2.scrollHeight, 100) + 'px';
+            ci++;
+          } else { stopRecording(); answers[qi] = sim; paint(); }
+        }, 38);
+        timers.push(transcriptTimer);
+      }
     };
 
-    // Wire voice mic
-    if (isVoice) {
-      document.getElementById('t2Mic').onclick = () => {
-        if (recording) {
-          stopRecording();
-          if (!answers[qi]) answers[qi] = TRANSCRIPT_SIMS[qi] || 'Answer recorded.';
-          paint();
-        } else {
-          recording = true;
-          answers[qi] = '';
-          paint();
-          const sim = TRANSCRIPT_SIMS[qi] || 'Thinking...';
-          const $t = document.getElementById('t2Transcript');
-          if ($t) {
-            $t.style.color = 'var(--ink)';
-            $t.style.fontStyle = 'normal';
-            $t.textContent = '';
-            let ci = 0;
-            transcriptTimer = setInterval(() => {
-              if (!$t.isConnected) { stopRecording(); return; }
-              if (ci <= sim.length) { $t.textContent = sim.slice(0, ci); ci++; }
-              else { stopRecording(); answers[qi] = sim; paint(); }
-            }, 38);
-            timers.push(transcriptTimer);
-          }
-        }
-      };
-    } else {
-      const $ta = document.getElementById('t2Answer');
-      if ($ta) { $ta.focus(); $ta.oninput = () => { answers[qi] = $ta.value; skipped[qi] = false; }; }
-    }
-
-    // Wire next + skip
+    // Advance helper
     const advance = () => {
       if (qi < T2_QUESTIONS.length - 1) { qi++; paint(); }
       else go('interviewdone');
     };
+
+    // Next
     document.getElementById('t2Next').onclick = () => {
       stopRecording();
-      if (!isVoice) {
-        const $ta = document.getElementById('t2Answer');
-        if ($ta) answers[qi] = $ta.value.trim();
-      }
+      const $ta = document.getElementById('t2Answer');
+      if ($ta) answers[qi] = $ta.value.trim();
       advance();
     };
+
+    // Skip
     document.getElementById('t2Skip').onclick = () => {
-      stopRecording();
-      skipped[qi] = true; answers[qi] = '';
+      stopRecording(); skipped[qi] = true; answers[qi] = '';
       advance();
     };
   }
   paint();
 };
-
 // ── TIER 2 DEFERRED ───────────────────────────────────────────────────────────
 RENDERERS.t2deferred = function(){
   $body.innerHTML = `
@@ -1059,13 +1094,17 @@ RENDERERS.schedule = function(){
     $body.innerHTML = `
       <div class="screen justifyBetween">
         <div>
-          <div class="screenLabel">schedule for later</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <button id="schedBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;">&larr;</button>
+            <div class="screenLabel" style="margin-bottom:0;">schedule for later</div>
+          </div>
           <h1 class="disp" style="font-size:25px;">Let&rsquo;s find a better time</h1>
           <div class="row" style="margin-bottom:22px;" id="dayRow"></div>
           <div class="col" id="timeCol"></div>
         </div>
         <button class="btn" id="confirmSched">Confirm</button>
       </div>`;
+    document.getElementById('schedBack').onclick = () => back();
     const $dayRow = document.getElementById('dayRow');
     $dayRow.innerHTML = days.map((d,i) => `<button class="dayBtn" data-i="${i}" style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid ${day===i?'var(--clay)':'var(--line)'};background:${day===i?'var(--clay)':'var(--cream)'};color:${day===i?'var(--cream)':'var(--ink)'};font-size:12px;cursor:pointer;">${d}</button>`).join('');
     $dayRow.querySelectorAll('.dayBtn').forEach(b => b.onclick = () => { day = +b.dataset.i; paint(); });
@@ -1146,25 +1185,12 @@ RENDERERS.profileready = function(){
         </div>
       </div>
       <div class="col">
-        <button class="btn" id="seeIt">Yes, let&rsquo;s see it</button>
+        <button class="btn" id="seeIt">Reveal my DNA</button>
         <button class="btnGhost" id="finishFirst">Finish my profile first</button>
       </div>
     </div>`;
-  document.getElementById('seeIt').onclick = () => go('celebration');
-  document.getElementById('finishFirst').onclick = () => go('celebration');
-};
-
-RENDERERS.celebration = function(){
-  $body.innerHTML = `
-    <div class="screen justifyCenter" style="background:var(--gold);">
-      <div style="text-align:center;">
-        <div style="font-size:44px;margin-bottom:14px;">&#127881;</div>
-        <div style="font-family:var(--fontMono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--navy);opacity:.7;margin-bottom:10px;">congratulations</div>
-        <h1 style="font-family:var(--fontDisplay);font-size:28px;color:var(--navy);line-height:1.2;margin-bottom:30px;">Here is your Relationship DNA.</h1>
-        <button class="btn navy" id="revealBtn">Reveal it</button>
-      </div>
-    </div>`;
-  document.getElementById('revealBtn').onclick = () => go('dna');
+  document.getElementById('seeIt').onclick = () => go('dna');
+  document.getElementById('finishFirst').onclick = () => go('dna');
 };
 
 RENDERERS.dna = function(){
