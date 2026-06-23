@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NAOMI — Smart Questionnaire System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --navy: #1F3A35;
+    --clay: #B8645A;
+    --gold: #C9A24B;
+    --paper: #FAF6EF;
+    --paper-dark: #F0EAE0;
+    --ink: #1A1A1A;
+    --ink-soft: #4A4540;
+    --ink-muted: #8A8480;
+    --border: rgba(31,58,53,0.12);
+    --border-strong: rgba(31,58,53,0.25);
+
+    --l1: #1F3A35;
+    --l1-light: #E8F0EE;
+    --l2: #B8645A;
+    --l2-light: #F7EDEC;
+    --l3: #C9A24B;
+    --l3-light: #F9F2E6;
+    --l4: #6B7FA0;
+    --l4-light: #EDF0F5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .page-header {
+    background: var(--navy);
+    padding: 48px 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,162,75,0.2);
+  }
+  .page-header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; right: 80px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,162,75,0.12);
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .header-title {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 300;
+    color: #FAF6EF;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .header-sub {
+    font-size: 15px;
+    color: rgba(250,246,239,0.6);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  .level-pills {
+    display: flex;
+    gap: 8px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .level-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(250,246,239,0.15);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(250,246,239,0.65);
+    background: transparent;
+  }
+
+  .level-pill:hover, .level-pill.active {
+    border-color: rgba(250,246,239,0.4);
+    color: #FAF6EF;
+    background: rgba(250,246,239,0.08);
+  }
+
+  .pill-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 40px;
+  }
+
+  .level-section {
+    margin-bottom: 52px;
+    display: none;
+  }
+  .level-section.visible { display: block; }
+
+  .level-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .level-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    flex-shrink: 0;
+  }
+
+  .level-badge .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .level-badge .lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  .level-meta { flex: 1; }
+
+  .level-name {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+
+  .level-desc {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    max-width: 560px;
+  }
+
+  .level-stats {
+    display: flex;
+    gap: 24px;
+    margin-top: 10px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .stat-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .questions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .q-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+
+  .q-card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .q-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .q-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .q-tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .q-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+
+  .q-text {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+
+  .q-why {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .q-why strong {
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .q-input-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-muted);
+    margin-bottom: 14px;
+  }
+
+  .q-input-icon {
+    width: 16px; height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Level color themes */
+  .l1 .level-badge { background: var(--l1-light); }
+  .l1 .level-badge .num { color: var(--l1); }
+  .l1 .level-badge .lbl { color: var(--l1); }
+  .l1 .level-name { color: var(--l1); }
+  .l1 .q-card { border-left: 3px solid var(--l1); }
+  .l1 .stat-dot { background: var(--l1); }
+
+  .l2 .level-badge { background: var(--l2-light); }
+  .l2 .level-badge .num { color: var(--l2); }
+  .l2 .level-badge .lbl { color: var(--l2); }
+  .l2 .level-name { color: var(--l2); }
+  .l2 .q-card { border-left: 3px solid var(--l2); }
+  .l2 .stat-dot { background: var(--l2); }
+
+  .l3 .level-badge { background: var(--l3-light); }
+  .l3 .level-badge .num { color: var(--l3); }
+  .l3 .level-badge .lbl { color: var(--l3); }
+  .l3 .level-name { color: var(--l3); }
+  .l3 .q-card { border-left: 3px solid var(--l3); }
+  .l3 .stat-dot { background: var(--l3); }
+
+  .l4 .level-badge { background: var(--l4-light); }
+  .l4 .level-badge .num { color: var(--l4); }
+  .l4 .level-badge .lbl { color: var(--l4); }
+  .l4 .level-name { color: var(--l4); }
+  .l4 .q-card { border-left: 3px solid var(--l4); }
+  .l4 .stat-dot { background: var(--l4); }
+
+  /* Tag colors */
+  .tag-intent { background: #E8F0EE; color: #1F3A35; }
+  .tag-values { background: #F7EDEC; color: #8A3028; }
+  .tag-pers { background: #F9F2E6; color: #7A5A1A; }
+  .tag-life { background: #EDF0F5; color: #3A4E6E; }
+  .tag-depth { background: #F5EEF8; color: #6B3A8A; }
+  .tag-req { background: #1F3A35; color: #FAF6EF; }
+  .tag-opt { background: var(--paper-dark); color: var(--ink-soft); }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 12px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .filter-btn:hover, .filter-btn.on {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+
+  .show-all-btn {
+    margin-top: 16px;
+    padding: 10px 20px;
+    border: 1px solid var(--border-strong);
+    background: white;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: none;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+  .show-all-btn:hover { background: var(--paper-dark); }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    padding: 18px 22px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .legend-swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--gold);
+    transition: width 0.3s;
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+
+  .summary-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+
+  .summary-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .summary-sub {
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+
+  @media (max-width: 700px) {
+    .page-header { padding: 32px 24px 28px; }
+    .header-title { font-size: 28px; }
+    .main { padding: 32px 20px; }
+    .summary-row { grid-template-columns: repeat(2, 1fr); }
+    .questions-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="header-eyebrow">NAOMI · Smart Questionnaire Architecture</div>
+  <h1 class="header-title">Know the person.<br>Not the profile.</h1>
+  <p class="header-sub">A 4-level question system designed to reveal who someone truly is — progressively, psychologically, and with intention. Every question earns its place.</p>
+  <div class="level-pills">
+    <button class="level-pill active" onclick="showAll(this)">
+      <span class="pill-dot" style="background:#FAF6EF;opacity:0.5"></span>
+      All levels
+    </button>
+    <button class="level-pill" onclick="showLevel('l1', this)">
+      <span class="pill-dot" style="background:#7FAAA0"></span>
+      L1 · Core identity
+    </button>
+    <button class="level-pill" onclick="showLevel('l2', this)">
+      <span class="pill-dot" style="background:#C98E86"></span>
+      L2 · Character & values
+    </button>
+    <button class="level-pill" onclick="showLevel('l3', this)">
+      <span class="pill-dot" style="background:#C9A24B"></span>
+      L3 · Depth & reflection
+    </button>
+    <button class="level-pill" onclick="showLevel('l4', this)">
+      <span class="pill-dot" style="background:#6B7FA0"></span>
+      L4 · Relationship DNA
+    </button>
+  </div>
+</header>
+
+<main class="main">
+
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="summary-label">Total questions</div>
+      <div class="summary-value" style="color:var(--navy)">52</div>
+      <div class="summary-sub">across 4 levels</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Required (L1–L2)</div>
+      <div class="summary-value" style="color:var(--clay)">18</div>
+      <div class="summary-sub">core onboarding gates</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Est. completion</div>
+      <div class="summary-value" style="color:var(--gold)">8–12</div>
+      <div class="summary-sub">minutes total</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Voice-first</div>
+      <div class="summary-value" style="color:#6B7FA0">L1–L3</div>
+      <div class="summary-sub">text fallback always available</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#1F3A35"></div> Required</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--paper-dark)"></div> Optional</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#E8F0EE"></div> Intent signal</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#F7EDEC"></div> Values signal</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#F9F2E6"></div> Personality signal</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#EDF0F5"></div> Lifestyle signal</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#F5EEF8"></div> Depth / reflection</div>
+  </div>
+
+  <!-- LEVEL 1 -->
+  <section class="level-section l1 visible" id="sec-l1">
+    <div class="level-header">
+      <div class="level-badge">
+        <span class="num">01</span>
+        <span class="lbl">Core</span>
+      </div>
+      <div class="level-meta">
+        <div class="level-name">Core identity & intent</div>
+        <div class="level-desc">The minimum viable truth. These questions establish who this person is, why they're here, and what they're genuinely looking for. Asked during the Naomi voice call — conversationally, not as a form.</div>
+        <div class="level-stats">
+          <span class="stat"><span class="stat-dot"></span>12 questions</span>
+          <span class="stat"><span class="stat-dot"></span>All required</span>
+          <span class="stat"><span class="stat-dot"></span>~3 min</span>
+          <span class="stat"><span class="stat-dot"></span>Voice-first</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="questions-grid">
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–01</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-intent">Intent</span></div>
+        </div>
+        <div class="q-text">What brings you here today?</div>
+        <div class="q-input-type">🎤 Voice / text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>Reveals emotional state and readiness. The difference between "I'm tired of apps" and "I want to build a family" is everything. Sets the whole tone.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–02</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-intent">Intent</span></div>
+        </div>
+        <div class="q-text">What kind of relationship are you looking for?</div>
+        <div class="q-input-type">🎤 Voice · Single-select (Serious / Marriage / Open relationship / Not sure yet)</div>
+        <div class="q-why"><strong>Why this matters</strong>Hard filter. Incompatible relationship goals are the #1 reason matches fail. Must be captured before any matching occurs.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–03</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-intent">Intent</span></div>
+        </div>
+        <div class="q-text">Tell me about the last person you loved. What made it work — and what didn't?</div>
+        <div class="q-input-type">🎤 Voice · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the workshop Miro board: "Tell me about the last person you loved." Surfaces attachment patterns, self-awareness, and what they've actually learned — not what they claim to want.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–04</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">What does a typical week look like for you? Walk me through it.</div>
+        <div class="q-input-type">🎤 Voice · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>Schedule compatibility is underrated. A night-owl entrepreneur and an early-morning teacher can deeply love each other and still make each other miserable. Reveals priorities, not just habits.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–05</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-intent">Intent</span></div>
+        </div>
+        <div class="q-text">Do you have children? And how do you feel about having them in the future?</div>
+        <div class="q-input-type">🎤 Voice · Structured (Yes/No + future intent)</div>
+        <div class="q-why"><strong>Why this matters</strong>A dealbreaker that's too uncomfortable to raise on a first date. Naomi surfaces it first so neither person wastes months discovering incompatibility.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–06</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">Where are you living now, and how rooted are you there?</div>
+        <div class="q-input-type">🎤 Voice · Location + relocation openness</div>
+        <div class="q-why"><strong>Why this matters</strong>Geographic compatibility matters more than proximity. Someone in Manhattan who'd happily move is very different from someone who'd never leave their neighborhood.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–07</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">How would your closest friends describe you — and would you agree?</div>
+        <div class="q-input-type">🎤 Voice · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>The gap between how someone is seen and how they see themselves is one of the most reliable signals of self-awareness. A person who agrees, disagrees, or laughs — all reveal something different.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–08</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What do you do for work — and how much of you does it take up?</div>
+        <div class="q-input-type">🎤 Voice · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>Not a career-matching question. A gauge of identity-work fusion. Some people are their job; others have a job. Partners need to be compatible on this, not just in profession.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–09</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What are you non-negotiable about in a partner? The things that, if missing, you'd walk away.</div>
+        <div class="q-input-type">🎤 Voice · Open-ended dealbreakers</div>
+        <div class="q-why"><strong>Why this matters</strong>Explicit dealbreakers are the fastest filters we have. People know these viscerally even when they can't articulate what they want. More reliable than positive wish-lists.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–10</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What values are most important to you in a relationship?</div>
+        <div class="q-input-type">🎤 Voice · Open-ended or multi-select</div>
+        <div class="q-why"><strong>Why this matters</strong>Foundation of the Relationship DNA. Values alignment predicts long-term compatibility better than personality similarity. This seeds the core matching vector.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–11</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">One word — just one — that describes you right now. Don't overthink it.</div>
+        <div class="q-input-type">🎤 Voice / text · Single word</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Forces a moment of genuine self-reflection. The word people choose (or struggle to choose) tells you more than a paragraph. Shows present-state emotional awareness.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L1–12</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-intent">Intent</span></div>
+        </div>
+        <div class="q-text">What would a successful match with Naomi look like for you, one year from now?</div>
+        <div class="q-input-type">🎤 Voice · Open-ended vision</div>
+        <div class="q-why"><strong>Why this matters</strong>Grounds their expectation in something concrete. Also identifies unrealistic expectations early. The person who says "in a serious relationship" vs. "married with a plan" — both valid, both very different.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LEVEL 2 -->
+  <section class="level-section l2 visible" id="sec-l2">
+    <div class="level-header">
+      <div class="level-badge">
+        <span class="num">02</span>
+        <span class="lbl">Character</span>
+      </div>
+      <div class="level-meta">
+        <div class="level-name">Character & values</div>
+        <div class="level-desc">Moves past intent into who they actually are. These questions are designed to feel like conversation, not interrogation. Asked during the post-call questionnaire phase, before DNA is revealed.</div>
+        <div class="level-stats">
+          <span class="stat"><span class="stat-dot"></span>14 questions</span>
+          <span class="stat"><span class="stat-dot"></span>10 required · 4 optional</span>
+          <span class="stat"><span class="stat-dot"></span>~3–4 min</span>
+          <span class="stat"><span class="stat-dot"></span>Text with voice option</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="questions-grid">
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–01</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">If you could wake up tomorrow having gained one quality or ability, what would it be?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (36 Questions). Reveals the gap between who they are and who they aspire to be. Surfaces insecurities, ambitions, and what they believe they're currently missing — all useful matching signals.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–02</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What do you value most in a friendship? (And does the same apply to romantic partnerships?)</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The overlap between friendship values and relationship values reveals how they think about intimacy and closeness — and whether they seek a partner who is also a best friend.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–03</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">Would you rather vacation in a big city or the countryside? What does that say about you?</div>
+        <div class="q-input-type">✏️ Text · Structured + reflection</div>
+        <div class="q-why"><strong>Why this matters</strong>A deceptively simple lifestyle signal with real matching utility. The follow-up ("what does that say about you?") pushes past preference into self-awareness — which is the more valuable data point.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–04</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What's something you irrationally hate? (Be honest.)</div>
+        <div class="q-input-type">✏️ Text · Open-ended, humor-forward</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Irrational preferences and pet peeves reveal personality more honestly than positive self-descriptions. Also signals sense of humor and willingness to be genuine. Compatibility on the small things matters in daily life.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–05</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What are you currently obsessed about?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Current obsessions reveal intellectual energy, passion level, and what someone is actually alive about right now — not just their job title or hobbies list. Shared curiosity is a powerful connector.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–06</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What's something you wish you were better at saying "no" to?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Surfaces boundary-setting habits, people-pleasing tendencies, and self-awareness around personal limits. Critical for predicting how someone navigates conflict and prioritizes their own needs in a relationship.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–07</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">How do you define success — personally, not professionally?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The professional definition is a shield. The personal one reveals what they're actually optimizing for in life — which is what their partner will have to align with. Ambition compatibility matters here.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–08</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">What does your ideal Sunday look like? Not the fantasy version — the real one.</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>Inspired by "what would a perfect day look like?" from the KYC bank, but grounded in reality. A Sunday is the most honest day — no obligations to hide behind. Social/solo, structured/spontaneous, energy level: all revealed here.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–09</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What music gives you actual goosebumps?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Music taste is a proxy for emotional openness, aesthetic sensibility, and the kind of beauty someone lets in. "Goosebumps" — not just "favorite" — forces a more honest, less curated answer.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–10</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">What's something you made recently — anything counts, from a meal to a decision to a piece of work.</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Reveals agency, creativity, and what someone considers worth making. The breadth of "anything counts" is deliberate — it equalizes across different life contexts and surfaces what someone is actively engaged in.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–11</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">Do you have any superstitions? And do you take them seriously?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. An unexpected window into how someone relates to uncertainty and control. Also a tone signal — the way they answer reveals humor, self-awareness, and openness to playfulness.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–12</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">If you're sitting next to someone on a plane and they fall asleep but you need the bathroom — do you wake them or shimmy past?</div>
+        <div class="q-input-type">✏️ Text · Behavioral micro-choice</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (opening question). Reveals conflict-avoidance vs. directness in a completely non-threatening context. How someone handles small social discomfort predicts larger relational patterns.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–13</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">What's on your bucket list that nobody would ever guess?</div>
+        <div class="q-input-type">✏️ Text · Open-ended surprise</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The curveball bucket-list item reveals the part of someone they keep private or feel slightly embarrassed about wanting. That's the most interesting part of a person — and often where genuine connection starts.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L2–14</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What fashion trend did you follow that seemed perfect then, but now looks a little ridiculous?</div>
+        <div class="q-input-type">✏️ Text · Light / humorous</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Signals willingness to be self-deprecating and non-defensive. People who can laugh at their past selves tend to be easier to be in a relationship with. Also just a great conversation opener.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LEVEL 3 -->
+  <section class="level-section l3 visible" id="sec-l3">
+    <div class="level-header">
+      <div class="level-badge">
+        <span class="num">03</span>
+        <span class="lbl">Depth</span>
+      </div>
+      <div class="level-meta">
+        <div class="level-name">Depth & reflection</div>
+        <div class="level-desc">The questions that separate shallow profiles from genuine understanding. Mostly optional — offered after the Relationship DNA reveal, when the user trusts Naomi enough to go deeper. Each answer meaningfully improves match precision.</div>
+        <div class="level-stats">
+          <span class="stat"><span class="stat-dot"></span>16 questions</span>
+          <span class="stat"><span class="stat-dot"></span>4 required · 12 optional</span>
+          <span class="stat"><span class="stat-dot"></span>~3–5 min</span>
+          <span class="stat"><span class="stat-dot"></span>Text-first (reflective tone)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="questions-grid">
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–01</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What has genuinely surprised you recently — about yourself, someone else, or the world?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Openness to surprise is one of the strongest signals of intellectual humility and curiosity. Someone who can still be surprised is still growing. This also reveals what they pay attention to — a proxy for worldview.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–02</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">Is there something you've dreamed of doing for a long time but haven't done yet? What's holding you back?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (Arthur Aron's 36 Questions). The second part — "what's holding you back?" — is where the real signal lives. It separates circumstances from psychology. Fear, practicality, procrastination: each reveals a different person.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–03</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What's the hardest thing you've ever done — and what did it teach you?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Resilience and self-knowledge in one question. The "what did it teach you?" part is critical — someone who learned vs. someone who endured vs. someone who is still in it are all very different partners.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–04</span>
+          <div class="q-tags"><span class="q-tag tag-req">Required</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">If you could change anything about the way you were raised, what would it be?</div>
+        <div class="q-input-type">✏️ Text · Deep / sensitive</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (Arthur Aron's 36 Questions). One of the most revealing questions in existence. What someone answers here — or refuses to answer — tells you about family dynamics, unresolved wounds, and what they're unconsciously replicating or avoiding in relationships.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–05</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">When did you last cry in front of another person? What made it happen?</div>
+        <div class="q-input-type">✏️ Text · Vulnerable</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (Arthur Aron's). Emotional vulnerability and the ability to express it in front of others is one of the strongest predictors of intimacy capacity. Both parts matter: frequency of crying, and willingness to do it with someone present.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–06</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">If a crystal ball could tell you one truth about yourself, your life, or the future — what would you ask?</div>
+        <div class="q-input-type">✏️ Text · Reflective</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. What someone most wants to know reveals what they're most uncertain or anxious about. It's a gentle path to the fears and questions they carry around without being able to say them directly.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–07</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">Before making a phone call, do you ever rehearse what you're going to say? Why — or why not?</div>
+        <div class="q-input-type">✏️ Text · Behavioral insight</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. This small behavior maps onto a much larger pattern — preparation vs. spontaneity, anxiety vs. ease, need for control vs. comfort with uncertainty. It's an indirect but precise measure of social anxiety and communication style.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–08</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What's your most treasured memory? You don't have to explain why — just share it.</div>
+        <div class="q-input-type">✏️ Text · Emotional / open</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. What someone chooses as most treasured reveals what they consider the peak of their emotional life. The invitation to skip the "why" reduces performance — you get the real memory, not the one that sounds good.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–09</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What would you do if you had no fear? Not zero obligations — just no fear.</div>
+        <div class="q-input-type">✏️ Text · Imaginative / revealing</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Distinguishes practical constraints from emotional limits. The answer reveals desires that fear is suppressing — which is different from what circumstances are preventing. Tells you about dreams they haven't said aloud.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–10</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">What's one goal you're genuinely trying to accomplish this year?</div>
+        <div class="q-input-type">✏️ Text · Present-focused</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. A current goal is a window into someone's active priorities — what they're moving toward right now. Compatibility here is time-sensitive: two people with wildly different present-focus struggle to sync rhythms even when long-term goals align.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–11</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What's your proudest accomplishment — the one that still makes you feel something?</div>
+        <div class="q-input-type">✏️ Text · Open-ended</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The emotional qualifier ("still makes you feel something") prevents the polished LinkedIn answer. Reveals what the person genuinely values about themselves versus what they've been told to be proud of.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–12</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">Which historical period would you most want to visit — and what does that say about you?</div>
+        <div class="q-input-type">✏️ Text · Reflective + fun</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Historical periods represent value clusters — romantics choose renaissance Italy, pragmatists choose specific decades for what was being built, contrarians choose the uncomfortable ones. The "what does that say?" surfaces self-awareness without requiring introspection explicitly.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–13</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-life">Lifestyle</span></div>
+        </div>
+        <div class="q-text">Tell me about an adventure you went on recently — could be big, could be a Tuesday.</div>
+        <div class="q-input-type">✏️ Text · Narrative</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. "Could be a Tuesday" gives permission for small adventures, which reveals whether someone finds life interesting at a baseline level or only during major events. Adventure mentality shows in the ordinary.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–14</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">Have you ever had an experience that made you genuinely wonder if there's more to the world than we can explain?</div>
+        <div class="q-input-type">✏️ Text · Spiritual / curious</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Spiritual and metaphysical openness is a significant compatibility dimension that most apps ignore. Long-term partners need some alignment here — not identical beliefs, but compatible openness to mystery.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–15</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What personality trait would you change about yourself if you could — and have you tried?</div>
+        <div class="q-input-type">✏️ Text · Growth-oriented</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The "have you tried?" distinguishes wishful self-awareness from active growth. Someone who knows what they want to change and is working on it is a very different partner than someone who's said it to themselves for a decade without moving.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L3–16</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">What's a film you'd make everyone watch? Not your favorite — the one you think says something true about being human.</div>
+        <div class="q-input-type">✏️ Text · Aesthetic / values signal</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. The distinction between "favorite" and "says something true" is key. It moves from entertainment preference to worldview. The film someone chooses as universally necessary reveals their conception of what matters about being alive.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LEVEL 4 -->
+  <section class="level-section l4 visible" id="sec-l4">
+    <div class="level-header">
+      <div class="level-badge">
+        <span class="num">04</span>
+        <span class="lbl">DNA</span>
+      </div>
+      <div class="level-meta">
+        <div class="level-name">Relationship DNA</div>
+        <div class="level-desc">The final layer — asked after the first match notification, or progressively unlocked as users engage. These questions complete the compatibility model and are never shown as a block. Naomi surfaces them one at a time, when relevant.</div>
+        <div class="level-stats">
+          <span class="stat"><span class="stat-dot"></span>10 questions</span>
+          <span class="stat"><span class="stat-dot"></span>All optional · Contextual</span>
+          <span class="stat"><span class="stat-dot"></span>Progressive over weeks</span>
+          <span class="stat"><span class="stat-dot"></span>In-app, text only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="questions-grid">
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–01</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What does a happy family look like to you — specifically, not in the abstract?</div>
+        <div class="q-input-type">✏️ Text · Vision / values</div>
+        <div class="q-why"><strong>Why this matters</strong>Surfaces the actual family template someone carries — usually inherited from their own family, consciously or not. The "specifically" qualifier is critical — it gets past the aspirational answer into the behavioral pattern they're actually modeled on.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–02</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">How do you think finances should work in a serious relationship? Merged, split, flexible — and why?</div>
+        <div class="q-input-type">✏️ Text · Practical values</div>
+        <div class="q-why"><strong>Why this matters</strong>Money is the #1 source of relationship conflict. Not because of amounts, but because of different philosophies. This question reveals independence vs. merging orientation, control dynamics, and how someone thinks about "us" vs. "me" at a practical level.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–03</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What would you most like to do for someone else if you had unlimited time and money?</div>
+        <div class="q-input-type">✏️ Text · Generosity / values</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. When someone can do anything for anyone, the choice they make reveals their core generosity orientation. Do they think of family, strangers, causes, or their partner? Each answer maps onto a different relational archetype.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–04</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What obligation, if any, do you feel toward your community or country — and does that show up in your daily life?</div>
+        <div class="q-input-type">✏️ Text · Civic / values</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Civic and social responsibility orientation is a significant values dimension for long-term compatibility. The "does it show up?" clause tests for alignment between stated values and actual behavior — a critical signal for authenticity.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–05</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">When did you last sing to yourself? Where were you?</div>
+        <div class="q-input-type">✏️ Text · Light / emotional</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank (Arthur Aron's 36 Questions). Seemingly trivial, actually profound. Singing to yourself is a joy behavior — unself-conscious, private, present. It appears when someone is comfortable in their own skin. The "where" tells you what contexts feel safe and alive for them.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–06</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">Would you rather meet your great-grandparents or your great-great-grandchild? Why?</div>
+        <div class="q-input-type">✏️ Text · Time-orientation</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. A fascinating proxy for time orientation — past vs. future, roots vs. legacy. Someone deeply connected to their heritage chooses backward; someone driven by what they're creating chooses forward. Both are valid, both predict different relationship rhythms.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–07</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-pers">Personality</span></div>
+        </div>
+        <div class="q-text">If you lived to be 100, what would you rather have — a sharp mind or a healthy body? What does that reveal about how you think about aging?</div>
+        <div class="q-input-type">✏️ Text · Philosophical</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. A proxy for what someone considers most essential to self. Mind-first people often approach relationships differently from body-first people — different ideas of dignity, presence, and what it means to still be "here." Deeply relevant for long-term partnership compatibility.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–08</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-values">Values</span></div>
+        </div>
+        <div class="q-text">What makes a house a home for you?</div>
+        <div class="q-input-type">✏️ Text · Lifestyle / values</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. Domestic philosophy in a small question. The home environment a person creates reflects their deepest comfort needs — and whoever they share it with will have to live there too. Reveals warmth orientation, nesting instincts, and what "belonging" means to them physically.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–09</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">Who is the most inspirational person alive today, in your view — and why them?</div>
+        <div class="q-input-type">✏️ Text · Admiration / values projection</div>
+        <div class="q-why"><strong>Why this matters</strong>From the KYC bank. We project our own highest values onto who we most admire. The "why them?" reveals what the person considers most worth aspiring to — which is what they'll also expect from a long-term partner, consciously or not.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top">
+          <span class="q-number">L4–10</span>
+          <div class="q-tags"><span class="q-tag tag-opt">Optional</span><span class="q-tag tag-depth">Depth</span></div>
+        </div>
+        <div class="q-text">What's one thing about how you show up in relationships that you're still figuring out?</div>
+        <div class="q-input-type">✏️ Text · Self-awareness / growth</div>
+        <div class="q-why"><strong>Why this matters</strong>NAOMI-original. The final question of the system. Not "what's your weakness" — but what you're still actively figuring out. The degree of honesty, specificity, and self-compassion in the answer tells you more about relationship readiness than almost anything else asked.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <div style="background: var(--navy); border-radius: 20px; padding: 36px 40px; margin-top: 8px; display: flex; align-items: flex-start; gap: 32px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 220px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin-bottom:12px;">Design principles</div>
+      <p style="font-family:'Fraunces',serif; font-size:20px; font-weight:300; color:#FAF6EF; line-height:1.4; margin-bottom:0;">Every question earns its place. If Naomi can't explain why an answer improves a match, the question doesn't ship.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; flex: 1; min-width:280px;">
+      <div style="background:rgba(250,246,239,0.07); border:1px solid rgba(250,246,239,0.12); border-radius:12px; padding:14px 16px;">
+        <div style="font-size:12px; color:rgba(250,246,239,0.5); margin-bottom:4px; font-family:'IBM Plex Mono',monospace;">Never a form</div>
+        <div style="font-size:13px; color:#FAF6EF; line-height:1.5;">Questions surface in conversation. The AI connects the dots invisibly.</div>
+      </div>
+      <div style="background:rgba(250,246,239,0.07); border:1px solid rgba(250,246,239,0.12); border-radius:12px; padding:14px 16px;">
+        <div style="font-size:12px; color:rgba(250,246,239,0.5); margin-bottom:4px; font-family:'IBM Plex Mono',monospace;">Always optional at L3–L4</div>
+        <div style="font-size:13px; color:#FAF6EF; line-height:1.5;">Skipping a deep question is itself a signal. The system learns either way.</div>
+      </div>
+      <div style="background:rgba(250,246,239,0.07); border:1px solid rgba(250,246,239,0.12); border-radius:12px; padding:14px 16px;">
+        <div style="font-size:12px; color:rgba(250,246,239,0.5); margin-bottom:4px; font-family:'IBM Plex Mono',monospace;">No right answers</div>
+        <div style="font-size:13px; color:#FAF6EF; line-height:1.5;">Questions are scored for compatibility between people, not against an ideal profile.</div>
+      </div>
+      <div style="background:rgba(250,246,239,0.07); border:1px solid rgba(250,246,239,0.12); border-radius:12px; padding:14px 16px;">
+        <div style="font-size:12px; color:rgba(250,246,239,0.5); margin-bottom:4px; font-family:'IBM Plex Mono',monospace;">Progressive trust</div>
+        <div style="font-size:13px; color:#FAF6EF; line-height:1.5;">Depth of questions increases only as Naomi has earned the right to ask.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function showAll(btn) {
+  document.querySelectorAll('.level-section').forEach(s => s.classList.add('visible'));
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function showLevel(cls, btn) {
+  document.querySelectorAll('.level-section').forEach(s => s.classList.remove('visible'));
+  document.getElementById('sec-' + cls).classList.add('visible');
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+
+</body>
+</html>
