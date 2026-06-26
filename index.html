@@ -264,10 +264,10 @@ let scheduledTime = null;
 
 // ── FLOW CONFIG ───────────────────────────────────────────────────────────────
 const FLOW_ORDER = [
-  "splash","trailer","trust","register","signup","login",
+  "splash","trailer","register","signup","login",
   "forgotpassword","forgotpasswordsent",
-  "phoneinput","mobileotp",
-  "naomiintro","kycquestions","kycverification","dnaprofile","deepquestions","paywall","matchmaking","matchreveal","schedule",
+  "phoneinput","mobileotp","trust",
+  "naomiintro","kycquestions","kycflow","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
@@ -275,7 +275,7 @@ const SECTION_LABELS = {
   forgotpassword:"Onboarding", forgotpasswordsent:"Onboarding",
   phoneinput:"Onboarding", mobileotp:"Onboarding",
   naomiintro:"Onboarding flow", kycquestions:"Onboarding flow",
-  kycverification:"KYC flow", schedule:"Onboarding flow",
+  kycverification:"KYC flow", kycflow:"KYC flow", schedule:"Onboarding flow",
 };
 const DARK_STATUS_SCREENS = new Set(["splash","trailer","kycquestions"]);
 
@@ -287,8 +287,14 @@ function renderOtp(title, sub, nextId, digits){
       <div>
         <h1 class="disp" style="font-size:24px;margin-bottom:8px;">${title}</h1>
         <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">Enter the ${digits}-digit code we sent you.</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px;">
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
           ${Array.from({length:digits},(_,i)=>`<div class="otpBox" data-i="${i}" style="width:${digits===6?42:50}px;height:52px;border-radius:11px;border:1.5px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--clay);cursor:pointer;transition:border-color .15s;"></div>`).join('')}
+        </div>
+        <!-- Autofill shortcut -->
+        <div style="text-align:center;margin-bottom:16px;">
+          <button id="autofillBtn" style="background:none;border:1px solid var(--clay);border-radius:20px;padding:6px 16px;font-family:var(--fontBody);font-size:12.5px;color:var(--clay);cursor:pointer;">
+            ✦ Autofill code
+          </button>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <button id="resendBtn" style="background:none;border:none;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);">Resend in 0:42</button>
@@ -302,6 +308,15 @@ function renderOtp(title, sub, nextId, digits){
   const $btn = document.getElementById('verifyBtn');
   const timer = setInterval(()=>{ secs--; const r=document.getElementById('resendBtn'); if(r) r.textContent=secs>0?`Resend in 0:${String(secs).padStart(2,'0')}`:'Resend code'; if(secs<=0) clearInterval(timer); },1000);
   timers.push(timer);
+
+  function fillBox(i, val){
+    const box = document.querySelector(`.otpBox[data-i="${i}"]`);
+    if(!box) return;
+    filled[i] = val;
+    box.textContent = val;
+    box.style.borderColor = val ? 'var(--clay)' : 'var(--line)';
+  }
+
   document.querySelectorAll('.otpBox').forEach(box=>{
     box.onclick=()=>{
       const i=+box.dataset.i; filled[i]=filled[i]?'':'•';
@@ -309,6 +324,13 @@ function renderOtp(title, sub, nextId, digits){
       const done=filled.every(Boolean); $btn.style.opacity=done?'1':'.4';
     };
   });
+
+  // Autofill — fills all boxes instantly on one tap
+  document.getElementById('autofillBtn').onclick = () => {
+    for(let i=0;i<digits;i++) fillBox(i,'•');
+    $btn.style.opacity='1';
+  };
+
   $btn.onclick=()=>{ if(filled.every(Boolean)) go(nextId); };
   document.getElementById('backLink').onclick=()=>back();
 }
@@ -316,6 +338,131 @@ function renderOtp(title, sub, nextId, digits){
 function renderBottomNav(){ return ""; }
 
 function wireBottomNav(){ }
+
+// ── MODULE-LEVEL CONSTANTS ─────────────────────────────────────────────────────
+
+// Progress persistence (session only — no cross-session storage)
+const SAVE_KEY = 'naomi_onboarding_v2';
+function saveProgress(data){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({...data, ts:Date.now()})); }catch(e){} }
+function loadProgress(){ try{ const d=localStorage.getItem(SAVE_KEY); return d?JSON.parse(d):null; }catch(e){return null;} }
+function clearProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+// Question bank — Phase 1 (12 questions, show first 6)
+const P1_CORE = [
+  { id:"p1_01", q:"What brings you here today?",                              hint:"Reveals emotional state and readiness \u2014 sets the whole tone." },
+  { id:"p1_02", q:"What kind of relationship are you looking for?",            hint:"Serious, marriage, open, not sure yet \u2014 no wrong answer." },
+  { id:"p1_03", q:"Tell me about the last person you loved. What made it work \u2014 and what didn\u2019t?", hint:"Take your time. This one matters." },
+  { id:"p1_04", q:"What does a typical week look like for you? Walk me through it.", hint:"Not what you aspire to \u2014 what actually happens." },
+  { id:"p1_05", q:"Do you have children? And how do you feel about having them in the future?", hint:"There\u2019s no right answer \u2014 just an honest one." },
+  { id:"p1_06", q:"Where are you living now, and how rooted are you there?",   hint:"Would you move for the right person?" },
+  { id:"p1_07", q:"How would your closest friends describe you \u2014 and would you agree?", hint:"The gap between the two is the interesting part." },
+  { id:"p1_08", q:"What do you do for work \u2014 and how much of you does it take up?", hint:"Not a career question. A question about identity." },
+  { id:"p1_09", q:"What are you non-negotiable about in a partner?",           hint:"Be specific. Vague answers don\u2019t help you." },
+  { id:"p1_10", q:"What values are most important to you in a relationship?",  hint:"Not a list \u2014 tell Naomi what you actually live by." },
+  { id:"p1_11", q:"One word \u2014 just one \u2014 that describes you right now.", hint:"The first word that comes is usually the truest." },
+  { id:"p1_12", q:"What would a successful match with Naomi look like for you, one year from now?", hint:"Be concrete. It helps Naomi understand what you\u2019re really hoping for." },
+];
+
+// Adaptive follow-up pool
+const P1_ADAPTIVE_POOL = [
+  { id:"p1_a1", trigger:["work","office","startup","build","design","code","busy"], q:"How much does work shape your identity \u2014 are you your job, or do you have a job?", hint:"Most people lean strongly one way." },
+  { id:"p1_a2", trigger:["run","gym","yoga","fitness","sport","workout","hike"], q:"Is staying active something you\u2019d want to share with a partner, or is it your solo time?", hint:"Either is fine." },
+  { id:"p1_a3", trigger:["cook","food","restaurant","eat","kitchen","bake"], q:"What does a perfect dinner look like to you?", hint:"At home, out, or somewhere in between?" },
+  { id:"p1_a4", trigger:["travel","trip","country","city","abroad","explore"], q:"What\u2019s the trip that changed how you see the world?", hint:"Even a short one counts." },
+  { id:"p1_a5", trigger:["read","book","podcast","learn","curious","study"], q:"What are you most curious about right now?", hint:"The topic you keep going back to." },
+  { id:"p1_a6", trigger:["kids","children","daughter","son","parent","family"], q:"What does the idea of family mean to you right now?", hint:"However you define it." },
+  { id:"p1_a7", trigger:["marriage","serious","long-term","commit","settle"], q:"What does building a life with someone actually look like in your mind?", hint:"The ordinary Tuesday, not the wedding." },
+  { id:"p1_f1", q:"What motivates you most in life right now?", hint:"Recognition, growth, freedom, connection \u2014 or something else?" },
+  { id:"p1_f2", q:"How would you describe your relationship with solitude?", hint:"Do you need it, avoid it, or somewhere between?" },
+  { id:"p1_f3", q:"What\u2019s something most people wouldn\u2019t guess about you?", hint:"A surprise. Could be anything." },
+];
+
+function pickAdaptiveQuestions(answers){
+  const used = new Set(Object.keys(answers));
+  const allText = Object.values(answers).join(' ').toLowerCase();
+  const scored = P1_ADAPTIVE_POOL.filter(q=>!used.has(q.id)).map(q=>{
+    const triggers = q.trigger||[];
+    return {...q, score: triggers.filter(t=>allText.includes(t)).length};
+  }).sort((a,b)=>b.score-a.score);
+  const triggered = scored.filter(q=>q.score>0).slice(0,4);
+  const fallbacks = scored.filter(q=>q.score===0&&q.id.startsWith('p1_f'));
+  return [...triggered,...fallbacks].sort(()=>Math.random()-0.5).slice(0,5);
+}
+
+// Transcript simulations
+const TRANSCRIPT_SIMS = {
+  p1_01:"I\u2019m tired of apps that feel like shopping. I want something real. I\u2019m ready for that.",
+  p1_02:"Something serious. Long-term, ideally leading to marriage. I\u2019m done with ambiguity.",
+  p1_03:"We were together four years. It worked because we made each other laugh. It ended because we wanted different futures.",
+  p1_04:"Early mornings are mine. Run, coffee, inbox. Afternoons are back-to-back. Evenings I protect.",
+  p1_05:"No kids yet. I\u2019d like one or two. It\u2019s become more present lately.",
+  p1_06:"West Village, Manhattan. I love it. I\u2019d leave for the right person.",
+  p1_07:"Warm but direct. Reliable. A little intense. Honestly \u2014 yes, I\u2019d agree.",
+  p1_08:"Marketing strategy. It takes up a lot of me, but I\u2019ve made peace with that.",
+  p1_09:"Dishonesty. And someone who isn\u2019t curious about the world.",
+  p1_10:"Honesty, growth, and loyalty.",
+  p1_11:"Ready.",
+  p1_12:"In a serious relationship with someone I genuinely admire.",
+};
+const GENERIC_SIM = "I\u2019ve thought about this. The honest answer is it depends, but what I\u2019ve noticed is\u2026";
+
+// Naomi reactions after each answer
+const NAOMI_REACTIONS = {
+  p1_01:["That\u2019s honest. I appreciate that.","Thank you for saying that. It matters.","Good. That\u2019s exactly the kind of clarity I work with.","I hear you. Let\u2019s make sure this time is different."],
+  p1_02:["Got it \u2014 that tells me a lot already.","Interesting. The way you describe it says as much as the words.","I love that you answered it that way.","That\u2019s a real answer. Thank you."],
+  p1_03:["That took honesty to share. I\u2019ll remember it.","Four years is real. What you learned matters more than how it ended.","Thank you. That context will shape how I match you.","The fact you can talk about it like that tells me something good."],
+  p1_04:["Sounds like someone who knows how to protect their time.","I like that. The way you spend your days says everything.","Got it. That rhythm matters \u2014 Naomi will match for it.","That\u2019s a full life. Good."],
+  p1_05:["Understood. That\u2019s not a small question and you answered it clearly.","Good to know. It\u2019s one of the most important things to get right early.","Thank you for being direct about that.","That honesty will save everyone a lot of time."],
+  p1_06:["West Village is a good answer.","Location matters more than people admit. Good to know.","Got it. And the fact you\u2019d leave for the right person says a lot.","Noted. That flexibility is rarer than you\u2019d think."],
+};
+const NAOMI_REACTION_GENERIC = [
+  "That\u2019s really helpful, thank you.",
+  "I appreciate you sharing that.",
+  "Good. That\u2019s exactly what I needed to know.",
+  "Noted. That tells me more than you might think.",
+  "Thank you. Keep going.",
+];
+function getNaomiReaction(qId){
+  const pool = NAOMI_REACTIONS[qId] || NAOMI_REACTION_GENERIC;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// Verification stages
+const VER_STAGES = [
+  {
+    id:'identity', title:'Activate Full Profile', subtitle:'Browse & Connect',
+    naomi:"Before I can show your profile to anyone, I need to confirm your identity. This is a one-time step \u2014 it\u2019s what makes every introduction on NAOMI genuinely trustworthy.",
+    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+    userChecks:[
+      {label:"Government-issued ID", detail:"Passport, national ID, or driving licence \u2014 MRZ scan and document authenticity check."},
+      {label:"Biometric face match", detail:"A single selfie matched against your ID photo."},
+    ],
+    footer:"Once confirmed, your profile becomes visible to others and you can start browsing matches.", cta:"Start verification",
+  },
+  {
+    id:'address', title:'Unlock Photos & Direct Communication', subtitle:'Address & Safety',
+    naomi:"Great \u2014 identity confirmed. The next step unlocks full profile photos and direct messaging.",
+    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    userChecks:[
+      {label:"Proof of address", detail:"Utility bill, bank statement, or government letter \u2014 document scan and data extraction."},
+    ],
+    footer:"Completing this stage unlocks profile photos and direct conversation.", cta:"Continue",
+  },
+  {
+    id:'matching', title:'Enter the Matching Process', subtitle:'Background & Premium Verified',
+    naomi:"Almost there. Before Naomi can introduce you to anyone, we run a final background check. Complete to earn your NAOMI Verified badge.",
+    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    userChecks:[
+      {label:"Criminal record check", detail:"National database search in your country of residence."},
+      {label:"International criminal check", detail:"Where available \u2014 relevant if you\u2019ve lived in multiple countries."},
+      {label:"Social media cross-reference", detail:"Optional \u2014 confirms your declared identity matches your social presence."},
+      {label:"Enhanced background check", detail:"Deeper search across multiple databases."},
+      {label:"Financial fraud check", detail:"Confirms no history of financial scams or fraud."},
+      {label:"Income verification", detail:"Optional \u2014 bank statement analysis for premium users."},
+    ],
+    footer:"Both parties must clear standard checks before any introduction. Completing all earns your NAOMI Verified badge \u00b7 Blue V.", cta:"Run background check",
+  },
+];
 
 const RENDERERS = {};
 
@@ -356,7 +503,7 @@ RENDERERS.trailer = function(){
     if(el){el.style.opacity='1';el.style.transform='translateY(0)';}
     li++;
     if(li<lines.length) timers.push(setTimeout(reveal,1400));
-    else timers.push(setTimeout(()=>go('trust'),1600));
+    else timers.push(setTimeout(()=>go('register'),1600));
   }
   $body.innerHTML=`
     <div class="screen justifyBetween" style="background:var(--navy);padding:28px;">
@@ -366,7 +513,7 @@ RENDERERS.trailer = function(){
       <button class="btnGhost" id="trailerSkip" style="border-color:rgba(255,252,246,.2);color:rgba(255,252,246,.5);font-size:14px;">Skip</button>
     </div>`;
   timers.push(setTimeout(reveal,400));
-  document.getElementById('trailerSkip').onclick=()=>go('trust');
+  document.getElementById('trailerSkip').onclick=()=>go('register');
 };
 
 // ── TRUST ─────────────────────────────────────────────────────────────────────
@@ -394,7 +541,7 @@ RENDERERS.trust = function(){
       </div>
       <button class="btn" id="trustGo">Ready to get started</button>
     </div>`;
-  document.getElementById('trustGo').onclick=()=>go('register');
+  document.getElementById('trustGo').onclick=()=>go('naomiintro');
 };
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
@@ -664,23 +811,97 @@ RENDERERS.phoneinput = function(){
 };
 
 // ── MOBILE OTP ────────────────────────────────────────────────────────────────
-RENDERERS.mobileotp = () => renderOtp("Verify your phone","","naomiintro",6);
+RENDERERS.mobileotp = () => renderOtp("Verify your phone","","trust",6);
 
 // ── NAOMI INTRO ───────────────────────────────────────────────────────────────
 RENDERERS.naomiintro = function(){
-  const messages=[{from:'naomi',text:'Hi, I\u2019m Naomi. \u2014 How should I call you?'}];
-  let nameEntered=false;
-  let recording=false;
-  let transcriptTimer=null;
-  const NAME_SIM='Naya';
+  // ── Unified Naomi intro + 6 questions in one continuous chat ─────────────────
+  clearProgress();
 
-  function stopRecording(){recording=false;if(transcriptTimer){clearInterval(transcriptTimer);transcriptTimer=null;}}
+  // Chat state
+  const messages = [{from:'naomi', text:'Hi, I\u2019m Naomi. \u2014 How should I call you?'}];
+  let nameEntered   = false;
+  let questionMode  = false; // true after user chooses to start
+  let recording     = false;
+  let transcriptTimer = null;
+  const NAME_SIM    = 'Naya';
 
+  // Question state (mirrors kycquestions)
+  let answers     = {};
+  let phase       = 1;
+  let qIdx        = 0;
+  let p1Adaptive  = pickAdaptiveQuestions({});
+
+  function getSequence(){ return P1_CORE.slice(0, 6); }
+  function save(){ /* session only */ }
+
+  function stopRecording(){
+    recording = false;
+    if(transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function chatBubbleNaomi(text){
+    return `<div style="display:flex;gap:10px;align-items:flex-end;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
+      <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${text}</div>
+    </div>`;
+  }
+  function chatBubbleUser(text){
+    return `<div style="display:flex;justify-content:flex-end;">
+      <div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--cream);">${text}</div>
+    </div>`;
+  }
+  function appendMsg(html){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    while(div.firstChild) log.appendChild(div.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ── Input bar HTML ─────────────────────────────────────────────────────────
+  function inputBarHTML(placeholder, id, hasVal){
+    return `
+      <div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;" id="chatInputBar">
+        <div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
+          <textarea id="${id}" placeholder="${placeholder}" rows="1"
+            style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:80px;overflow-y:auto;display:block;"></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+            <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:${hasVal?'var(--clay)':'var(--paperDeep)'};color:${hasVal?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Progress bar ───────────────────────────────────────────────────────────
+  function progressHTML(){
+    if(!questionMode) return '';
+    const seq   = getSequence();
+    const total = seq.length;
+    const pct   = Math.round(((qIdx+1)/total)*100);
+    return `<div style="padding:8px 16px 0;flex-shrink:0;">
+      <div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;">
+        <div id="kycProgBar" style="height:100%;width:${pct}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div>
+      </div>
+      <div id="kycHeaderSub" style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.06em;margin-top:3px;text-align:right;">${qIdx+1} of ${total}</div>
+    </div>`;
+  }
+
+  // ── Full screen paint ──────────────────────────────────────────────────────
   function paint(){
-    const showInput=!nameEntered;
-    const showOptions=nameEntered&&messages.length>=3;
-    $body.innerHTML=`
+    const seq     = getSequence();
+    const q       = questionMode ? seq[qIdx] : null;
+    const hasVal  = false; // textarea always empty on paint
+
+    $body.innerHTML = `
       <div style="height:100%;display:flex;flex-direction:column;background:var(--paperDeep);">
+
+        <!-- Header -->
         <div style="padding:18px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);flex-shrink:0;position:relative;">
           ${renderSchedIcon()}
           <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -688,710 +909,243 @@ RENDERERS.naomiintro = function(){
           </div>
           <div>
             <div style="font-weight:700;font-size:15px;">Naomi</div>
-            <div style="font-size:11.5px;color:var(--inkSoft);">Your AI matchmaker &bull; online</div>
+            <div style="font-size:11.5px;color:var(--inkSoft);">${questionMode?'Getting to know you':'Your AI matchmaker \u2022 online'}</div>
           </div>
         </div>
+
+        ${progressHTML()}
+
+        <!-- Chat log (all messages persist here) -->
         <div style="flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px;" id="chatLog">
-          ${messages.map(m=>m.from==='naomi'?`
-            <div style="display:flex;gap:10px;align-items:flex-end;">
-              <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
-              <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${m.text}</div>
-            </div>`:
-            `<div style="display:flex;justify-content:flex-end;">
-              <div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--cream);">${m.text}</div>
-            </div>`
-          ).join('')}
-          ${showOptions?`
-          <!-- Action area — centred, below conversation -->
-          <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;padding:0 4px;">
-            <button class="chatOpt" data-id="start" style="
-              width:100%;padding:18px 20px;border-radius:18px;
-              border:1.5px solid var(--line);background:var(--cream);
-              cursor:pointer;text-align:left;transition:border-color .15s,background .15s,box-shadow .15s;
-              display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
-              <div style="width:40px;height:40px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </div>
-              <div>
-                <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;">${scheduledTime?'I\u2019m ready \u2014 let\u2019s begin':'Let\u2019s start now'}</div>
-                <div style="font-size:12.5px;color:var(--inkSoft);">Takes about 5 minutes</div>
-              </div>
-              <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <button class="chatOpt" data-id="sched" style="
-              width:100%;padding:18px 20px;border-radius:18px;
-              border:1.5px solid var(--line);background:var(--paperDeep);
-              cursor:pointer;text-align:left;transition:border-color .15s,background .15s,box-shadow .15s;
-              display:flex;align-items:center;gap:14px;">
-              <div style="width:40px;height:40px;border-radius:12px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              </div>
-              <div>
-                <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;">${scheduledTime?'\u270f\ufe0f Edit my scheduled time':'Schedule for later'}</div>
-                <div style="font-size:12.5px;color:var(--inkSoft);">${scheduledTime?scheduledTime.label:'Pick a time that works for you'}</div>
-              </div>
-              <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>`:''}
+          ${messages.map(m => m.from==='naomi' ? chatBubbleNaomi(m.text) : chatBubbleUser(m.text)).join('')}
         </div>
-        ${showInput?`
-        <div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;">
-          <div style="border-radius:14px;border:1.5px solid ${recording?'var(--clay)':'var(--line)'};background:var(--paperDeep);padding:10px 12px;">
-            ${recording?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
-              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">${[1,2,3,4,3,2,1].map((h,i)=>`<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*.1}s;"></div>`).join('')}</div>
-              <span style="font-family:var(--fontMono);font-size:10px;color:var(--clay);letter-spacing:.1em;">LISTENING</span>
-            </div>`:''}
-            <textarea id="nameInput" placeholder="Type your name\u2026" rows="1" style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:60px;overflow-y:auto;display:block;">${recording?NAME_SIM:''}</textarea>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-              <button id="introMic" style="width:34px;height:34px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--paperDeep)'};cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
-                ${recording?`<div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`:
-                `<svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`}
-              </button>
-              <button id="introSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
-            </div>
-          </div>
-        </div>`:''}
+
+        <!-- Input bar or action chips -->
+        ${q ? inputBarHTML(q.hint || 'Type your answer\u2026', 'chatAnswer', false) :
+          !nameEntered ? inputBarHTML('Type your name\u2026', 'chatAnswer', false) :
+          !questionMode ? `` : ``}
+
       </div>
       <style>
         @keyframes ripple1{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
         @keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
       </style>`;
 
-    const log=document.getElementById('chatLog');
-    if(log) setTimeout(()=>{log.scrollTop=log.scrollHeight;},50);
+    const log = document.getElementById('chatLog');
+    if(log) setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 50);
     wireSchedIcon('naomiintro');
 
-    const $mic=document.getElementById('introMic');
-    if($mic) $mic.onclick=()=>{
-      if(recording){stopRecording();const $inp=document.getElementById('nameInput');if($inp&&!$inp.value.trim())$inp.value=NAME_SIM;paint();}
-      else{recording=true;paint();const $inp=document.getElementById('nameInput');if($inp)$inp.value='';
-        let ci=0;transcriptTimer=setInterval(()=>{const $t2=document.getElementById('nameInput');if(!$t2||!$t2.isConnected){stopRecording();return;}if(ci<=NAME_SIM.length){$t2.value=NAME_SIM.slice(0,ci);ci++;}else{stopRecording();paint();}},80);timers.push(transcriptTimer);}
+    // Voice nav autofill
+    const $navV = document.getElementById('navVoice');
+    if($navV && !nameEntered) $navV.onclick = () => {
+      const $inp = document.getElementById('chatAnswer');
+      if($inp){ $inp.value = NAME_SIM; const $s=document.getElementById('chatSend'); if($s){$s.style.background='var(--clay)';$s.style.color='var(--cream)';} $inp.focus(); }
     };
-    const $ta=document.getElementById('nameInput');
-    if($ta) $ta.oninput=()=>{$ta.style.height='auto';$ta.style.height=Math.min($ta.scrollHeight,60)+'px';};
 
-    const $send=document.getElementById('introSend');
-    if($send) $send.onclick=()=>{
-      stopRecording();
-      const $inp=document.getElementById('nameInput');
-      const name=($inp?$inp.value.trim():'')||NAME_SIM;
-      nameEntered=true;
-      messages.push({from:'user',text:name});
-      const greet=scheduledTime
-        ?`Great to meet you, ${name}! I see we have a session scheduled for ${scheduledTime.label}. I\u2019m ready when you are.`
-        :`Great to meet you, ${name}! I\u2019d love to get to know you a little. It only takes a few minutes.`;
-      messages.push({from:'naomi',text:greet});
+    wireInputBar();
+  }
+
+  // ── Wire input bar ─────────────────────────────────────────────────────────
+  function wireInputBar(){
+    const $ta   = document.getElementById('chatAnswer');
+    const $send = document.getElementById('chatSend');
+    const $mic  = document.getElementById('chatMic');
+    if(!$ta) return;
+
+    $ta.oninput = () => {
+      $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px';
+      if($send){ const has=$ta.value.trim().length>0; $send.style.background=has?'var(--clay)':'var(--paperDeep)'; $send.style.color=has?'var(--cream)':'var(--inkSoft)'; }
+    };
+
+    if($mic) $mic.onclick = () => {
+      // Autofill simulation
+      const seq = getSequence();
+      const q   = questionMode && seq[qIdx] ? seq[qIdx] : null;
+      const sim = q ? (TRANSCRIPT_SIMS[q.id] || GENERIC_SIM) : NAME_SIM;
+      if($ta){ $ta.value=sim; $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px'; if($send){$send.style.background='var(--clay)';$send.style.color='var(--cream)';} }
+    };
+
+    if($send) $send.onclick = () => handleSend($ta ? $ta.value.trim() : '');
+    $ta.onkeydown = (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleSend($ta.value.trim()); } };
+  }
+
+  // ── Handle send ────────────────────────────────────────────────────────────
+  function handleSend(value){
+    stopRecording();
+    if(!value) return;
+
+    if(!nameEntered){
+      // Name phase
+      const name = value || NAME_SIM;
+      messages.push({from:'user', text:name});
+      const greet = scheduledTime
+        ? `Great to meet you, ${name}! I see we have a session scheduled for ${scheduledTime.label}. Ready when you are.`
+        : `Great to meet you, ${name}! I\u2019d love to get to know you a little \u2014 just 6 questions. Let\u2019s start.`;
+      messages.push({from:'naomi', text:greet});
+      nameEntered = true;
+
+      // Show action cards below in chat
       paint();
-    };
-
-    if(showOptions){
-      document.querySelectorAll('.chatOpt').forEach(el=>{
-        el.onmouseenter=()=>{el.style.borderColor='var(--clay)';el.style.boxShadow='0 4px 16px rgba(184,100,90,.12)';};
-        el.onmouseleave=()=>{el.style.borderColor='var(--line)';el.style.boxShadow='0 2px 8px rgba(0,0,0,.05)';};
-        el.onclick=()=>{
-          el.style.borderColor='var(--clay)';el.style.background='var(--clayBg)';
-          setTimeout(()=>{if(el.dataset.id==='start')go('kycquestions');else go('schedule');},180);
-        };
-      });
-    }
-  }
-  paint();
-};
-
-// ── QUESTION BANK — 8 psychologically sequenced blocks ───────────────────────
-// Block 1–2 are REQUIRED (5 Qs). Block 3–4 are CORE (strongly encouraged, individually skippable).
-// Blocks 5–8 are OPTIONAL (can be deferred entirely, returned to later).
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ADAPTIVE ONBOARDING QUESTION ENGINE
-// 4 phases: Get to know you (10) → Deeper profiling (6) → Partner vision (4) → Logistics (2)
-// Naomi branches based on keywords in each answer — different users, different journeys.
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── PHASE 1 — 12 Core questions (L1, all required) ──────────────────────────
-const P1_CORE = [
-  { id:"p1_01", q:"What brings you here today?",
-    hint:"Reveals emotional state and readiness — sets the whole tone." },
-  { id:"p1_02", q:"What kind of relationship are you looking for?",
-    hint:"Serious, marriage, open, not sure yet — no wrong answer." },
-  { id:"p1_03", q:"Tell me about the last person you loved. What made it work — and what didn’t?",
-    hint:"Take your time. This one matters." },
-  { id:"p1_04", q:"What does a typical week look like for you? Walk me through it.",
-    hint:"Not what you aspire to — what actually happens." },
-  { id:"p1_05", q:"Do you have children? And how do you feel about having them in the future?",
-    hint:"There’s no right answer — just an honest one." },
-  { id:"p1_06", q:"Where are you living now, and how rooted are you there?",
-    hint:"Would you move for the right person?" },
-  { id:"p1_07", q:"How would your closest friends describe you — and would you agree?",
-    hint:"The gap between the two is the interesting part." },
-  { id:"p1_08", q:"What do you do for work — and how much of you does it take up?",
-    hint:"Not a career question. A question about identity." },
-  { id:"p1_09", q:"What are you non-negotiable about in a partner? The things that, if missing, you’d walk away.",
-    hint:"Be specific. Vague answers don’t help you." },
-  { id:"p1_10", q:"What values are most important to you in a relationship?",
-    hint:"Not a list — tell Naomi what you actually live by." },
-  { id:"p1_11", q:"One word — just one — that describes you right now. Don’t overthink it.",
-    hint:"The first word that comes is usually the truest." },
-  { id:"p1_12", q:"What would a successful match with Naomi look like for you, one year from now?",
-    hint:"Be concrete. It helps Naomi understand what you’re really hoping for." },
-];
-
-// Adaptive follow-up pool — Naomi picks based on answer keywords
-const P1_ADAPTIVE_POOL = [
-  { id:"p1_a1", trigger:["work","office","team","startup","build","design","code","client","busy"], q:"How much does work shape your identity — are you your job, or do you have a job?", hint:"Most people lean strongly one way." },
-  { id:"p1_a2", trigger:["run","gym","yoga","fitness","sport","workout","active","hike"], q:"Is staying active something you’d want to share with a partner, or is it your solo time?", hint:"Either is fine — Naomi just wants to know." },
-  { id:"p1_a3", trigger:["cook","food","restaurant","eat","kitchen","bake"], q:"What does a perfect dinner look like to you?", hint:"At home, out, or somewhere in between?" },
-  { id:"p1_a4", trigger:["travel","trip","country","city","abroad","explore"], q:"What’s the trip that changed how you see the world?", hint:"Even a short one counts." },
-  { id:"p1_a5", trigger:["read","book","podcast","learn","curious","study"], q:"What are you most curious about right now?", hint:"The topic you keep going back to." },
-  { id:"p1_a6", trigger:["kids","children","daughter","son","parent","family"], q:"What does the idea of family mean to you right now?", hint:"However you define it." },
-  { id:"p1_a7", trigger:["marriage","serious","long-term","commit","settle"], q:"What does building a life with someone actually look like in your mind — day to day, not just the big picture?", hint:"The ordinary Tuesday, not the wedding." },
-  { id:"p1_f1", q:"What motivates you most in life right now — recognition, growth, freedom, or connection?", hint:"Or something else entirely." },
-  { id:"p1_f2", q:"How would you describe your relationship with solitude?", hint:"Do you need it, avoid it, or somewhere between?" },
-  { id:"p1_f3", q:"What’s something most people wouldn’t guess about you?", hint:"A surprise. Could be anything." },
-];
-
-// ── PHASE 2 — Deeper profiling (6 Qs, optional but encouraged) ───────────────
-const P2_QUESTIONS = [
-  { id:"p2_1", q:"How do you usually make important decisions?",             hint:"Gut feeling, research, talking it through \u2014 what\u2019s your process?" },
-  { id:"p2_2", q:"How do you behave when you\u2019re stressed or under pressure?", hint:"What does that actually look like from the outside?" },
-  { id:"p2_3", q:"What is most difficult for you in relationships?",         hint:"The pattern you keep running into." },
-  { id:"p2_4", q:"What does honesty mean to you in practice?",              hint:"Not the definition \u2014 how you actually live it." },
-  { id:"p2_5", q:"What do you think is your biggest weakness?",             hint:"The one you\u2019d actually admit to." },
-  { id:"p2_6", q:"What do people often misunderstand about you?",           hint:"Something that surprises people once they know you better." },
-];
-
-// ── PHASE 3 — Partner vision (4 Qs) ─────────────────────────────────────────
-const P3_QUESTIONS = [
-  { id:"p3_1", q:"What qualities matter most to you in a partner?",         hint:"Not a checklist \u2014 the things that genuinely move you." },
-  { id:"p3_2", q:"What is absolutely unacceptable for you in a relationship?", hint:"The things you know, not just the things you think." },
-  { id:"p3_3", q:"Do you have kids, or is that something you\u2019d want?", hint:"There\u2019s no wrong answer \u2014 Naomi just needs to know." },
-  { id:"p3_4", q:"What does a healthy relationship look like to you, day to day?", hint:"The ordinary Tuesday, not just the big moments." },
-];
-
-// ── PHASE 4 — Logistics (2 Qs) ───────────────────────────────────────────────
-const P4_QUESTIONS = [
-  { id:"p4_1", q:"How do you prefer to be introduced to someone new?", hint:"A voice call, a few messages first, or jump straight to a meeting?" },
-  { id:"p4_2", q:"What days or times generally work best for you?",    hint:"Mornings, evenings, weekends \u2014 just a rough sense." },
-];
-
-// Transcript simulations
-const TRANSCRIPT_SIMS = {
-  p1_01:"I’m tired of apps that feel like shopping. I want something real. I’m ready for that.",
-  p1_02:"Something serious. Long-term, ideally leading to marriage. I’m done with ambiguity.",
-  p1_03:"We were together four years. It worked because we made each other laugh and respected each other. It ended because we wanted different futures — he didn’t want kids. I do.",
-  p1_04:"Early mornings are mine. Run, coffee, inbox. Afternoons are back-to-back meetings. Evenings I try hard to protect.",
-  p1_05:"No kids yet. I’d like one or two. It’s become more present as a question lately.",
-  p1_06:"West Village, Manhattan. I love it. I’d leave for the right person but it would have to be worth it.",
-  p1_07:"Warm but direct. Reliable. A little intense. Honestly — yes, I’d agree.",
-  p1_08:"Marketing strategy. It takes up a lot of me, but I’ve made peace with that.",
-  p1_09:"Dishonesty. And someone who isn’t curious about the world. Those two — I can’t get past them.",
-  p1_10:"Honesty, growth, and loyalty. I want a partner who makes me better and actually chooses me, every day.",
-  p1_11:"Ready.",
-  p1_12:"In a serious relationship with someone I genuinely admire. Not just comfortable — genuinely excited.",
-  p1_a1:"I’m my job a bit more than I’d like to admit. Working on that.",
-  p1_a2:"Running is solo for me. It’s how I think. I’d love a partner who has their own version of that.",
-  p1_a7:"Two people who are happy to be home together. Not performing. Just existing well.",
-  p1_f1:"Growth, but with roots. I don’t want to keep reinventing myself. I want to go deeper.",
-  p1_f3:"I’m a pretty good cook. People are always surprised.",
-  p2_1:"I research, then trust my gut for the final call. The gut is usually right.",
-  p2_2:"I go quiet first. Then I need to talk it out. If I talk too soon I say things I regret.",
-  p2_3:"I can be too independent. I’m still learning to ask for help.",
-  p2_4:"Honesty means saying the hard thing even when it’s easier not to.",
-  p2_5:"Overthinking. I can run laps around a decision long after it’s been made.",
-  p2_6:"That I’m reserved. I’m not. I’m just selective about where I put my energy.",
-  p3_1:"Intelligence, emotional honesty, and someone who actually shows up. Everything else is secondary.",
-  p3_2:"Dishonesty and people who treat others poorly when no one’s watching.",
-  p3_3:"No kids yet. I’d like one or two.",
-  p3_4:"Two people who are happy to be home together. Not performing. Just existing well.",
-  p4_1:"A voice call first. You can tell a lot in the first five minutes of actually talking.",
-  p4_2:"Evenings work best. Weekdays after 7, or weekend mornings.",
-};
-const GENERIC_SIM = "I\u2019ve thought about this. The honest answer is it depends on the situation, but what I\u2019ve noticed is\u2026";
-
-// ── Adaptive question picker ──────────────────────────────────────────────────
-function pickAdaptiveQuestions(answers){
-  const used = new Set(Object.keys(answers));
-  const allText = Object.values(answers).join(' ').toLowerCase();
-
-  // Score each adaptive question by keyword matches
-  const scored = P1_ADAPTIVE_POOL
-    .filter(q => !used.has(q.id))
-    .map(q => {
-      const triggers = q.trigger || [];
-      const score = triggers.filter(t => allText.includes(t)).length;
-      return { ...q, score };
-    })
-    .sort((a,b) => b.score - a.score);
-
-  // Take top 5, ensuring variety (at least 1 fallback)
-  const triggered = scored.filter(q => q.score > 0).slice(0, 4);
-  const fallbacks = scored.filter(q => q.score === 0 && q.id.startsWith('p1_f'));
-  const picked = [...triggered, ...fallbacks].slice(0, 5);
-
-  // Shuffle slightly for naturalness
-  return picked.sort(() => Math.random() - 0.5).slice(0, 5);
-}
-
-// ── Progress persistence ──────────────────────────────────────────────────────
-const SAVE_KEY = 'naomi_onboarding_v2';
-function saveProgress(data){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({...data, ts:Date.now()})); }catch(e){} }
-function loadProgress(){ try{ const d=localStorage.getItem(SAVE_KEY); return d?JSON.parse(d):null; }catch(e){return null;} }
-function clearProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN ONBOARDING RENDERER
-// ═══════════════════════════════════════════════════════════════════════════
-RENDERERS.kycquestions = function(){
-
-  const saved = loadProgress();
-  let answers  = saved ? (saved.answers || {}) : {};
-  let phase    = saved ? (saved.phase   || 1)  : 1;
-  let qIdx     = saved ? (saved.qIdx    || 0)  : 0;
-  let recording = false;
-  let transcriptTimer = null;
-
-  // Build the adaptive P1 list once (stable per session)
-  let p1Adaptive = saved ? (saved.p1Adaptive || pickAdaptiveQuestions({})) : pickAdaptiveQuestions({});
-
-  // Full question sequence for current session
-  function getSequence(){
-    if (phase === 1) return P1_CORE.slice(0, 5); // first 5 only
-    if (phase === 2) return P2_QUESTIONS;
-    if (phase === 3) return P3_QUESTIONS;
-    if (phase === 4) return P4_QUESTIONS;
-    return [];
-  }
-
-  function save(){
-    saveProgress({ answers, phase, qIdx, p1Adaptive });
-  }
-
-  function stopRecording(){
-    recording = false;
-    if (transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
-  }
-
-  // ── Phase transition screen ───────────────────────────────────────────────
-  function showPhaseTransition(fromPhase){
-    // After 5 questions, go straight to verification
-    startVerification();
-  }
-
-  // ── Verification — runs inline after Q5, same chat screen ────────────────────
-  const VER_STAGES = [
-    {
-      id:'id', title:'Identity verification',
-      naomi:"Great. Before I can introduce you to anyone, I need to verify a few things \u2014 it\u2019s what makes every connection on NAOMI trustworthy.",
-      icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
-      bullets:["Government ID \u2014 passport or driver\u2019s licence","Live selfie match","Age verification"],
-      footer:"This is what makes every introduction on NAOMI trustworthy \u2014 it\u2019s why members feel safe being themselves here.",
-      cta:"Got it \u2014 I\u2019m ready",
-    },
-    {
-      id:'address', title:'Address proof',
-      naomi:"Perfect. One more layer \u2014 address verification.",
-      icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-      bullets:["Bank statement, utility bill, or government letter","Must be dated within 3 months"],
-      footer:"This is what makes every introduction on NAOMI trustworthy \u2014 it\u2019s why members feel safe being themselves here.",
-      cta:"Understood",
-    },
-    {
-      id:'background', title:'Background check',
-      naomi:"Last one. NAOMI runs a standard background check \u2014 this is non-negotiable for everyone.",
-      icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-      bullets:["NAOMI runs a standard criminal background check","Takes 24\u201348 hours \u2014 we\u2019ll notify you"],
-      footer:"This is what makes every introduction on NAOMI trustworthy \u2014 it\u2019s why members feel safe being themselves here.",
-      cta:"I agree",
-    },
-  ];
-  let verStageIdx = 0;
-  let verConfirmed = [];
-  let verMode = false; // true once we switch to verification
-
-  function naomiBubbleHTML(text){
-    return `<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:0;">
-      <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-        <span style="font-family:var(--fontDisplay);font-style:italic;font-size:10px;color:var(--goldSoft);">N</span>
-      </div>
-      <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:11px 14px;max-width:82%;font-size:14px;line-height:1.5;color:var(--ink);">${text}</div>
-    </div>`;
-  }
-
-  function verCardHTML(stage, isActive, isDone){
-    const border = isDone?'var(--ok)':isActive?'var(--clay)':'var(--line)';
-    const bg     = isDone?'var(--okBg)':isActive?'var(--cream)':'var(--paperDeep)';
-    return `<div style="border:1.5px solid ${border};border-radius:16px;background:${bg};padding:16px 18px;transition:all .2s;" id="verCard_${stage.id}">
-      <div style="display:flex;align-items:center;gap:10px;${isActive?'margin-bottom:14px;':''}">
-        <div style="width:36px;height:36px;border-radius:10px;background:${isDone?'var(--okBg)':isActive?'var(--clayBg)':'var(--paperDeep)'};border:1px solid ${border};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${isDone?'var(--ok)':isActive?'var(--clay)':'var(--inkSoft)'};">
-          ${isDone?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:stage.icon}
-        </div>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--ink);">${stage.title}</div>
-          ${isDone?`<div style="font-size:11.5px;color:var(--ok);">Confirmed</div>`:''}
-        </div>
-      </div>
-      ${isActive?`<div style="margin-left:46px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:10px;">What we\u2019ll need</div>
-        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
-          ${stage.bullets.map(b=>`<div style="display:flex;align-items:flex-start;gap:8px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div><span style="font-size:13.5px;color:var(--ink);line-height:1.45;">${b}</span></div>`).join('')}
-        </div>
-        <p style="font-size:12px;color:var(--inkSoft);line-height:1.55;margin-bottom:14px;font-style:italic;">${stage.footer}</p>
-        <button id="verCta_${stage.id}" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14px;font-weight:700;cursor:pointer;">${stage.cta}</button>
-      </div>`:''}
-    </div>`;
-  }
-
-  function verSuccessHTML(){
-    return `
-      ${naomiBubbleHTML("You\u2019re all verified. \u2714\ufe0f NAOMI can now introduce you to matches who meet the same standard.")}
-      ${naomiBubbleHTML("One last thing \u2014 would you like to add a profile photo? Your photo is only shared after your first mutual match. You can always do this later.")}
-      <div style="display:flex;flex-direction:column;gap:8px;padding:0 2px;" id="photoPrompt">
-        <button class="photoAct" data-id="upload" style="width:100%;display:flex;align-items:center;gap:12px;padding:15px 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;transition:all .15s;">
-          <div style="width:36px;height:36px;border-radius:10px;background:var(--paperDeep);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          </div>
-          <div style="flex:1;">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);">Upload a photo</div>
-            <div style="font-size:12px;color:var(--inkSoft);">Shared only after a mutual match</div>
-          </div>
-          <svg style="flex-shrink:0;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <button class="photoAct" data-id="skip" style="width:100%;padding:14px 18px;border-radius:16px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;text-align:center;">
-          Skip for now \u2192
-        </button>
-      </div>`;
-  }
-
-  function showActionChips(){
-    appendToChat(`
-      ${naomiBubbleHTML("You\u2019re all set. What would you like to do next?")}
-      <div style="display:flex;flex-direction:column;gap:10px;padding:0 2px;">
-        ${[
-          {id:'dna',   bg:'var(--navy)', icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20s4-6 4-10S7 0 7 0"/><path d="M17 20s-4-6-4-10S17 0 17 0"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="6" y1="14" x2="18" y2="14"/></svg>`, label:'Reveal my Relationship DNA', sub:'See your compatibility profile'},
-          {id:'deep',  bg:'var(--cream)', icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`, label:'Go deeper', sub:'6 more questions for better matches'},
-          {id:'match', bg:'var(--cream)', icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`, label:'Start matchmaking', sub:'Naomi will find your first matches'},
-        ].map(a=>`
-          <button class="verAction" data-id="${a.id}" style="width:100%;display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:16px;border:1.5px solid ${a.bg==='var(--navy)'?'transparent':'var(--line)'};background:${a.bg};cursor:pointer;text-align:left;transition:all .15s;">
-            <div style="width:36px;height:36px;border-radius:10px;background:${a.bg==='var(--navy)'?'rgba(255,252,246,.12)':'var(--paperDeep)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${a.icon}</div>
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:700;color:${a.bg==='var(--navy)'?'var(--cream)':'var(--ink)'};">${a.label}</div>
-              <div style="font-size:12px;color:${a.bg==='var(--navy)'?'rgba(255,252,246,.55)':'var(--inkSoft)'};">${a.sub}</div>
-            </div>
-            <svg style="flex-shrink:0;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${a.bg==='var(--navy)'?'rgba(255,252,246,.4)':'var(--inkSoft)'}" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>`).join('')}
-      </div>`);
-    setTimeout(()=>{
-      document.querySelectorAll('.verAction').forEach(el => {
-        el.onclick = () => {
-          const id = el.dataset.id;
-          if(id==='dna')   go('dnaprofile');
-          if(id==='deep')  go('deepquestions');
-          if(id==='match') go(userGender === 'man' ? 'paywall' : 'matchmaking');
-        };
-      });
-    }, 60);
-  }
-
-  function appendToChat(html){
-    const log = document.getElementById('kycChatLog');
-    if(!log) return;
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
-    wrapper.innerHTML = html;
-    log.appendChild(wrapper);
-    setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 60);
-  }
-
-  function wireVerStage(){
-    const stage = VER_STAGES[verStageIdx];
-    const $cta  = document.getElementById(`verCta_${stage.id}`);
-    if(!$cta) return;
-    $cta.onclick = () => {
-      // Mark confirmed — swap card to done state in-place
-      const $card = document.getElementById(`verCard_${stage.id}`);
-      if($card) $card.outerHTML = verCardHTML(stage, false, true);
-      verConfirmed.push(verStageIdx);
-      verStageIdx++;
-      if(verStageIdx >= VER_STAGES.length){
-        // All done — show photo prompt first
-        appendToChat(verSuccessHTML());
-        setTimeout(()=>{
-          document.querySelectorAll('.photoAct').forEach(el => {
-            el.onclick = () => {
-              const id = el.dataset.id;
-              const $prompt = document.getElementById('photoPrompt');
-              // Replace prompt with user response bubble
-              if($prompt){
-                const resp = id === 'upload'
-                  ? 'Yes, I\u2019ll upload a photo.'
-                  : 'I\u2019ll skip for now.';
-                const bubble = document.createElement('div');
-                bubble.style.cssText = 'display:flex;justify-content:flex-end;';
-                bubble.innerHTML = `<div style="background:var(--navy);border-radius:14px 14px 3px 14px;padding:10px 13px;max-width:76%;font-size:13.5px;line-height:1.45;color:var(--cream);">${resp}</div>`;
-                $prompt.parentNode.insertBefore(bubble, $prompt.nextSibling);
-                $prompt.remove();
-              }
-              setTimeout(() => showActionChips(), 400);
-            };
-          });
-        }, 60);
-      } else {
-        // Next stage
-        const next = VER_STAGES[verStageIdx];
-        appendToChat(naomiBubbleHTML(next.naomi) + verCardHTML(next, true, false));
-        setTimeout(wireVerStage, 80);
-      }
-    };
-  }
-
-  function startVerification(){
-    verMode = true;
-    // Switch header subtitle, hide input bar, append verification content
-    const $sub = document.getElementById('kycHeaderSub');
-    if($sub) $sub.textContent = 'Verification';
-    const $input = document.getElementById('kycInputBar');
-    if($input) $input.style.display = 'none';
-    const first = VER_STAGES[0];
-    appendToChat(naomiBubbleHTML(first.naomi) + verCardHTML(first, true, false));
-    wireVerStage();
-  }
-
-  // ── Main paint ────────────────────────────────────────────────────────────
-  function paint(){
-    const seq = getSequence();
-    const q   = seq[qIdx];
-
-    if (!q){
-      // Phase complete — advance
-      phase++; qIdx = 0;
-      if (phase > 4){ go('kycquestions'); return; }
-      showPhaseTransition(phase);
+      setTimeout(() => {
+        const log = document.getElementById('chatLog');
+        if(!log) return;
+        const area = document.createElement('div');
+        area.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-top:8px;';
+        area.innerHTML = `
+          <button class="chatOpt" data-id="start" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;">${scheduledTime?'I\u2019m ready \u2014 let\u2019s begin':'Let\u2019s start now'}</div><div style="font-size:12.5px;color:var(--inkSoft);">Takes about 5 minutes</div></div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="chatOpt" data-id="sched" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--paperDeep);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div><div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;">${scheduledTime?'\u270f\ufe0f Edit my scheduled time':'Schedule for later'}</div><div style="font-size:12.5px;color:var(--inkSoft);">${scheduledTime?scheduledTime.label:'Pick a time that works for you'}</div></div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>`;
+        log.appendChild(area);
+        log.scrollTop = log.scrollHeight;
+        area.querySelectorAll('.chatOpt').forEach(el => {
+          el.onclick = () => {
+            if(el.dataset.id === 'sched'){ go('schedule'); return; }
+            // Start questions — remove chips, add first question
+            area.remove();
+            questionMode = true;
+            qIdx = 0;
+            appendToFirstQuestion();
+          };
+        });
+      }, 100);
       return;
     }
 
-    const hasAnswer = answers[q.id] && answers[q.id].trim().length > 0;
-    const isOpt     = phase >= 2;
+    if(questionMode){
+      // Question phase — answer the current question
+      const seq = getSequence();
+      const q   = seq[qIdx];
+      if(!q) return;
 
-    // Build chat history: all prev Qs across all phases before this one
-    const allSeqs = [
-      ...P1_CORE, ...p1Adaptive,
-      ...P2_QUESTIONS, ...P3_QUESTIONS, ...P4_QUESTIONS
-    ];
-    const currentGlobalIdx = allSeqs.findIndex(x => x.id === q.id);
-    const prevQs = allSeqs.slice(0, currentGlobalIdx).filter(pq => answers[pq.id] !== undefined);
+      answers[q.id] = value;
+      const reaction = getNaomiReaction(q.id);
 
-    // Phase label
-    const phaseLabel = phase === 1 ? 'Getting to know you' : phase === 2 ? 'A bit deeper' : phase === 3 ? 'What you\u2019re looking for' : 'Almost done';
-    const phaseTotal = getSequence().length;
+      // Append user bubble
+      const log = document.getElementById('chatLog');
+      if(log){
+        const ub = document.createElement('div');
+        ub.style.cssText = 'display:flex;justify-content:flex-end;';
+        ub.innerHTML = `<div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--cream);">${value}</div>`;
+        log.appendChild(ub);
+        log.scrollTop = log.scrollHeight;
 
-    $body.innerHTML = `
-      <div style="height:100%;display:flex;flex-direction:column;background:var(--paperDeep);">
+        // Clear input immediately
+        const $ta=document.getElementById('chatAnswer');
+        if($ta){ $ta.value=''; $ta.style.height='22px'; }
+        const $send=document.getElementById('chatSend');
+        if($send){ $send.style.background='var(--paperDeep)'; $send.style.color='var(--inkSoft)'; }
 
-        <!-- Header -->
-        <div style="padding:12px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--cream);position:relative;">
-          ${renderSchedIcon()}
-          <button id="qBack" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--paperDeep);color:var(--inkSoft);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&larr;</button>
-          <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-family:var(--fontDisplay);font-style:italic;font-size:14px;color:var(--goldSoft);">N</span>
-          </div>
-          <div style="flex:1;min-width:0;padding-right:46px;">
-            <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:4px;">Naomi</div>
-            <div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;width:100%;">
-              <div style="height:100%;width:${Math.round(((qIdx+1)/phaseTotal)*100)}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div>
-            </div>
-            <div style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.04em;margin-top:3px;" id="kycHeaderSub">${qIdx+1} of ${phaseTotal}</div>
-          </div>
-        </div>
+        // Naomi reaction
+        setTimeout(()=>{
+          const rb = document.createElement('div');
+          rb.style.cssText = 'display:flex;gap:8px;align-items:flex-end;';
+          rb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
+            <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:10px 14px;max-width:78%;font-size:14px;line-height:1.45;color:var(--ink);font-style:italic;">${reaction}</div>`;
+          log.appendChild(rb);
+          log.scrollTop = log.scrollHeight;
 
-        <!-- Chat log -->
-        <div style="flex:1;overflow-y:auto;padding:16px 14px 8px;display:flex;flex-direction:column;gap:12px;" id="kycChatLog">
+          // Advance to next question
+          setTimeout(()=>{
+            qIdx++;
+            const seq2 = getSequence();
+            if(qIdx >= seq2.length){
+              // Done — trigger verification
+              startVerification();
+            } else {
+              // Append next question bubble
+              const nextQ = seq2[qIdx];
+              const nb = document.createElement('div');
+              nb.style.cssText = 'display:flex;gap:10px;align-items:flex-end;';
+              nb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
+                <div><div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${nextQ.q}</div>${nextQ.hint?`<div style="font-size:11.5px;color:var(--inkSoft);padding:4px 8px 0;font-style:italic;">${nextQ.hint}</div>`:''}</div>`;
+              log.appendChild(nb);
+              log.scrollTop = log.scrollHeight;
 
-          ${prevQs.map(pq => `
-            <div style="display:flex;gap:8px;align-items:flex-end;">
-              <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                <span style="font-family:var(--fontDisplay);font-style:italic;font-size:10px;color:var(--goldSoft);">N</span>
-              </div>
-              <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:10px 13px;max-width:76%;font-size:13.5px;line-height:1.45;color:var(--ink);">${pq.q}</div>
-            </div>
-            ${answers[pq.id] ? `
-            <div style="display:flex;justify-content:flex-end;">
-              <div style="background:var(--navy);border-radius:14px 14px 3px 14px;padding:10px 13px;max-width:76%;font-size:13.5px;line-height:1.45;color:var(--cream);">${answers[pq.id]}</div>
-            </div>` : `
-            <div style="display:flex;justify-content:flex-end;">
-              <div style="border:1px dashed var(--line);border-radius:12px;padding:7px 13px;font-size:12px;color:var(--inkSoft);font-style:italic;">Skipped</div>
-            </div>`}
-          `).join('')}
-
-          <!-- Current question -->
-          <div style="display:flex;gap:8px;align-items:flex-end;">
-            <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-              <span style="font-family:var(--fontDisplay);font-style:italic;font-size:10px;color:var(--goldSoft);">N</span>
-            </div>
-            <div>
-              <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:10px 13px;max-width:76%;font-size:13.5px;line-height:1.45;color:var(--ink);">${q.q}</div>
-              ${q.hint ? `<div style="font-size:11px;color:var(--inkSoft);padding:4px 6px 0;font-style:italic;">${q.hint}</div>` : ''}
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Input bar -->
-        <div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;" id="kycInputBar">
-          <div style="border-radius:14px;border:1.5px solid ${recording?'var(--clay)':'var(--line)'};background:var(--paperDeep);padding:10px 12px;transition:border-color .2s;">
-            ${recording ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
-              <div style="display:flex;gap:3px;align-items:flex-end;height:14px;">${[1,2,3,4,3,2,1].map((h,i)=>`<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*.1}s;"></div>`).join('')}</div>
-              <span style="font-family:var(--fontMono);font-size:10px;color:var(--clay);letter-spacing:.1em;">LISTENING</span>
-            </div>` : ''}
-            <textarea id="kycAnswer" placeholder="${recording?'':'Type your answer\u2026'}" rows="1"
-              style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:80px;overflow-y:auto;display:block;">${answers[q.id]||''}</textarea>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-              <button id="micBtn" style="width:34px;height:34px;border-radius:50%;border:none;background:${recording?'var(--clay)':'var(--paperDeep)'};cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;transition:background .2s;">
-                ${recording?`<div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`:
-                `<svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`}
-              </button>
-              <div style="display:flex;align-items:center;gap:8px;">
-                ${isOpt ? `<button id="skipBtn" style="background:none;border:none;color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);">Skip</button>` : ''}
-                <button id="nextBtn" style="padding:7px 16px;border-radius:12px;border:none;background:${hasAnswer?'var(--clay)':'var(--paperDeep)'};color:${hasAnswer?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;">
-                  Send <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>
-        @keyframes ripple1{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
-        @keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
-        #kycAnswer{scrollbar-width:none}#kycAnswer::-webkit-scrollbar{display:none}
-      </style>`;
-
-    // Scroll chat to bottom
-    setTimeout(()=>{ const l=document.getElementById('kycChatLog'); if(l) l.scrollTop=l.scrollHeight; },40);
-    wireSchedIcon('kycquestions');
-
-    // Wire bottom nav
-
-
-    // Auto-grow textarea + activate button
-    const $ta = document.getElementById('kycAnswer');
-    if ($ta){
-      $ta.oninput = () => {
-        answers[q.id]=$ta.value;
-        $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px';
-        const $n=document.getElementById('nextBtn');
-        if($n){ const has=$ta.value.trim().length>0; $n.style.background=has?'var(--clay)':'var(--paperDeep)'; $n.style.color=has?'var(--cream)':'var(--inkSoft)'; }
-      };
-    }
-
-    // Back
-    document.getElementById('qBack').onclick = () => {
-      stopRecording();
-      if (qIdx > 0){ qIdx--; paint(); }
-      else if (phase > 1){ phase--; qIdx=getSequence().length-1; paint(); }
-      else back();
-    };
-
-    // Mic
-    document.getElementById('micBtn').onclick = () => {
-      if (recording){
-        // Stop recording — fill answer if empty, then repaint
-        stopRecording();
-        if (!answers[q.id] || !answers[q.id].trim()){
-          answers[q.id] = TRANSCRIPT_SIMS[q.id] || GENERIC_SIM;
-        }
-        paint();
-      } else {
-        // Start recording — update button and waveform IN-PLACE, no full repaint
-        recording = true;
-        answers[q.id] = '';
-
-        // Swap mic button to stop state
-        const $mic = document.getElementById('micBtn');
-        if ($mic){
-          $mic.style.background = 'var(--clay)';
-          $mic.innerHTML = `<div style="position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(184,100,90,.4);animation:ripple1 1.4s ease-out infinite;"></div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-        }
-
-        // Show waveform above textarea if not present
-        const $bar = document.getElementById('kycAnswer')?.parentElement;
-        if ($bar && !$bar.querySelector('#waveRow')){
-          const waveRow = document.createElement('div');
-          waveRow.id = 'waveRow';
-          waveRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);';
-          waveRow.innerHTML = `<div style="display:flex;gap:3px;align-items:flex-end;height:14px;">${[1,2,3,4,3,2,1].map((h,i)=>`<div style="width:3px;height:${h*4}px;border-radius:2px;background:var(--clay);animation:wave 0.8s ease-in-out infinite;animation-delay:${i*.1}s;"></div>`).join('')}</div><span style="font-family:var(--fontMono);font-size:10px;color:var(--clay);letter-spacing:.1em;">LISTENING</span>`;
-          $bar.insertBefore(waveRow, $bar.firstChild);
-        }
-
-        // Update border color
-        if ($bar) $bar.style.borderColor = 'var(--clay)';
-
-        // Clear textarea
-        const $inp = document.getElementById('kycAnswer');
-        if ($inp){ $inp.value = ''; $inp.placeholder = ''; }
-
-        // Stream transcript
-        const sim = TRANSCRIPT_SIMS[q.id] || GENERIC_SIM;
-        let ci = 0;
-        transcriptTimer = setInterval(() => {
-          const $t = document.getElementById('kycAnswer');
-          if (!$t || !$t.isConnected){ stopRecording(); return; }
-          if (ci <= sim.length){
-            const chunk = sim.slice(0, ci);
-            $t.value = chunk;
-            answers[q.id] = chunk;
-            $t.style.height = 'auto';
-            $t.style.height = Math.min($t.scrollHeight, 80) + 'px';
-            // Activate send button
-            const $n = document.getElementById('nextBtn');
-            if ($n && chunk.length > 0){
-              $n.style.background = 'var(--clay)';
-              $n.style.color = 'var(--cream)';
+              // Update progress bar
+              const total = getSequence().length;
+              const $bar = document.getElementById('kycProgBar');
+              const $sub = document.getElementById('kycHeaderSub');
+              if($bar) $bar.style.width = `${Math.round(((qIdx+1)/total)*100)}%`;
+              if($sub) $sub.textContent = `${qIdx+1} of ${total}`;
             }
-            ci++;
-          } else {
-            stopRecording();
-            answers[q.id] = sim;
-            paint(); // full repaint only when done streaming
-          }
-        }, 32);
-        timers.push(transcriptTimer);
-      }
-    };
-
-    // Advance
-    function advance(){
-      stopRecording();
-      const $t = document.getElementById('kycAnswer');
-      if ($t) answers[q.id] = $t.value.trim();
-      save();
-
-      qIdx++;
-      const nextSeq = getSequence();
-
-      if (qIdx >= nextSeq.length){
-        phase++; qIdx = 0;
-        if (phase > 4){ startVerification(); return; }
-        save();
-        showPhaseTransition(phase); // fires startVerification after Q5
-      } else {
-        paint();
+          }, 900);
+        }, 500);
       }
     }
-
-    document.getElementById('nextBtn').onclick = () => {
-      const $t=document.getElementById('kycAnswer');
-      if($t) answers[q.id]=$t.value.trim();
-      if (!isOpt && !answers[q.id]) return;
-      advance();
-    };
-
-    const $skip=document.getElementById('skipBtn');
-    if($skip) $skip.onclick=()=>{ stopRecording(); answers[q.id]=''; advance(); };
   }
 
-  // Resume prompt if saved progress exists
+  function appendToFirstQuestion(){
+    // Show progress bar
+    const $header = document.querySelector('[style*="padding:18px 20px 12px"]');
+    const $chat   = document.getElementById('chatLog');
+    if(!$chat) return;
+
+    // Add progress bar above chat log by inserting into DOM
+    const progDiv = document.createElement('div');
+    progDiv.style.cssText = 'padding:8px 16px 0;flex-shrink:0;';
+    progDiv.innerHTML = `
+      <div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;">
+        <div id="kycProgBar" style="height:100%;width:${Math.round((1/6)*100)}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div>
+      </div>
+      <div id="kycHeaderSub" style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.06em;margin-top:3px;text-align:right;">1 of 6</div>`;
+    $chat.parentNode.insertBefore(progDiv, $chat);
+
+    // Add question bubble and input bar
+    const seq  = getSequence();
+    const q    = seq[0];
+    const nb   = document.createElement('div');
+    nb.style.cssText = 'display:flex;gap:10px;align-items:flex-end;';
+    nb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
+      <div><div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${q.q}</div>${q.hint?`<div style="font-size:11.5px;color:var(--inkSoft);padding:4px 8px 0;font-style:italic;">${q.hint}</div>`:''}</div>`;
+    $chat.appendChild(nb);
+    $chat.scrollTop = $chat.scrollHeight;
+
+    // Add input bar
+    const $screen = $chat.parentElement;
+    const inputDiv = document.createElement('div');
+    inputDiv.style.cssText = 'padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;';
+    inputDiv.id = 'chatInputBar';
+    inputDiv.innerHTML = `<div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
+      <textarea id="chatAnswer" placeholder="${q.hint||'Type your answer\u2026'}" rows="1"
+        style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:80px;overflow-y:auto;display:block;"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
+      </div>
+    </div>`;
+    $screen.appendChild(inputDiv);
+
+    wireInputBar();
+  }
+
+  function startVerification(){ go('kycflow'); }
+
+  // Remove chatInputBar and show a Naomi message inline
+  function appendToChat(html){
+    const log = document.getElementById('kycChatLog') || document.getElementById('chatLog');
+    if(!log) return;
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;flex-direction:column;gap:14px;';
+    div.innerHTML = html;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
   paint();
 };
+
+// kycquestions redirects to naomiintro (unified flow)
+RENDERERS.kycquestions = function(){ go('naomiintro'); };
+
 
 // ── KYC VERIFICATION — chat-based ID / Address / Background flow ──────────────
 RENDERERS.kycverification = function(){
@@ -1430,6 +1184,7 @@ RENDERERS.dnaprofile = function(){
 
       <!-- Header -->
       <div style="padding:20px 20px 16px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;display:flex;align-items:center;gap:14px;">
+        <button id="dnaBackBtn" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--cream);font-size:14px;">&larr;</button>
         <div style="width:48px;height:48px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <span style="font-family:var(--fontDisplay);font-style:italic;font-size:22px;color:var(--goldSoft);">N</span>
         </div>
@@ -1582,6 +1337,7 @@ RENDERERS.dnaprofile = function(){
       </div>
     </div>`;
 
+  document.getElementById('dnaBackBtn').onclick = () => go('vcomplete');
   document.getElementById('dnaBack').onclick = () => go('matchmaking');
   document.getElementById('dnaComplete').onclick = () => go('deepquestions');
 };
@@ -1957,6 +1713,231 @@ RENDERERS.matchreveal = function(){
   }
 
   paint();
+};
+
+// ── KYC FLOW — 3-step verification screen with back/continue navigation ────────
+RENDERERS.kycflow = function(){
+  let step = 0; // 0, 1, 2
+  const STAGES = VER_STAGES && VER_STAGES.length ? VER_STAGES : [];
+
+  function paint(){
+    const s = STAGES[step];
+    if(!s){ go('vcomplete'); return; }
+    const isLast = step === STAGES.length - 1;
+    const progress = Math.round(((step + 1) / STAGES.length) * 100);
+
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
+
+        <!-- Header with back + progress -->
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <button id="kfBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:var(--inkSoft);">&larr;</button>
+            <div style="flex:1;">
+              <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--inkSoft);margin-bottom:4px;">Identity verification</div>
+              <div style="height:4px;border-radius:4px;background:var(--paperDeep);overflow:hidden;">
+                <div style="height:100%;width:${progress}%;background:var(--clay);border-radius:4px;transition:width .4s ease;"></div>
+              </div>
+            </div>
+            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);flex-shrink:0;">${step+1} / ${STAGES.length}</div>
+          </div>
+        </div>
+
+        <!-- Scrollable step content -->
+        <div style="flex:1;overflow-y:auto;padding:20px 18px 16px;">
+
+          <!-- Stage header -->
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;">
+            <div style="width:46px;height:46px;border-radius:14px;background:var(--clayBg);border:1.5px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--clay);">
+              ${s.icon}
+            </div>
+            <div>
+              <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px;">${s.title}</div>
+              <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay);">${s.subtitle}</div>
+            </div>
+          </div>
+
+          <!-- Naomi explanation -->
+          <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:20px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
+            </div>
+            <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--ink);">${s.naomi}</div>
+          </div>
+
+          <!-- Checks -->
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+            ${s.userChecks.map(c=>`
+              <div style="display:flex;gap:12px;align-items:flex-start;background:var(--paperDeep);border-radius:14px;padding:14px 16px;border:1px solid var(--line);">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;">${c.label}</div>
+                  <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${c.detail}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <!-- Footer note -->
+          <div style="background:rgba(31,58,53,.06);border-radius:12px;padding:12px 14px;border-left:3px solid var(--clay);">
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.6;">${s.footer}</div>
+          </div>
+        </div>
+
+        <!-- Footer nav -->
+        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:10px;">
+          <button id="kfCont" class="btn" style="font-size:15px;">${isLast ? 'Complete verification' : 'Continue \u2014 ' + STAGES[step+1].title}</button>
+          ${step > 0 ? '' : '<p style="font-size:11.5px;color:var(--inkSoft);text-align:center;line-height:1.5;margin:0;">Verification is required to browse and connect.</p>'}
+        </div>
+      </div>`;
+
+    // Step counter dots
+    document.getElementById('kfBack').onclick = () => {
+      if(step > 0){ step--; paint(); }
+      else back();
+    };
+    document.getElementById('kfCont').onclick = () => {
+      if(step < STAGES.length - 1){ step++; paint(); }
+      else go('kycphotoupload');
+    };
+  }
+  paint();
+};
+
+// ── KYC PHOTO UPLOAD — standalone photo upload screen after verification ───────
+RENDERERS.kycphotoupload = function(){
+  // Reset photos for this session
+  let localPhotos = [];
+  const MAX = 6;
+  const DESCS = [
+    {label:'Main photo', sub:'Clear face, looking at the camera.', required:true},
+    {label:'Smile',      sub:'Natural, not posed.'},
+    {label:'Full length',sub:'Head to toe, everyday clothes.'},
+    {label:'A passion',  sub:'Hobby, travel — something real.'},
+    {label:'Social',     sub:'Friends or family. Face visible.'},
+    {label:'One more',   sub:'Anything authentically you.'},
+  ];
+
+  function paint(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
+
+        <!-- Header -->
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button id="ppBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:var(--inkSoft);">&larr;</button>
+            <div style="flex:1;">
+              <div style="font-size:15px;font-weight:700;color:var(--ink);">Profile photos</div>
+              <div style="font-size:12px;color:var(--inkSoft);">Up to 6 \u00b7 face clearly visible in each</div>
+            </div>
+            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);" id="ppCount">${localPhotos.length} / ${MAX}</div>
+          </div>
+        </div>
+
+        <!-- Scrollable content -->
+        <div style="flex:1;overflow-y:auto;padding:16px 18px;">
+
+          <!-- 3x2 grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;" id="ppGrid">
+            ${DESCS.map((d,i)=>`
+              <div class="ppSlot" data-idx="${i}" style="aspect-ratio:1;border-radius:12px;border:1.5px dashed ${i===0?'var(--clay)':'var(--line)'};background:var(--paperDeep);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .15s;padding:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${i===0?'var(--clay)':'var(--inkSoft)'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <div style="font-size:8.5px;color:${i===0?'var(--clay)':'var(--inkSoft)'};margin-top:4px;text-align:center;line-height:1.2;">${d.label}</div>
+                ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:var(--clay);text-align:center;font-size:7.5px;font-family:var(--fontMono);color:var(--cream);padding:2px 0;letter-spacing:.06em;">MAIN</div>':''}
+              </div>`).join('')}
+          </div>
+
+          <!-- Rules -->
+          <div style="background:var(--paperDeep);border-radius:12px;padding:12px 14px;border:1px solid var(--line);">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:8px;">Face visibility rules</div>
+            ${['Face must be clearly visible in every photo','No sunglasses, masks or heavy filters','At least one photo looking directly at the camera','Photos must be within the last 2 years'].map(r=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><div style="width:4px;height:4px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div><span style="font-size:12px;color:var(--inkSoft);line-height:1.45;">${r}</span></div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+          <button id="ppDone" class="btn" style="opacity:${localPhotos.length>0?1:.35};font-size:15px;" ${localPhotos.length===0?'disabled':''}>Save photos &amp; continue</button>
+          <button id="ppSkip" style="width:100%;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;text-align:center;">Skip for now \u2192</button>
+        </div>
+
+        <input type="file" id="ppFileInput" accept="image/*" style="display:none;" />
+      </div>`;
+
+    document.getElementById('ppBack').onclick = () => back();
+    document.getElementById('ppDone').onclick = () => go('vcomplete');
+    document.getElementById('ppSkip').onclick = () => go('vcomplete');
+
+    // Wire slots
+    document.querySelectorAll('.ppSlot').forEach(slot => {
+      const i = +slot.dataset.idx;
+      const locked = i > 0 && localPhotos.length < i;
+      if(locked){ slot.style.cursor='default'; slot.style.opacity='.4'; return; }
+      slot.onclick = () => {
+        let $inp = document.getElementById('ppFileInput');
+        $inp.onchange = (e) => {
+          const file = e.target.files[0]; if(!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => { localPhotos[i]={dataURL:ev.target.result}; paint(); };
+          reader.readAsDataURL(file); $inp.value='';
+        };
+        $inp.click();
+      };
+      if(localPhotos[i]){
+        slot.innerHTML = `<img src="${localPhotos[i].dataURL}" style="width:100%;height:100%;object-fit:cover;" /><button class="ppRemove" data-idx="${i}" style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>`;
+        slot.style.borderStyle='solid';
+        slot.querySelector('.ppRemove').onclick=(e)=>{ e.stopPropagation(); localPhotos.splice(i,1); paint(); };
+      }
+    });
+  }
+  paint();
+};
+
+
+RENDERERS.vcomplete = function(){
+  const actions = [
+    {id:'dna',   bg:'rgba(201,162,75,.15)', border:'rgba(201,162,75,.3)',     icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20s4-6 4-10S7 0 7 0"/><path d="M17 20s-4-6-4-10S17 0 17 0"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="6" y1="14" x2="18" y2="14"/></svg>`, label:'Reveal my Relationship DNA',  sub:'See your full compatibility profile'},
+    {id:'deep',  bg:'rgba(255,252,246,.07)', border:'rgba(255,252,246,.15)', icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.7)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,                                   label:'Answer more questions',        sub:'Deepen your profile for better matches'},
+    {id:'match', bg:'var(--clay)',           border:'transparent',           icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,                                                                                                                                                label:'Start matchmaking',             sub:'Naomi will find your first matches'},
+  ];
+
+  $body.innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;">
+
+        <!-- Badge -->
+        <div style="text-align:center;margin-bottom:32px;">
+          <div style="width:60px;height:60px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.14em;color:var(--goldSoft);text-transform:uppercase;margin-bottom:10px;">NAOMI Verified</div>
+          <h2 style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:10px;line-height:1.3;">You&rsquo;re all set, Naya.</h2>
+          <p style="font-size:13.5px;color:rgba(255,252,246,.5);line-height:1.65;max-width:250px;margin:0 auto;">Your profile is verified and visible. Naomi is ready to find your matches.</p>
+        </div>
+
+        <!-- 3 actions -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${actions.map(a=>`
+            <button class="completeAction" data-id="${a.id}" style="width:100%;display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:16px;border:1.5px solid ${a.border};background:${a.bg};cursor:pointer;text-align:left;transition:opacity .15s;">
+              <div style="width:38px;height:38px;border-radius:11px;background:rgba(255,252,246,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${a.icon}</div>
+              <div style="flex:1;">
+                <div style="font-size:14.5px;font-weight:700;color:var(--cream);">${a.label}</div>
+                <div style="font-size:12px;color:rgba(255,252,246,.5);margin-top:2px;">${a.sub}</div>
+              </div>
+              <svg style="flex-shrink:0;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.completeAction').forEach(el => {
+    el.onmouseenter = () => { el.style.opacity = '.8'; };
+    el.onmouseleave = () => { el.style.opacity = '1'; };
+    el.onclick = () => {
+      const id = el.dataset.id;
+      if(id==='dna')   go('dnaprofile');
+      if(id==='deep')  go('deepquestions');
+      if(id==='match') go(userGender === 'man' ? 'paywall' : 'matchmaking');
+    };
+  });
 };
 
 RENDERERS.schedule = function(){
