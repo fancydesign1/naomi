@@ -257,29 +257,25 @@ function setStatusDark(dark){
   document.querySelectorAll('.sigstroke').forEach(el => el.setAttribute('stroke', dark ? '#FFFCF6' : '#1C1B19'));
 }
 
-// ── MODULE STATE ──────────────────────────────────────────────────────────────
+// -- MODULE STATE --------------------------------------------------------------
 let kycMode = 'voice';
 let userGender = null;
 let scheduledTime = null;
 
-// ── FLOW CONFIG ───────────────────────────────────────────────────────────────
+// -- FLOW CONFIG ---------------------------------------------------------------
 const FLOW_ORDER = [
-  "splash","trailer","register","signup","login",
-  "forgotpassword","forgotpasswordsent",
-  "phoneinput","mobileotp","trust",
+  "splash","trailer","register","phoneinput","mobileotp","trust",
   "naomiintro","kycquestions","kycflow","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
-  register:"Onboarding", signup:"Onboarding", login:"Onboarding",
-  forgotpassword:"Onboarding", forgotpasswordsent:"Onboarding",
-  phoneinput:"Onboarding", mobileotp:"Onboarding",
+  register:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding",
   naomiintro:"Onboarding flow", kycquestions:"Onboarding flow",
   kycverification:"KYC flow", kycflow:"KYC flow", schedule:"Onboarding flow",
 };
 const DARK_STATUS_SCREENS = new Set(["splash","trailer","kycquestions"]);
 
-// ── SHARED HELPERS ────────────────────────────────────────────────────────────
+// -- SHARED HELPERS ------------------------------------------------------------
 
 function renderOtp(title, sub, nextId, digits){
   $body.innerHTML = `
@@ -325,7 +321,7 @@ function renderOtp(title, sub, nextId, digits){
     };
   });
 
-  // Autofill — fills all boxes instantly on one tap
+  // Autofill - fills all boxes instantly on one tap
   document.getElementById('autofillBtn').onclick = () => {
     for(let i=0;i<digits;i++) fillBox(i,'•');
     $btn.style.opacity='1';
@@ -339,72 +335,149 @@ function renderBottomNav(){ return ""; }
 
 function wireBottomNav(){ }
 
-// ── MODULE-LEVEL CONSTANTS ─────────────────────────────────────────────────────
+// -- MODULE-LEVEL CONSTANTS -----------------------------------------------------
 
-// Progress persistence (session only — no cross-session storage)
+// Progress persistence (session only - no cross-session storage)
 const SAVE_KEY = 'naomi_onboarding_v2';
 function saveProgress(data){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({...data, ts:Date.now()})); }catch(e){} }
 function loadProgress(){ try{ const d=localStorage.getItem(SAVE_KEY); return d?JSON.parse(d):null; }catch(e){return null;} }
 function clearProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 
-// Question bank — Phase 1 (12 questions, show first 6)
-const P1_CORE = [
-  { id:"p1_01", q:"What brings you here today?",                              hint:"Reveals emotional state and readiness \u2014 sets the whole tone." },
-  { id:"p1_02", q:"What kind of relationship are you looking for?",            hint:"Serious, marriage, open, not sure yet \u2014 no wrong answer." },
-  { id:"p1_03", q:"Tell me about the last person you loved. What made it work \u2014 and what didn\u2019t?", hint:"Take your time. This one matters." },
-  { id:"p1_04", q:"What does a typical week look like for you? Walk me through it.", hint:"Not what you aspire to \u2014 what actually happens." },
-  { id:"p1_05", q:"Do you have children? And how do you feel about having them in the future?", hint:"There\u2019s no right answer \u2014 just an honest one." },
-  { id:"p1_06", q:"Where are you living now, and how rooted are you there?",   hint:"Would you move for the right person?" },
-  { id:"p1_07", q:"How would your closest friends describe you \u2014 and would you agree?", hint:"The gap between the two is the interesting part." },
-  { id:"p1_08", q:"What do you do for work \u2014 and how much of you does it take up?", hint:"Not a career question. A question about identity." },
-  { id:"p1_09", q:"What are you non-negotiable about in a partner?",           hint:"Be specific. Vague answers don\u2019t help you." },
-  { id:"p1_10", q:"What values are most important to you in a relationship?",  hint:"Not a list \u2014 tell Naomi what you actually live by." },
-  { id:"p1_11", q:"One word \u2014 just one \u2014 that describes you right now.", hint:"The first word that comes is usually the truest." },
-  { id:"p1_12", q:"What would a successful match with Naomi look like for you, one year from now?", hint:"Be concrete. It helps Naomi understand what you\u2019re really hoping for." },
+// -- AI Portrait Profile Questionnaire - 10 sections --------------------------
+const PORTRAIT_SECTIONS = [
+  {
+    id: "s0", title: "", subtitle: "First, a few quick things about you.",
+    icon: "user",
+    fields: [
+      { id:"user_age",         label:"How old are you?",                  type:"text",   placeholder:"33" },
+      { id:"user_gender",      label:"What\u2019s your gender?",          type:"select", options:["Woman","Man","Non-binary","Prefer not to say"] },
+      { id:"user_nationality", label:"What\u2019s your nationality?",     type:"text",   placeholder:"American" },
+      { id:"user_marital",     label:"What\u2019s your current marital status?", type:"select", options:["Single","Divorced","Widowed","Separated","Never married"] },
+      { id:"user_rel_goal",    label:"What kind of relationship are you hoping to find?", type:"select", options:["Long-term relationship","Marriage","Casual dating","Friendship","Open to possibilities"] },
+      { id:"user_location",    label:"Where are you based?",              type:"text",   placeholder:"West Village, Manhattan, USA" },
+    ]
+  },
+  {
+    id: "s1", title: "", subtitle: "Let\u2019s talk about who you\u2019re hoping to find.",
+    icon: "heart",
+    fields: [
+      { id:"ideal_partner", label:"Who are you looking for? Describe your ideal partner in one or two sentences \u2014 what\u2019s the first impression they give?", type:"textarea", placeholder:"Warm but self-assured, the kind of person who makes a room feel easier\u2026" },
+    ]
+  },
+  {
+    id: "s2", title: "Physical preferences", subtitle: "Any physical preferences that matter to you \u2014 totally optional to skip any.",
+    icon: "look",
+    fields: [
+      { id:"pref_age",    label:"What age range are you looking for?",            type:"text",   placeholder:"30\u201338", optional:true },
+      { id:"pref_body",   label:"Any height or body type preference? Select all that appeal to you.", type:"multiselect", options:["Tall","Average height","Shorter than average","Slim","Athletic","Average build","Curvy","Full-figured","Muscular","No preference"], optional:true },
+      { id:"pref_hair",   label:"Any hair colour or style preference? Select all that apply.", type:"multiselect", options:["Black","Brown","Blonde","Red/Ginger","Grey/Silver","Short","Medium length","Long","Curly","Straight","Bald/Shaved","No preference"], optional:true },
+      { id:"pref_style",  label:"What fashion style appeals to you? Select all that apply.", type:"multiselect", options:["Casual","Smart-casual","Classic/Tailored","Streetwear","Sporty/Athleisure","Edgy/Alternative","Minimalist","Bohemian","No preference"], optional:true },
+      { id:"pref_features", label:"Any distinctive features you find attractive? Select all that apply.", type:"multiselect", options:["Beard","Light stubble","Clean-shaven","Tattoos","Piercings","Glasses","Freckles","Dimples","No preference"], optional:true },
+    ]
+  },
+  {
+    id: "s3", title: "What draws you in", subtitle: "The traits that make you instantly attracted to someone.",
+    icon: "spark",
+    fields: [
+      { id:"attract_traits", label:"What personality traits make you instantly attracted to someone? Choose up to 5 or describe in your own words.", type:"text", placeholder:"Kind, confident, funny, ambitious, emotionally mature\u2026" },
+    ]
+  },
+  {
+    id: "s4", title: "Deal-breakers", subtitle: "What would make you lose interest immediately.",
+    icon: "exclude",
+    fields: [
+      { id:"dealbreakers", label:"What personality traits or behaviours are absolute deal-breakers for you?", type:"text", placeholder:"Dishonesty, jealousy, poor communication, lack of ambition\u2026" },
+    ]
+  },
+  {
+    id: "s5", title: "Life together", subtitle: "Picture the everyday version of this relationship.",
+    icon: "home",
+    fields: [
+      { id:"ideal_life", label:"Describe your ideal life together. How do you imagine spending weekends, vacations, evenings, and your future as a couple?", type:"textarea", placeholder:"Slow Sunday mornings, a couple of real trips a year, evenings that don\u2019t feel like work\u2026" },
+    ]
+  },
+  {
+    id: "s6", title: "Shared values", subtitle: "The values your partner needs to hold too.",
+    icon: "detail",
+    fields: [
+      { id:"shared_values", label:"What values must your partner share with you?", type:"text", placeholder:"Family, loyalty, honesty, career ambition, financial responsibility\u2026" },
+    ]
+  },
+  {
+    id: "s7", title: "Emotional connection", subtitle: "How you want this relationship to feel.",
+    icon: "chat",
+    fields: [
+      { id:"emotional_feel", label:"What kind of emotional connection are you looking for? How should your partner make you feel?", type:"text", placeholder:"Safe, inspired, understood, peaceful\u2026" },
+    ]
+  },
+  {
+    id: "s8", title: "A past attraction", subtitle: "This helps Naomi understand your real pattern, not just your ideal.",
+    icon: "user",
+    fields: [
+      { id:"past_attraction", label:"Tell me about someone you\u2019ve been strongly attracted to before \u2014 dated, or even fictional or public. What exactly attracted you?", type:"textarea", placeholder:"There was something about the way they listened\u2026" },
+    ]
+  },
+  {
+    id: "s9", title: "Non-negotiables", subtitle: "What your ideal partner must have, and must never have.",
+    icon: "note",
+    fields: [
+      { id:"non_negotiables", label:"What are your non-negotiables \u2014 lifestyle, habits, children, pets, religion, location, education, goals?", type:"text", placeholder:"Must want kids, must not smoke, must be financially independent\u2026" },
+    ]
+  },
+  {
+    id: "s10", title: "The portrait", subtitle: "Help Naomi picture them as clearly as possible.",
+    icon: "art",
+    fields: [
+      { id:"match_portrait", label:"If I could generate one realistic portrait of your perfect match, what would you want me to include? Describe the face, expression, smile, posture, clothing, and overall vibe \u2014 as if they\u2019re standing in front of you.", type:"textarea", placeholder:"A warm, easy smile. Relaxed posture. Something a little classic in how they dress\u2026" },
+    ]
+  },
 ];
 
-// Adaptive follow-up pool
-const P1_ADAPTIVE_POOL = [
-  { id:"p1_a1", trigger:["work","office","startup","build","design","code","busy"], q:"How much does work shape your identity \u2014 are you your job, or do you have a job?", hint:"Most people lean strongly one way." },
-  { id:"p1_a2", trigger:["run","gym","yoga","fitness","sport","workout","hike"], q:"Is staying active something you\u2019d want to share with a partner, or is it your solo time?", hint:"Either is fine." },
-  { id:"p1_a3", trigger:["cook","food","restaurant","eat","kitchen","bake"], q:"What does a perfect dinner look like to you?", hint:"At home, out, or somewhere in between?" },
-  { id:"p1_a4", trigger:["travel","trip","country","city","abroad","explore"], q:"What\u2019s the trip that changed how you see the world?", hint:"Even a short one counts." },
-  { id:"p1_a5", trigger:["read","book","podcast","learn","curious","study"], q:"What are you most curious about right now?", hint:"The topic you keep going back to." },
-  { id:"p1_a6", trigger:["kids","children","daughter","son","parent","family"], q:"What does the idea of family mean to you right now?", hint:"However you define it." },
-  { id:"p1_a7", trigger:["marriage","serious","long-term","commit","settle"], q:"What does building a life with someone actually look like in your mind?", hint:"The ordinary Tuesday, not the wedding." },
-  { id:"p1_f1", q:"What motivates you most in life right now?", hint:"Recognition, growth, freedom, connection \u2014 or something else?" },
-  { id:"p1_f2", q:"How would you describe your relationship with solitude?", hint:"Do you need it, avoid it, or somewhere between?" },
-  { id:"p1_f3", q:"What\u2019s something most people wouldn\u2019t guess about you?", hint:"A surprise. Could be anything." },
-];
-
-function pickAdaptiveQuestions(answers){
-  const used = new Set(Object.keys(answers));
-  const allText = Object.values(answers).join(' ').toLowerCase();
-  const scored = P1_ADAPTIVE_POOL.filter(q=>!used.has(q.id)).map(q=>{
-    const triggers = q.trigger||[];
-    return {...q, score: triggers.filter(t=>allText.includes(t)).length};
-  }).sort((a,b)=>b.score-a.score);
-  const triggered = scored.filter(q=>q.score>0).slice(0,4);
-  const fallbacks = scored.filter(q=>q.score===0&&q.id.startsWith('p1_f'));
-  return [...triggered,...fallbacks].sort(()=>Math.random()-0.5).slice(0,5);
-}
-
-// Transcript simulations
-const TRANSCRIPT_SIMS = {
-  p1_01:"I\u2019m tired of apps that feel like shopping. I want something real. I\u2019m ready for that.",
-  p1_02:"Something serious. Long-term, ideally leading to marriage. I\u2019m done with ambiguity.",
-  p1_03:"We were together four years. It worked because we made each other laugh. It ended because we wanted different futures.",
-  p1_04:"Early mornings are mine. Run, coffee, inbox. Afternoons are back-to-back. Evenings I protect.",
-  p1_05:"No kids yet. I\u2019d like one or two. It\u2019s become more present lately.",
-  p1_06:"West Village, Manhattan. I love it. I\u2019d leave for the right person.",
-  p1_07:"Warm but direct. Reliable. A little intense. Honestly \u2014 yes, I\u2019d agree.",
-  p1_08:"Marketing strategy. It takes up a lot of me, but I\u2019ve made peace with that.",
-  p1_09:"Dishonesty. And someone who isn\u2019t curious about the world.",
-  p1_10:"Honesty, growth, and loyalty.",
-  p1_11:"Ready.",
-  p1_12:"In a serious relationship with someone I genuinely admire.",
+const ICON_SVGS = {
+  user:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  look:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  spark:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  heart:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  home:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  chat:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  art:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
+  detail:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  exclude: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`,
+  note:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
 };
-const GENERIC_SIM = "I\u2019ve thought about this. The honest answer is it depends, but what I\u2019ve noticed is\u2026";
+
+
+// Reactions after each section
+const SECTION_REACTIONS = [
+  "Thank you — that gives me a strong foundation.",
+  "Got it. That detail will matter more than you think.",
+  "Beautiful. I have a clear picture of who you are.",
+  "Noted. Naomi will match for exactly that.",
+  "Good. The honest answers are always the most useful ones.",
+  "Perfect. Style tells a lot about how someone moves through the world.",
+  "That’s a really interesting vision. I’ll remember it.",
+  "These details make all the difference. Thank you.",
+  "Understood. Naomi will make sure to respect those boundaries.",
+  "You’re all set. This is everything I need to begin.",
+];
+
+// Simulated answers per section (for mic autofill)
+const SECTION_SIMS = {
+  s0: { user_age:"33", user_gender:"Woman", user_nationality:"American", user_marital:"Single", user_rel_goal:"Long-term relationship", user_location:"West Village, Manhattan, USA" },
+  s1: { ideal_partner:"Warm but self-assured \u2014 someone who makes a room feel easier just by being in it. Quietly confident, not loud about it." },
+  s2: { pref_age:"32\u201340", pref_body:"Tall, Athletic", pref_hair:"Brown, Short", pref_style:"Smart-casual, Classic/Tailored", pref_features:"Light stubble" },
+  s3: { attract_traits:"Confident, funny, emotionally mature, ambitious, kind to people who can\u2019t do anything for him" },
+  s4: { dealbreakers:"Dishonesty, jealousy, poor communication, no ambition" },
+  s5: { ideal_life:"Slow Sunday mornings, real trips a couple times a year, evenings that don\u2019t feel like work. A real partnership, not a performance." },
+  s6: { shared_values:"Family, honesty, financial responsibility, personal growth" },
+  s7: { emotional_feel:"Safe, understood, a little challenged in the best way" },
+  s8: { past_attraction:"There was someone a few years ago \u2014 it was the way he listened, like nothing else was happening in the room." },
+  s9: { non_negotiables:"Must want kids eventually. Must not smoke. Must be financially independent." },
+  s10:{ match_portrait:"A warm, easy smile. Relaxed posture, hands in pockets. Something a little classic in how he dresses \u2014 navy, well-fitted. Kind eyes, a bit of a beard." },
+};
+
+
+function pickAdaptiveQuestions(answers){ return []; } // not used in portrait flow
 
 // Naomi reactions after each answer
 const NAOMI_REACTIONS = {
@@ -464,9 +537,22 @@ const VER_STAGES = [
   },
 ];
 
+// Session state for naomiintro — persists across navigation to/from schedule,
+// but is reset on a true fresh start (e.g. from trust screen).
+let naomiSession = {
+  nameEntered: false,
+  userName: '',
+  sectionMode: false,
+  fieldIdx: 0,
+  answers: {},
+};
+function resetNaomiSession(){
+  naomiSession = { nameEntered:false, userName:'', sectionMode:false, fieldIdx:0, answers:{} };
+}
+
 const RENDERERS = {};
 
-// ── SPLASH ────────────────────────────────────────────────────────────────────
+// -- SPLASH --------------------------------------------------------------------
 RENDERERS.splash = function(){
   let frame=0;
   const frames=['','naomi','The world\'s first AI matchmaker'];
@@ -494,7 +580,7 @@ RENDERERS.splash = function(){
   timers.push(setTimeout(()=>go('trailer'),2800));
 };
 
-// ── TRAILER ───────────────────────────────────────────────────────────────────
+// -- TRAILER -------------------------------------------------------------------
 RENDERERS.trailer = function(){
   const lines=["Meet Naomi.","Not another dating app.","Not endless swiping.","She gets to know your values, your goals, your Relationship DNA —","then searches for people who genuinely fit it."];
   let li=0;
@@ -516,7 +602,7 @@ RENDERERS.trailer = function(){
   document.getElementById('trailerSkip').onclick=()=>go('register');
 };
 
-// ── TRUST ─────────────────────────────────────────────────────────────────────
+// -- TRUST ---------------------------------------------------------------------
 RENDERERS.trust = function(){
   $body.innerHTML=`
     <div class="screen justifyBetween">
@@ -541,11 +627,11 @@ RENDERERS.trust = function(){
       </div>
       <button class="btn" id="trustGo">Ready to get started</button>
     </div>`;
-  document.getElementById('trustGo').onclick=()=>go('naomiintro');
+  document.getElementById('trustGo').onclick=()=>{ resetNaomiSession(); go('naomiintro'); };
 };
 
-// ── REGISTER ──────────────────────────────────────────────────────────────────
-// ── SCHEDULE ICON — top-right corner for onboarding screens ──────────────────
+// -- REGISTER ------------------------------------------------------------------
+// -- SCHEDULE ICON - top-right corner for onboarding screens ------------------
 function renderSchedIcon(){
   const hasSched = !!scheduledTime;
   return `
@@ -592,205 +678,35 @@ function wireSchedIcon(currentScreen){
 const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`;
 const APPLE_SVG  = `<svg width="15" height="18" viewBox="0 0 814 1000" style="flex-shrink:0"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-166.4-125.6C75.4 765.4 18 605.7 18 453.2 18 222.7 168.7 99.8 316.6 99.8c78.8 0 144.4 51.7 193.5 51.7 47.3 0 121.6-54.6 211.4-54.6zm-41.3-166.1c39.5-47 66.6-112.5 66.6-178 0-9.1-.9-18.1-2.6-26.5-61 2.3-132.8 41-177.1 94.9-36.2 43-70.8 111.6-70.8 178.6 0 10.5 1.9 21.3 2.6 24.2 4.5.6 11.7 1.3 18.8 1.3 55.7 0 125.3-37.1 162.5-94.5z"/></svg>`;
 
-// ── REGISTER — 3-button landing ───────────────────────────────────────────────
+// -- REGISTER - 3-button landing -----------------------------------------------
 RENDERERS.register = function(){
   $body.innerHTML=`
     <div class="screen justifyBetween" style="padding:36px 24px 32px;">
       <div>
-        <!-- Logo mark -->
         <div style="width:48px;height:48px;border-radius:14px;background:var(--navy);display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
           <span style="font-family:var(--fontDisplay);font-style:italic;font-size:22px;color:var(--goldSoft);">N</span>
         </div>
         <h1 class="disp" style="font-size:28px;margin-bottom:8px;line-height:1.2;">Find your<br>person.</h1>
-        <p class="bodyMuted" style="font-size:13.5px;margin-bottom:36px;line-height:1.6;">Naomi gets to know you first &mdash; then finds someone who genuinely fits.</p>
+        <p class="bodyMuted" style="font-size:13.5px;margin-bottom:32px;line-height:1.6;">Naomi gets to know you first &mdash; then finds someone who genuinely fits.</p>
 
-        <!-- 3 stacked buttons -->
         <div style="display:flex;flex-direction:column;gap:10px;">
-          <button id="regGoogle" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:14px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:500;color:var(--ink);cursor:pointer;">
-            ${GOOGLE_SVG} Continue with Google
-          </button>
-          <button id="regApple" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:14px;border:1.5px solid var(--line);background:var(--ink);font-family:var(--fontBody);font-size:15px;font-weight:500;color:var(--cream);cursor:pointer;">
-            ${APPLE_SVG} Continue with Apple
-          </button>
-          <button id="regEmail" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);font-family:var(--fontBody);font-size:15px;font-weight:500;color:var(--ink);cursor:pointer;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
-            Continue with email
-          </button>
+          <label style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);">Phone number</label>
+          <div style="display:flex;gap:0;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--cream);">
+            <div style="padding:15px 14px;border-right:1px solid var(--line);background:var(--paperDeep);font-size:15px;color:var(--inkSoft);white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;">
+              &#127482;&#127480; +1
+            </div>
+            <input type="tel" placeholder="(646) 555-0148"
+              style="flex:1;padding:15px 16px;border:none;background:transparent;font-family:var(--fontBody);font-size:15px;outline:none;color:var(--ink);" />
+          </div>
+          <p style="font-size:12px;color:var(--inkSoft);line-height:1.5;margin-top:2px;">&#128274; Used only for verification. Never shown on your profile.</p>
         </div>
       </div>
-
-      <!-- Already have account -->
-      <div style="text-align:center;padding-top:20px;">
-        <span style="font-size:14px;color:var(--inkSoft);">Already have an account? </span>
-        <button id="goLogin" style="background:none;border:none;font-family:var(--fontBody);font-size:14px;font-weight:600;color:var(--clay);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(184,100,90,.3);">Log in</button>
-      </div>
+      <button class="btn" id="regCont">Send verification code</button>
     </div>`;
-
-  document.getElementById('regGoogle').onclick = () => go('phoneinput');
-  document.getElementById('regApple').onclick  = () => go('phoneinput');
-  document.getElementById('regEmail').onclick  = () => go('signup');
-  document.getElementById('goLogin').onclick   = () => go('login');
-};
-
-// ── SIGN UP — email form ──────────────────────────────────────────────────────
-RENDERERS.signup = function(){
-  $body.innerHTML=`
-    <div class="screen justifyBetween" style="padding:28px 24px;">
-      <div>
-        <button id="signupBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;margin-bottom:24px;">&larr;</button>
-        <h1 class="disp" style="font-size:24px;margin-bottom:6px;">Create account</h1>
-        <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">Your profile stays private until Naomi introduces you.</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <input class="field" id="suEmail"   placeholder="Email address"   type="email"    style="font-size:15px;" />
-          <input class="field" id="suPass"    placeholder="Password"         type="password" style="font-size:15px;" />
-          <input class="field" id="suConfirm" placeholder="Confirm password" type="password" style="font-size:15px;" />
-        </div>
-      </div>
-      <button class="btn" id="suCont">Create account</button>
-    </div>`;
-  document.getElementById('signupBack').onclick = () => back();
-  document.getElementById('suCont').onclick     = () => go('phoneinput');
-};
-
-// ── LOGIN ─────────────────────────────────────────────────────────────────────
-RENDERERS.login = function(){
-  $body.innerHTML=`
-    <div class="screen justifyBetween" style="padding:28px 24px;">
-      <div>
-        <button id="loginBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;margin-bottom:24px;">&larr;</button>
-        <h1 class="disp" style="font-size:24px;margin-bottom:6px;">Welcome back.</h1>
-        <p class="bodyMuted" style="font-size:13px;margin-bottom:24px;">Log in to continue with Naomi.</p>
-
-        <!-- Email + password inputs -->
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;">
-          <input class="field" id="liEmail" placeholder="Email address" type="email"    style="font-size:15px;" />
-          <input class="field" id="liPass"  placeholder="Password"       type="password" style="font-size:15px;" />
-        </div>
-
-        <!-- Forgot password -->
-        <div style="text-align:right;margin-bottom:20px;">
-          <button id="forgotBtn" style="background:none;border:none;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);">Forgot password?</button>
-        </div>
-
-        <!-- Login button -->
-        <button class="btn" id="liCont" style="margin-bottom:16px;">Log in</button>
-
-        <!-- Divider -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="flex:1;height:1px;background:var(--line);"></div>
-          <span style="font-size:11px;color:var(--inkSoft);font-family:var(--fontMono);">or</span>
-          <div style="flex:1;height:1px;background:var(--line);"></div>
-        </div>
-
-        <!-- Social login -->
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button id="liGoogle" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer;">
-            ${GOOGLE_SVG} Continue with Google
-          </button>
-          <button id="liApple" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--ink);font-family:var(--fontBody);font-size:14.5px;font-weight:500;color:var(--cream);cursor:pointer;">
-            ${APPLE_SVG} Continue with Apple
-          </button>
-        </div>
-      </div>
-
-      <!-- Create account link -->
-      <div style="text-align:center;padding-top:20px;">
-        <span style="font-size:14px;color:var(--inkSoft);">Don&rsquo;t have an account? </span>
-        <button id="goRegister" style="background:none;border:none;font-family:var(--fontBody);font-size:14px;font-weight:600;color:var(--clay);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(184,100,90,.3);">Create account</button>
-      </div>
-    </div>`;
-
-  document.getElementById('loginBack').onclick  = () => back();
-  document.getElementById('forgotBtn').onclick   = () => go('forgotpassword');
-  document.getElementById('liCont').onclick     = () => go('naomiintro');
-  document.getElementById('liGoogle').onclick   = () => go('naomiintro');
-  document.getElementById('liApple').onclick    = () => go('naomiintro');
-  document.getElementById('goRegister').onclick = () => go('register');
-};
-
-// ── FORGOT PASSWORD — email entry ─────────────────────────────────────────────
-RENDERERS.forgotpassword = function(){
-  $body.innerHTML=`
-    <div class="screen justifyBetween" style="padding:28px 24px;">
-      <div>
-        <button id="fpBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;margin-bottom:24px;">&larr;</button>
-
-        <!-- Icon -->
-        <div style="width:52px;height:52px;border-radius:16px;background:var(--clayBg);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        </div>
-
-        <h1 class="disp" style="font-size:24px;margin-bottom:8px;">Reset your password</h1>
-        <p class="bodyMuted" style="font-size:13.5px;margin-bottom:28px;line-height:1.6;">Enter the email address linked to your account. We&rsquo;ll send you a reset link.</p>
-
-        <input class="field" id="fpEmail" placeholder="Email address" type="email" style="font-size:15px;margin-bottom:8px;" />
-        <p style="font-size:12px;color:var(--inkSoft);line-height:1.5;">&#128274; We&rsquo;ll only use this to send your reset link.</p>
-      </div>
-
-      <div>
-        <button class="btn" id="fpSend" style="margin-bottom:14px;">Send reset link</button>
-        <div style="text-align:center;">
-          <button id="fpBackLogin" style="background:none;border:none;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;">&larr; Back to log in</button>
-        </div>
-      </div>
-    </div>`;
-
-  document.getElementById('fpBack').onclick      = () => back();
-  document.getElementById('fpBackLogin').onclick = () => go('login');
-  document.getElementById('fpSend').onclick      = () => go('forgotpasswordsent');
-};
-
-// ── FORGOT PASSWORD — sent confirmation ───────────────────────────────────────
-RENDERERS.forgotpasswordsent = function(){
-  $body.innerHTML=`
-    <div class="screen justifyBetween" style="padding:28px 24px;">
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-top:40px;">
-
-        <!-- Animated envelope check -->
-        <div style="width:80px;height:80px;border-radius:50%;background:var(--okBg);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
-
-        <h2 class="disp" style="font-size:24px;margin-bottom:12px;line-height:1.3;">Check your inbox.</h2>
-        <p class="bodyMuted" style="font-size:14px;margin-bottom:8px;line-height:1.65;max-width:260px;">We&rsquo;ve sent a password reset link to your email address.</p>
-        <p style="font-size:12.5px;color:var(--inkSoft);margin-bottom:36px;line-height:1.5;">Didn&rsquo;t receive it? Check your spam folder, or&nbsp;<button id="fpResend" style="background:none;border:none;font-family:var(--fontBody);font-size:12.5px;color:var(--clay);cursor:pointer;padding:0;text-decoration:underline;">send again</button>.</p>
-
-        <!-- What happens next -->
-        <div style="background:var(--paperDeep);border:1px solid var(--line);border-radius:16px;padding:18px 20px;text-align:left;width:100%;margin-bottom:32px;">
-          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:12px;">What happens next</div>
-          ${[
-            ['1', 'Open the link in your email'],
-            ['2', 'Choose a new password'],
-            ['3', 'Log in and pick up where you left off'],
-          ].map(([n,t]) => `
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-              <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span style="font-family:var(--fontMono);font-size:10px;color:var(--cream);font-weight:700;">${n}</span>
-              </div>
-              <span style="font-size:13.5px;color:var(--ink);">${t}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-
-      <button class="btn" id="fpDone">Back to log in</button>
-    </div>`;
-
-  document.getElementById('fpResend').onclick = () => {
-    const $r = document.getElementById('fpResend');
-    $r.textContent = 'Sent!';
-    $r.style.color = 'var(--ok)';
-    setTimeout(() => { $r.textContent = 'send again'; $r.style.color = 'var(--clay)'; }, 2500);
-  };
-  document.getElementById('fpDone').onclick = () => go('login');
+  document.getElementById('regCont').onclick = () => go('mobileotp');
 };
 
 
-
-// ── PHONE INPUT ───────────────────────────────────────────────────────────────
 RENDERERS.phoneinput = function(){
   $body.innerHTML=`
     <div class="screen justifyBetween">
@@ -810,97 +726,544 @@ RENDERERS.phoneinput = function(){
   document.getElementById('sendCode').onclick=()=>go('mobileotp');
 };
 
-// ── MOBILE OTP ────────────────────────────────────────────────────────────────
+// -- MOBILE OTP ----------------------------------------------------------------
 RENDERERS.mobileotp = () => renderOtp("Verify your phone","","trust",6);
 
-// ── NAOMI INTRO ───────────────────────────────────────────────────────────────
+// -- NAOMI INTRO ---------------------------------------------------------------
 RENDERERS.naomiintro = function(){
-  // ── Unified Naomi intro + 6 questions in one continuous chat ─────────────────
-  clearProgress();
+  // Do NOT clearProgress()/reset here — naomiSession persists across
+  // navigation to/from the schedule screen. Only resetNaomiSession() (called
+  // from the trust screen) gives a true fresh start.
 
-  // Chat state
-  const messages = [{from:'naomi', text:'Hi, I\u2019m Naomi. \u2014 How should I call you?'}];
-  let nameEntered   = false;
-  let questionMode  = false; // true after user chooses to start
-  let recording     = false;
-  let transcriptTimer = null;
-  const NAME_SIM    = 'Naya';
+  const NAME_SIM = 'Naya';
 
-  // Question state (mirrors kycquestions)
-  let answers     = {};
-  let phase       = 1;
-  let qIdx        = 0;
-  let p1Adaptive  = pickAdaptiveQuestions({});
-
-  function getSequence(){ return P1_CORE.slice(0, 6); }
-  function save(){ /* session only */ }
-
-  function stopRecording(){
-    recording = false;
-    if(transcriptTimer){ clearInterval(transcriptTimer); transcriptTimer = null; }
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function chatBubbleNaomi(text){
-    return `<div style="display:flex;gap:10px;align-items:flex-end;">
-      <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
-      <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${text}</div>
-    </div>`;
-  }
-  function chatBubbleUser(text){
-    return `<div style="display:flex;justify-content:flex-end;">
-      <div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--cream);">${text}</div>
-    </div>`;
-  }
-  function appendMsg(html){
+  // -- Helpers --------------------------------------------------------------------
+  function appendToLog(html){
     const log = document.getElementById('chatLog');
     if(!log) return;
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    while(div.firstChild) log.appendChild(div.firstChild);
-    log.scrollTop = log.scrollHeight;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    while(wrap.firstChild) log.appendChild(wrap.firstChild);
+    setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 40);
   }
 
-  // ── Input bar HTML ─────────────────────────────────────────────────────────
-  function inputBarHTML(placeholder, id, hasVal){
+  function naomiBubble(text){
+    return `<div style="display:flex;gap:10px;align-items:flex-end;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
+      </div>
+      <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:82%;font-size:15px;line-height:1.5;color:var(--ink);">${text}</div>
+    </div>`;
+  }
+
+  function userBubble(text){
+    return `<div style="display:flex;justify-content:flex-end;">
+      <div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:82%;font-size:15px;line-height:1.5;color:var(--cream);">${text}</div>
+    </div>`;
+  }
+
+  // -- Action area (Start questionnaire / Schedule for later) ---------------------
+  function actionAreaHTML(){
+    const name = naomiSession.userName;
     return `
-      <div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;" id="chatInputBar">
-        <div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
-          <textarea id="${id}" placeholder="${placeholder}" rows="1"
-            style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:80px;overflow-y:auto;display:block;"></textarea>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-            <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            </button>
-            <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:${hasVal?'var(--clay)':'var(--paperDeep)'};color:${hasVal?'var(--cream)':'var(--inkSoft)'};font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
+      <button id="startBtn" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+        <div><div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;">${scheduledTime?'I\u2019m ready \u2014 let\u2019s begin':'Start questionnaire'}</div><div style="font-size:12.5px;color:var(--inkSoft);">10 questions \u00b7 about 5 minutes</div></div>
+        <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="schedBtn" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--paperDeep);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div><div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;">${scheduledTime?'\u270f\ufe0f Edit my scheduled time':'Schedule for later'}</div><div style="font-size:12.5px;color:var(--inkSoft);">${scheduledTime?scheduledTime.label:'Pick a time that works for you'}</div></div>
+        <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`;
+  }
+
+  function wireActionArea(area){
+    document.getElementById('startBtn').onclick = () => { area.remove(); startSections(); };
+    document.getElementById('schedBtn').onclick = () => go('schedule');
+  }
+
+  function appendActionArea(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const area = document.createElement('div');
+    area.id = 'actionArea';
+    area.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-top:8px;';
+    area.innerHTML = actionAreaHTML();
+    log.appendChild(area);
+    log.scrollTop = log.scrollHeight;
+    wireActionArea(area);
+  }
+
+  // -- Chat field-by-field rendering -----------------------------------------------
+  let fieldQueue   = [];
+  let pendingField = null;
+
+  function buildFieldQueue(){
+    fieldQueue = [];
+    PORTRAIT_SECTIONS.forEach((s)=>{
+      s.fields.forEach((f, fi)=>{
+        fieldQueue.push({ section:s, field:f, isFirstOfSection: fi===0 });
+      });
+    });
+  }
+
+  function askNextField(){
+    if(naomiSession.fieldIdx >= fieldQueue.length){
+      const $ib = document.getElementById('chatInputBar');
+      if($ib) $ib.remove();
+      setTimeout(()=>{
+        appendToLog(naomiBubble("That\u2019s everything I need. \u2714\ufe0f You\u2019ve built your Relationship DNA \u2014 Naomi is ready to find your matches."));
+        setTimeout(()=>{
+          appendToLog(naomiBubble("Based on everything you\u2019ve told me, I sketched out three possible directions. Let me know what feels right \u2014 and what doesn\u2019t."));
+          setTimeout(()=>startMatchPortraits(), 500);
+        }, 800);
+      }, 300);
+      return;
+    }
+    const { section:s, field:f, isFirstOfSection } = fieldQueue[naomiSession.fieldIdx];
+    pendingField = f;
+
+    // Progress
+    const pct = Math.round((naomiSession.fieldIdx / fieldQueue.length)*100);
+    const $bar = document.getElementById('kycProgBar');
+    const $sub = document.getElementById('kycHeaderSub');
+    if($bar) $bar.style.width = pct+'%';
+    if($sub) $sub.textContent = `${naomiSession.fieldIdx+1} of ${fieldQueue.length}`;
+
+    // Question bubble
+    const prefix = isFirstOfSection && s.subtitle ? `<span style="display:block;font-size:12.5px;color:var(--inkSoft);margin-bottom:6px;">${s.subtitle}</span>` : '';
+    const qText = prefix + f.label;
+    setTimeout(()=>{
+      appendToLog(naomiBubble(qText));
+      if(f.type==='select') showChipOptions(f);
+      else if(f.type==='multiselect') showMultiChipOptions(f);
+      else showInputBar(f);
+    }, 200);
+  }
+
+  function showChipOptions(f){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;padding:2px 0;';
+    wrap.id = 'chipRow';
+    f.options.forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.style.cssText = 'padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:14px;color:var(--ink);cursor:pointer;transition:all .15s;';
+      btn.onmouseenter = ()=>{ btn.style.borderColor='var(--clay)'; btn.style.background='var(--clayBg)'; };
+      btn.onmouseleave = ()=>{ if(!btn.dataset.sel){ btn.style.borderColor='var(--line)'; btn.style.background='var(--cream)'; } };
+      btn.onclick = ()=>{
+        wrap.querySelectorAll('button').forEach(b=>{ b.style.cssText=b.style.cssText.replace('var(--clay)','var(--line)').replace('var(--cream)','var(--ink)'); delete b.dataset.sel; });
+        btn.style.borderColor='var(--clay)'; btn.style.background='var(--clay)'; btn.style.color='var(--cream)'; btn.dataset.sel='1';
+        setTimeout(()=>{ wrap.remove(); submitAnswer(opt); }, 220);
+      };
+      wrap.appendChild(btn);
+    });
+    if(f.optional){
+      const skip=document.createElement('button');
+      skip.textContent='Skip'; skip.style.cssText='padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;';
+      skip.onclick=()=>{ wrap.remove(); submitAnswer(null); };
+      wrap.appendChild(skip);
+    }
+    log.appendChild(wrap);
+    log.scrollTop=log.scrollHeight;
+  }
+
+  function showMultiChipOptions(f){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const selected = new Set();
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;padding:2px 0;';
+    wrap.id = 'multiChipRow';
+
+    const chipRow = document.createElement('div');
+    chipRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
+
+    function applyChipStyle(btn, isSel){
+      btn.style.borderColor = isSel ? 'var(--clay)' : 'var(--line)';
+      btn.style.background  = isSel ? 'var(--clay)' : 'var(--cream)';
+      btn.style.color       = isSel ? 'var(--cream)' : 'var(--ink)';
+    }
+
+    f.options.forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.style.cssText = 'padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:14px;color:var(--ink);cursor:pointer;transition:all .15s;';
+      btn.onmouseenter = ()=>{ if(!selected.has(opt)){ btn.style.borderColor='var(--clay)'; btn.style.background='var(--clayBg)'; } };
+      btn.onmouseleave = ()=>{ if(!selected.has(opt)) applyChipStyle(btn, false); };
+      btn.onclick = ()=>{
+        // "No preference" clears everything else and is exclusive
+        if(opt.toLowerCase().includes('no preference')){
+          selected.clear();
+          selected.add(opt);
+          chipRow.querySelectorAll('button').forEach(b=>applyChipStyle(b, b.textContent===opt));
+        } else {
+          selected.delete([...selected].find(s=>s.toLowerCase().includes('no preference')));
+          if(selected.has(opt)) selected.delete(opt); else selected.add(opt);
+          applyChipStyle(btn, selected.has(opt));
+        }
+        updateContinueState();
+      };
+      chipRow.appendChild(btn);
+    });
+    wrap.appendChild(chipRow);
+
+    const actionRow = document.createElement('div');
+    actionRow.style.cssText = 'display:flex;gap:8px;align-items:center;';
+
+    const continueBtn = document.createElement('button');
+    continueBtn.textContent = 'Continue \u2192';
+    continueBtn.style.cssText = 'padding:9px 18px;border-radius:20px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13.5px;font-weight:700;cursor:pointer;';
+    continueBtn.disabled = true;
+    continueBtn.onclick = ()=>{
+      if(selected.size===0) return;
+      const answer = [...selected].join(', ');
+      wrap.remove();
+      submitAnswer(answer);
+    };
+    actionRow.appendChild(continueBtn);
+
+    function updateContinueState(){
+      const has = selected.size > 0;
+      continueBtn.disabled = !has;
+      continueBtn.style.background = has ? 'var(--clay)' : 'var(--paperDeep)';
+      continueBtn.style.color = has ? 'var(--cream)' : 'var(--inkSoft)';
+    }
+
+    if(f.optional){
+      const skip=document.createElement('button');
+      skip.textContent='Skip'; skip.style.cssText='padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;';
+      skip.onclick=()=>{ wrap.remove(); submitAnswer(null); };
+      actionRow.appendChild(skip);
+    }
+    wrap.appendChild(actionRow);
+
+    log.appendChild(wrap);
+    log.scrollTop=log.scrollHeight;
+  }
+
+  function showInputBar(f){
+    let $ib = document.getElementById('chatInputBar');
+    if(!$ib){
+      $ib = document.createElement('div');
+      $ib.id = 'chatInputBar';
+      $ib.style.cssText = 'padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;';
+      const $screen = document.getElementById('chatLog')?.parentElement;
+      if($screen) $screen.appendChild($ib);
+    }
+    $ib.innerHTML = `
+      <div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
+        ${f.type==='textarea'
+          ? `<textarea id="chatAnswer" placeholder="${f.placeholder||'Type here\u2026'}" rows="2" style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:100px;overflow-y:auto;display:block;"></textarea>`
+          : `<input id="chatAnswer" type="${f.type==='number'?'number':'text'}" placeholder="${f.placeholder||'Type here\u2026'}" style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;outline:none;display:block;" />`}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+          <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${f.optional?'<button id="chatSkip" style="background:none;border:none;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;text-decoration:underline;">Skip</button>':''}
+            <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
           </div>
+        </div>
+      </div>`;
+
+    const $ta=$ib.querySelector('#chatAnswer'), $send=$ib.querySelector('#chatSend'), $mic=$ib.querySelector('#chatMic'), $skip=$ib.querySelector('#chatSkip');
+    if($ta) $ta.oninput=()=>{ if($ta.tagName==='TEXTAREA'){$ta.style.height='auto';$ta.style.height=Math.min($ta.scrollHeight,100)+'px';} const has=$ta.value.trim().length>0; if($send){$send.style.background=has?'var(--clay)':'var(--paperDeep)';$send.style.color=has?'var(--cream)':'var(--inkSoft)';} };
+    if($send) $send.onclick=()=>{ const val=$ta?$ta.value.trim():''; if(!val&&!f.optional) return; submitAnswer(val||null); };
+    if($skip) $skip.onclick=()=>submitAnswer(null);
+    if($mic) $mic.onclick=()=>{
+      const sim=SECTION_SIMS[fieldQueue[naomiSession.fieldIdx]?.section?.id]||{};
+      const v=sim[f.id]||'';
+      if($ta&&v){$ta.value=v;if($send){$send.style.background='var(--clay)';$send.style.color='var(--cream)';}}
+    };
+    if($ta) setTimeout(()=>$ta.focus(),100);
+  }
+
+  function submitAnswer(value){
+    if(value) naomiSession.answers[pendingField.id]=value;
+    if(value) appendToLog(userBubble(value));
+    naomiSession.fieldIdx++;
+    askNextField();
+  }
+
+  function autofillSection(s){
+    const sim=SECTION_SIMS[s.id]||{};
+    const $ta=document.getElementById('chatAnswer');
+    if($ta&&pendingField&&sim[pendingField.id]){$ta.value=sim[pendingField.id];const $s=document.getElementById('chatSend');if($s){$s.style.background='var(--clay)';$s.style.color='var(--cream)';}}
+  }
+
+  function insertProgressBar(){
+    const $chat=document.getElementById('chatLog');
+    if($chat&&$chat.parentNode && !document.getElementById('kycProgBar')){
+      const p=document.createElement('div');
+      p.style.cssText='padding:8px 16px 0;flex-shrink:0;';
+      const pct = Math.round((naomiSession.fieldIdx / fieldQueue.length)*100);
+      p.innerHTML=`<div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;"><div id="kycProgBar" style="height:100%;width:${pct}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div></div><div id="kycHeaderSub" style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.06em;margin-top:3px;text-align:right;">${naomiSession.fieldIdx+1} of ${fieldQueue.length}</div>`;
+      $chat.parentNode.insertBefore(p,$chat);
+    }
+  }
+
+  function startSections(){
+    naomiSession.sectionMode = true;
+    buildFieldQueue();
+    naomiSession.fieldIdx = 0;
+    insertProgressBar();
+    askNextField();
+  }
+
+  // -- Rebuild chat history from saved answers (on return from schedule) ----------
+  function rebuildHistory(){
+    // Naomi's opening line + user's name
+    let html = naomiBubble('Hi, I\u2019m Naomi. \u2014 How should I call you?');
+    html += userBubble(naomiSession.userName);
+    const greet = `Great to meet you, ${naomiSession.userName}! I\u2019d love to get to know who you\u2019re looking for. It takes about 5 minutes.`;
+    html += naomiBubble(greet);
+    return html;
+  }
+
+  // -- Match portraits (inline in chat, after questionnaire) -----------------------
+  const PORTRAIT_MAX_REGENS = 3;
+
+  function portraitBaseTraits(){
+    const a = naomiSession.answers || {};
+    const bits = [];
+    if(a.pref_age)      bits.push(`around ${a.pref_age}`);
+    if(a.pref_body)     bits.push(a.pref_body.toLowerCase());
+    if(a.pref_hair)     bits.push(a.pref_hair.toLowerCase());
+    if(a.pref_style)    bits.push(a.pref_style.toLowerCase());
+    if(a.pref_features) bits.push(a.pref_features.toLowerCase());
+    return bits;
+  }
+
+  const PORTRAIT_VARIANTS = [
+    { name:'James',  mood:'warm, easy smile, relaxed posture',        setting:'soft daylight, neutral background' },
+    { name:'Daniel', mood:'quiet confidence, thoughtful expression',  setting:'golden hour light, blurred city street' },
+    { name:'Marc',   mood:'calm, grounded presence, gentle eyes',     setting:'natural light, simple stone wall backdrop' },
+    { name:'Eli',    mood:'a little more playful, genuine laugh',     setting:'late afternoon light, soft greenery behind' },
+    { name:'Theo',   mood:'composed, steady, classic features',       setting:'studio-soft lighting, plain backdrop' },
+    { name:'Adam',   mood:'open, approachable, kind eyes',            setting:'natural window light, cosy interior' },
+  ];
+
+  function portraitDescribe(seed){
+    const a = naomiSession.answers || {};
+    const traits = portraitBaseTraits();
+    const traitStr = traits.length ? traits.join(', ') : 'features matching your description';
+    const portraitDetail = a.match_portrait ? ` ${a.match_portrait}` : '';
+    return `${seed.mood} \u2014 ${traitStr}. ${seed.setting}.${portraitDetail ? ' Based on what you described:' + portraitDetail : ''}`;
+  }
+
+  // Each portrait: { variantIdx, liked: null|true|false, why:'', whyStage: false }
+  let matchPortraits = [0,1,2].map(i => ({ variantIdx:i, liked:null, why:'', whyStage:false }));
+  let portraitRegenCount = 0; // shared across all 3 portraits
+
+  function portraitCardHTML(p, idx){
+    const seed = PORTRAIT_VARIANTS[p.variantIdx % PORTRAIT_VARIANTS.length];
+    const desc = portraitDescribe(seed);
+    const decided = p.liked !== null;
+
+    return `
+      <div id="portraitCard_${idx}" style="border:1.5px solid ${decided ? (p.liked?'var(--ok)':'var(--line)') : 'var(--line)'};border-radius:20px;background:var(--cream);overflow:hidden;${decided && !p.liked ? 'opacity:.8;' : ''}">
+
+        <!-- Portrait image area -->
+        <div style="height:200px;background:linear-gradient(145deg,var(--navy) 0%,#2d5048 100%);position:relative;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:54px;color:rgba(255,252,246,.25);">${seed.name[0]}</span>
+          <div style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);border-radius:20px;padding:4px 11px;">
+            <span style="font-family:var(--fontMono);font-size:10.5px;color:rgba(255,255,255,.8);letter-spacing:.05em;">Portrait ${idx+1} of 3</span>
+          </div>
+          ${portraitRegenCount>0 ? `<div style="position:absolute;top:12px;right:12px;background:rgba(255,252,246,.18);backdrop-filter:blur(6px);border-radius:20px;padding:4px 11px;">
+            <span style="font-family:var(--fontMono);font-size:10.5px;color:var(--cream);">Regenerated ${portraitRegenCount}/${PORTRAIT_MAX_REGENS}</span>
+          </div>` : ''}
+          ${decided ? `<div style="position:absolute;bottom:12px;right:12px;width:32px;height:32px;border-radius:50%;background:${p.liked?'var(--ok)':'rgba(0,0,0,.5)'};display:flex;align-items:center;justify-content:center;">
+            ${p.liked
+              ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`
+              : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`}
+          </div>` : ''}
+        </div>
+
+        <!-- Body -->
+        <div style="padding:12px 16px 14px;">
+
+          ${!decided ? `
+          <div style="display:flex;gap:10px;">
+            <button class="portraitLikeBtn" data-idx="${idx}" data-val="1" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/></svg>
+              Like
+            </button>
+            <button class="portraitLikeBtn" data-idx="${idx}" data-val="0" style="flex:1;padding:12px;border-radius:13px;border:1.5px solid var(--line);background:var(--cream);font-family:var(--fontBody);font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/></svg>
+              Dislike
+            </button>
+          </div>
+          ` : `
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:11px;background:${p.liked?'var(--okBg)':'var(--paperDeep)'};">
+            <span style="font-size:13px;font-weight:600;color:${p.liked?'var(--ok)':'var(--inkSoft)'};">${p.liked?'You liked this one':'Not a match for you'}</span>
+            <button class="portraitUndoBtn" data-idx="${idx}" style="margin-left:auto;background:none;border:none;font-size:11.5px;color:var(--inkSoft);text-decoration:underline;cursor:pointer;">Change</button>
+          </div>
+          ${!p.liked ? `
+          <div style="margin-top:10px;">
+            ${p.why ? `
+            <div style="background:var(--paperDeep);border-radius:11px;padding:10px 12px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkSoft);margin-bottom:4px;">Why not</div>
+              <div style="font-size:13px;color:var(--ink);">${p.why}</div>
+            </div>` : p.whyStage ? `
+            <textarea id="portraitWhyInput_${idx}" rows="2" placeholder="What didn\u2019t feel right about this one? (optional)"
+              style="width:100%;border:1.5px solid var(--line);border-radius:11px;background:var(--paperDeep);padding:9px 11px;font-family:var(--fontBody);font-size:13px;color:var(--ink);outline:none;resize:none;margin-bottom:8px;"></textarea>
+            <button id="portraitWhySubmit_${idx}" style="width:100%;padding:9px;border-radius:11px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:12.5px;font-weight:700;cursor:pointer;">Send</button>
+            ` : `
+            <button class="portraitWhyBtn" data-idx="${idx}" style="width:100%;padding:10px;border-radius:11px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:12.5px;color:var(--inkSoft);cursor:pointer;">
+              Tell Naomi why (optional)
+            </button>`}
+          </div>` : ''}
+          `}
         </div>
       </div>`;
   }
 
-  // ── Progress bar ───────────────────────────────────────────────────────────
-  function progressHTML(){
-    if(!questionMode) return '';
-    const seq   = getSequence();
-    const total = seq.length;
-    const pct   = Math.round(((qIdx+1)/total)*100);
-    return `<div style="padding:8px 16px 0;flex-shrink:0;">
-      <div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;">
-        <div id="kycProgBar" style="height:100%;width:${pct}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div>
-      </div>
-      <div id="kycHeaderSub" style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.06em;margin-top:3px;text-align:right;">${qIdx+1} of ${total}</div>
-    </div>`;
+  function portraitRerenderAll(){
+    matchPortraits.forEach((p, idx) => {
+      const $card = document.getElementById(`portraitCard_${idx}`);
+      if(!$card) return;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = portraitCardHTML(p, idx);
+      $card.replaceWith(wrap.firstElementChild);
+      portraitWireCard(idx);
+    });
   }
 
-  // ── Full screen paint ──────────────────────────────────────────────────────
+  function portraitRerenderCard(idx){
+    const $card = document.getElementById(`portraitCard_${idx}`);
+    if(!$card) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = portraitCardHTML(matchPortraits[idx], idx);
+    $card.replaceWith(wrap.firstElementChild);
+    portraitWireCard(idx);
+  }
+
+  function portraitWireCard(idx){
+    const p = matchPortraits[idx];
+
+    document.querySelectorAll(`.portraitLikeBtn[data-idx="${idx}"]`).forEach(btn=>{
+      btn.onclick = () => {
+        p.liked = btn.dataset.val === '1';
+        portraitRerenderCard(idx);
+      };
+    });
+
+    const $undo = document.querySelector(`.portraitUndoBtn[data-idx="${idx}"]`);
+    if($undo) $undo.onclick = () => { p.liked = null; p.why=''; p.whyStage=false; portraitRerenderCard(idx); };
+
+    const $whyBtn = document.querySelector(`.portraitWhyBtn[data-idx="${idx}"]`);
+    if($whyBtn) $whyBtn.onclick = () => { p.whyStage = true; portraitRerenderCard(idx); };
+
+    const $whySubmit = document.getElementById(`portraitWhySubmit_${idx}`);
+    if($whySubmit) $whySubmit.onclick = () => {
+      const $ta = document.getElementById(`portraitWhyInput_${idx}`);
+      p.why = ($ta && $ta.value.trim()) || 'No specific reason given';
+      portraitRerenderCard(idx);
+    };
+  }
+
+  function portraitShowProgressAndContinue(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+
+    // Remove the regenerate action row
+    const $actions = document.getElementById('portraitActions');
+    if($actions) $actions.remove();
+
+    // Progress component
+    const progWrap = document.createElement('div');
+    progWrap.id = 'portraitProgress';
+    progWrap.style.cssText = 'border:1.5px solid var(--line);border-radius:16px;background:var(--cream);padding:18px 20px;';
+    progWrap.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:10px;color:var(--goldSoft);">N</span>
+        </div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--ink);">Regenerating your portraits\u2026</div>
+      </div>
+      <div style="height:6px;border-radius:4px;background:var(--paperDeep);overflow:hidden;">
+        <div id="portraitProgressBar" style="height:100%;width:0%;background:var(--clay);border-radius:4px;transition:width .35s ease;"></div>
+      </div>`;
+    log.appendChild(progWrap);
+    log.scrollTop = log.scrollHeight;
+
+    const $bar = document.getElementById('portraitProgressBar');
+    let pct = 0;
+    const timer = setInterval(()=>{
+      pct += 10 + Math.random()*15;
+      if(pct >= 100){
+        pct = 100;
+        if($bar) $bar.style.width = '100%';
+        clearInterval(timer);
+        setTimeout(()=>{
+          progWrap.remove();
+          portraitRerenderAll();
+          appendToLog(naomiBubble("Here are your updated portraits."));
+          setTimeout(()=>portraitShowActions(), 300);
+        }, 350);
+        return;
+      }
+      if($bar) $bar.style.width = pct + '%';
+    }, 180);
+  }
+
+  function portraitShowActions(){
+    const canRegen = portraitRegenCount < PORTRAIT_MAX_REGENS;
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'portraitActions';
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+    wrap.innerHTML = `
+      ${canRegen ? `
+      <button id="portraitRegenBtn" style="width:100%;padding:14px;border-radius:14px;border:1.5px dashed var(--line);background:transparent;font-family:var(--fontBody);font-size:13.5px;color:var(--inkSoft);cursor:pointer;">
+        \u21bb Regenerate all 3 (${PORTRAIT_MAX_REGENS - portraitRegenCount} left)
+      </button>` : `
+      <div style="text-align:center;font-size:12px;color:var(--inkSoft);padding:4px 0;">No more regenerations available.</div>`}
+      <button id="portraitContinueBtn" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;">
+        Continue to verification \u2192
+      </button>`;
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+
+    const $regen = document.getElementById('portraitRegenBtn');
+    if($regen) $regen.onclick = () => {
+      portraitRegenCount++;
+      matchPortraits.forEach(p => {
+        p.variantIdx = (p.variantIdx + 3) % PORTRAIT_VARIANTS.length;
+        p.liked = null;
+        p.why = '';
+        p.whyStage = false;
+      });
+      portraitShowProgressAndContinue();
+    };
+
+    const $cont = document.getElementById('portraitContinueBtn');
+    if($cont) $cont.onclick = () => go('kycflow');
+  }
+
+  function startMatchPortraits(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:16px;';
+    wrap.innerHTML = matchPortraits.map((p,idx)=>portraitCardHTML(p, idx)).join('');
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    matchPortraits.forEach((_,idx)=>portraitWireCard(idx));
+    setTimeout(()=>portraitShowActions(), 300);
+  }
+
+  // -- Main paint -------------------------------------------------------------------
   function paint(){
-    const seq     = getSequence();
-    const q       = questionMode ? seq[qIdx] : null;
-    const hasVal  = false; // textarea always empty on paint
+    const showNameInput = !naomiSession.nameEntered;
 
     $body.innerHTML = `
       <div style="height:100%;display:flex;flex-direction:column;background:var(--paperDeep);">
-
         <!-- Header -->
         <div style="padding:18px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);flex-shrink:0;position:relative;">
           ${renderSchedIcon()}
@@ -909,43 +1272,64 @@ RENDERERS.naomiintro = function(){
           </div>
           <div>
             <div style="font-weight:700;font-size:15px;">Naomi</div>
-            <div style="font-size:11.5px;color:var(--inkSoft);">${questionMode?'Getting to know you':'Your AI matchmaker \u2022 online'}</div>
+            <div style="font-size:11.5px;color:var(--inkSoft);">Your AI matchmaker &bull; online</div>
           </div>
         </div>
 
-        ${progressHTML()}
-
-        <!-- Chat log (all messages persist here) -->
+        <!-- Chat log -->
         <div style="flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px;" id="chatLog">
-          ${messages.map(m => m.from==='naomi' ? chatBubbleNaomi(m.text) : chatBubbleUser(m.text)).join('')}
+          ${showNameInput ? naomiBubble('Hi, I\u2019m Naomi. \u2014 How should I call you?') : rebuildHistory()}
         </div>
 
-        <!-- Input bar or action chips -->
-        ${q ? inputBarHTML(q.hint || 'Type your answer\u2026', 'chatAnswer', false) :
-          !nameEntered ? inputBarHTML('Type your name\u2026', 'chatAnswer', false) :
-          !questionMode ? `` : ``}
-
+        ${showNameInput ? `
+        <!-- Name input bar -->
+        <div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;" id="chatInputBar">
+          <div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
+            <textarea id="chatAnswer" placeholder="Type your name\u2026" rows="1"
+              style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:60px;overflow-y:auto;display:block;"></textarea>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+              <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+              <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
+            </div>
+          </div>
+        </div>` : ''}
       </div>
-      <style>
-        @keyframes ripple1{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
-        @keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
-      </style>`;
+      <style>@keyframes ripple1{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}</style>`;
 
-    const log = document.getElementById('chatLog');
-    if(log) setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 50);
+    if(showNameInput) wireInputBar();
     wireSchedIcon('naomiintro');
 
     // Voice nav autofill
     const $navV = document.getElementById('navVoice');
-    if($navV && !nameEntered) $navV.onclick = () => {
-      const $inp = document.getElementById('chatAnswer');
-      if($inp){ $inp.value = NAME_SIM; const $s=document.getElementById('chatSend'); if($s){$s.style.background='var(--clay)';$s.style.color='var(--cream)';} $inp.focus(); }
+    if($navV) $navV.onclick = () => {
+      if(!naomiSession.nameEntered){
+        const $inp = document.getElementById('chatAnswer');
+        if($inp){ $inp.value=NAME_SIM; const $s=document.getElementById('chatSend'); if($s){$s.style.background='var(--clay)';$s.style.color='var(--cream)';} }
+      } else if(naomiSession.sectionMode){
+        autofillSection(fieldQueue[naomiSession.fieldIdx]?.section);
+      }
     };
 
-    wireInputBar();
+    // -- Rehydrate mid-flow state --------------------------------------------------
+    if(naomiSession.nameEntered){
+      if(naomiSession.sectionMode){
+        // Was mid-questionnaire — rebuild the field queue, re-show progress bar,
+        // and re-ask the current pending question (previous Q&A already in rebuildHistory
+        // is NOT replayed per-field here since we only persisted final answers;
+        // we resume from where they left off).
+        buildFieldQueue();
+        insertProgressBar();
+        askNextField();
+      } else {
+        // Was on the action area (Start questionnaire / Schedule for later) —
+        // re-show it with updated scheduledTime.
+        appendActionArea();
+      }
+    }
   }
 
-  // ── Wire input bar ─────────────────────────────────────────────────────────
   function wireInputBar(){
     const $ta   = document.getElementById('chatAnswer');
     const $send = document.getElementById('chatSend');
@@ -953,201 +1337,47 @@ RENDERERS.naomiintro = function(){
     if(!$ta) return;
 
     $ta.oninput = () => {
-      $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px';
+      $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,60)+'px';
       if($send){ const has=$ta.value.trim().length>0; $send.style.background=has?'var(--clay)':'var(--paperDeep)'; $send.style.color=has?'var(--cream)':'var(--inkSoft)'; }
     };
-
     if($mic) $mic.onclick = () => {
-      // Autofill simulation
-      const seq = getSequence();
-      const q   = questionMode && seq[qIdx] ? seq[qIdx] : null;
-      const sim = q ? (TRANSCRIPT_SIMS[q.id] || GENERIC_SIM) : NAME_SIM;
-      if($ta){ $ta.value=sim; $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px'; if($send){$send.style.background='var(--clay)';$send.style.color='var(--cream)';} }
+      const $inp=document.getElementById('chatAnswer');
+      if($inp){ $inp.value=NAME_SIM; const $s=document.getElementById('chatSend'); if($s){$s.style.background='var(--clay)';$s.style.color='var(--cream)';} }
     };
-
-    if($send) $send.onclick = () => handleSend($ta ? $ta.value.trim() : '');
+    if($send) $send.onclick = () => handleSend($ta.value.trim());
     $ta.onkeydown = (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleSend($ta.value.trim()); } };
   }
 
-  // ── Handle send ────────────────────────────────────────────────────────────
   function handleSend(value){
-    stopRecording();
     if(!value) return;
 
-    if(!nameEntered){
-      // Name phase
-      const name = value || NAME_SIM;
-      messages.push({from:'user', text:name});
-      const greet = scheduledTime
-        ? `Great to meet you, ${name}! I see we have a session scheduled for ${scheduledTime.label}. Ready when you are.`
-        : `Great to meet you, ${name}! I\u2019d love to get to know you a little \u2014 just 6 questions. Let\u2019s start.`;
-      messages.push({from:'naomi', text:greet});
-      nameEntered = true;
+    if(!naomiSession.nameEntered){
+      const name = value;
+      naomiSession.nameEntered = true;
+      naomiSession.userName = name;
 
-      // Show action cards below in chat
-      paint();
-      setTimeout(() => {
-        const log = document.getElementById('chatLog');
-        if(!log) return;
-        const area = document.createElement('div');
-        area.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-top:8px;';
-        area.innerHTML = `
-          <button class="chatOpt" data-id="start" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
-            <div style="width:40px;height:40px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
-            <div><div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;">${scheduledTime?'I\u2019m ready \u2014 let\u2019s begin':'Let\u2019s start now'}</div><div style="font-size:12.5px;color:var(--inkSoft);">Takes about 5 minutes</div></div>
-            <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <button class="chatOpt" data-id="sched" style="width:100%;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--paperDeep);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;">
-            <div style="width:40px;height:40px;border-radius:12px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-            <div><div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;">${scheduledTime?'\u270f\ufe0f Edit my scheduled time':'Schedule for later'}</div><div style="font-size:12.5px;color:var(--inkSoft);">${scheduledTime?scheduledTime.label:'Pick a time that works for you'}</div></div>
-            <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>`;
-        log.appendChild(area);
-        log.scrollTop = log.scrollHeight;
-        area.querySelectorAll('.chatOpt').forEach(el => {
-          el.onclick = () => {
-            if(el.dataset.id === 'sched'){ go('schedule'); return; }
-            // Start questions — remove chips, add first question
-            area.remove();
-            questionMode = true;
-            qIdx = 0;
-            appendToFirstQuestion();
-          };
-        });
-      }, 100);
-      return;
+      // Remove input bar
+      const $ib = document.getElementById('chatInputBar');
+      if($ib) $ib.remove();
+
+      // Append user bubble + Naomi greeting + action area
+      appendToLog(userBubble(name));
+      setTimeout(()=>{
+        const greet = `Great to meet you, ${name}! I\u2019d love to get to know who you\u2019re looking for. It takes about 5 minutes.`;
+        appendToLog(naomiBubble(greet));
+        setTimeout(()=>{ appendActionArea(); }, 400);
+      }, 300);
     }
-
-    if(questionMode){
-      // Question phase — answer the current question
-      const seq = getSequence();
-      const q   = seq[qIdx];
-      if(!q) return;
-
-      answers[q.id] = value;
-      const reaction = getNaomiReaction(q.id);
-
-      // Append user bubble
-      const log = document.getElementById('chatLog');
-      if(log){
-        const ub = document.createElement('div');
-        ub.style.cssText = 'display:flex;justify-content:flex-end;';
-        ub.innerHTML = `<div style="background:var(--navy);border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--cream);">${value}</div>`;
-        log.appendChild(ub);
-        log.scrollTop = log.scrollHeight;
-
-        // Clear input immediately
-        const $ta=document.getElementById('chatAnswer');
-        if($ta){ $ta.value=''; $ta.style.height='22px'; }
-        const $send=document.getElementById('chatSend');
-        if($send){ $send.style.background='var(--paperDeep)'; $send.style.color='var(--inkSoft)'; }
-
-        // Naomi reaction
-        setTimeout(()=>{
-          const rb = document.createElement('div');
-          rb.style.cssText = 'display:flex;gap:8px;align-items:flex-end;';
-          rb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
-            <div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:10px 14px;max-width:78%;font-size:14px;line-height:1.45;color:var(--ink);font-style:italic;">${reaction}</div>`;
-          log.appendChild(rb);
-          log.scrollTop = log.scrollHeight;
-
-          // Advance to next question
-          setTimeout(()=>{
-            qIdx++;
-            const seq2 = getSequence();
-            if(qIdx >= seq2.length){
-              // Done — trigger verification
-              startVerification();
-            } else {
-              // Append next question bubble
-              const nextQ = seq2[qIdx];
-              const nb = document.createElement('div');
-              nb.style.cssText = 'display:flex;gap:10px;align-items:flex-end;';
-              nb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
-                <div><div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${nextQ.q}</div>${nextQ.hint?`<div style="font-size:11.5px;color:var(--inkSoft);padding:4px 8px 0;font-style:italic;">${nextQ.hint}</div>`:''}</div>`;
-              log.appendChild(nb);
-              log.scrollTop = log.scrollHeight;
-
-              // Update progress bar
-              const total = getSequence().length;
-              const $bar = document.getElementById('kycProgBar');
-              const $sub = document.getElementById('kycHeaderSub');
-              if($bar) $bar.style.width = `${Math.round(((qIdx+1)/total)*100)}%`;
-              if($sub) $sub.textContent = `${qIdx+1} of ${total}`;
-            }
-          }, 900);
-        }, 500);
-      }
-    }
-  }
-
-  function appendToFirstQuestion(){
-    // Show progress bar
-    const $header = document.querySelector('[style*="padding:18px 20px 12px"]');
-    const $chat   = document.getElementById('chatLog');
-    if(!$chat) return;
-
-    // Add progress bar above chat log by inserting into DOM
-    const progDiv = document.createElement('div');
-    progDiv.style.cssText = 'padding:8px 16px 0;flex-shrink:0;';
-    progDiv.innerHTML = `
-      <div style="height:3px;border-radius:2px;background:var(--paperDeep);overflow:hidden;">
-        <div id="kycProgBar" style="height:100%;width:${Math.round((1/6)*100)}%;background:var(--clay);border-radius:2px;transition:width .4s;"></div>
-      </div>
-      <div id="kycHeaderSub" style="font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);letter-spacing:.06em;margin-top:3px;text-align:right;">1 of 6</div>`;
-    $chat.parentNode.insertBefore(progDiv, $chat);
-
-    // Add question bubble and input bar
-    const seq  = getSequence();
-    const q    = seq[0];
-    const nb   = document.createElement('div');
-    nb.style.cssText = 'display:flex;gap:10px;align-items:flex-end;';
-    nb.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span></div>
-      <div><div style="background:var(--cream);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:78%;font-size:15px;line-height:1.5;color:var(--ink);">${q.q}</div>${q.hint?`<div style="font-size:11.5px;color:var(--inkSoft);padding:4px 8px 0;font-style:italic;">${q.hint}</div>`:''}</div>`;
-    $chat.appendChild(nb);
-    $chat.scrollTop = $chat.scrollHeight;
-
-    // Add input bar
-    const $screen = $chat.parentElement;
-    const inputDiv = document.createElement('div');
-    inputDiv.style.cssText = 'padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;';
-    inputDiv.id = 'chatInputBar';
-    inputDiv.innerHTML = `<div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
-      <textarea id="chatAnswer" placeholder="${q.hint||'Type your answer\u2026'}" rows="1"
-        style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:80px;overflow-y:auto;display:block;"></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-        <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-        <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
-      </div>
-    </div>`;
-    $screen.appendChild(inputDiv);
-
-    wireInputBar();
-  }
-
-  function startVerification(){ go('kycflow'); }
-
-  // Remove chatInputBar and show a Naomi message inline
-  function appendToChat(html){
-    const log = document.getElementById('kycChatLog') || document.getElementById('chatLog');
-    if(!log) return;
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;flex-direction:column;gap:14px;';
-    div.innerHTML = html;
-    log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
   }
 
   paint();
 };
 
-// kycquestions redirects to naomiintro (unified flow)
 RENDERERS.kycquestions = function(){ go('naomiintro'); };
 
 
-// ── KYC VERIFICATION — chat-based ID / Address / Background flow ──────────────
+
+// -- KYC VERIFICATION - chat-based ID / Address / Background flow --------------
 RENDERERS.kycverification = function(){
   // Kept as standalone renderer for direct navigation; 
   // primary flow uses inline startVerification() inside kycquestions
@@ -1155,12 +1385,12 @@ RENDERERS.kycverification = function(){
 };
 
 
-// ── DNA PROFILE — Relationship DNA card per project spec (Screen 13) ──────────
+// -- DNA PROFILE - Relationship DNA card per project spec (Screen 13) ----------
 RENDERERS.dnaprofile = function(){
   const saved = loadProgress();
   const ans   = saved ? (saved.answers || {}) : {};
 
-  // ── Persona-aware values: use answer if present, fall back to Naya's data ──
+  // -- Persona-aware values: use answer if present, fall back to Naya's data --
   const goal      = ans.p1_02 || 'Marriage & long-term partnership';
   const location  = ans.p1_06 || 'West Village, Manhattan';
   const work      = ans.p1_08 || 'Senior Marketing Director, B2B SaaS';
@@ -1342,7 +1572,7 @@ RENDERERS.dnaprofile = function(){
   document.getElementById('dnaComplete').onclick = () => go('deepquestions');
 };
 
-// ── DEEP QUESTIONS — 6 more in same chat style ────────────────────────────────
+// -- DEEP QUESTIONS - 6 more in same chat style --------------------------------
 RENDERERS.deepquestions = function(){
   const saved = loadProgress();
   let answers = saved ? (saved.answers || {}) : {};
@@ -1423,7 +1653,7 @@ RENDERERS.deepquestions = function(){
   paint();
 };
 
-// ── PAYWALL ───────────────────────────────────────────────────────────────────
+// -- PAYWALL -------------------------------------------------------------------
 RENDERERS.paywall = function(){
   const plans=[
     {id:'monthly',   label:'Monthly',  price:'$29', per:'/ month', sub:'Cancel any time',       badge:''},
@@ -1468,7 +1698,7 @@ RENDERERS.paywall = function(){
   paint();
 };
 
-// ── MATCHMAKING SUCCESS — animated progress before results ────────────────────
+// -- MATCHMAKING SUCCESS - animated progress before results --------------------
 RENDERERS.matchmaking = function(){
   const steps = [
     { label:"Analysing your Relationship DNA",   duration: 1600 },
@@ -1571,7 +1801,7 @@ RENDERERS.matchmaking = function(){
   runStep();
 };
 
-// ── MATCH REVEAL — photos-last, Naomi as matchmaker introducing each person ───
+// -- MATCH REVEAL - photos-last, Naomi as matchmaker introducing each person ---
 RENDERERS.matchreveal = function(){
   const matches = [
     {
@@ -1715,7 +1945,16 @@ RENDERERS.matchreveal = function(){
   paint();
 };
 
-// ── KYC FLOW — 3-step verification screen with back/continue navigation ────────
+// -- KYC FLOW - 3-step verification screen with back/continue navigation --------
+// -- MATCH PORTRAITS -------------------------------------------------------------
+// Shown right after the questionnaire. Naomi presents 3 candidate portraits built
+// from the user's described preferences. For each: Like / Dislike. On Dislike,
+// ask why (optional free text). User can regenerate a portrait up to 3 times.
+// -- MATCH PORTRAITS -------------------------------------------------------------
+// Shown right after the questionnaire. Naomi presents 3 candidate portraits built
+// from the user's described preferences. For each: Like / Dislike. On Dislike,
+// ask why, then offer to regenerate (with "how should Naomi change it") up to
+// 3 times. After everything is resolved, continue to verification.
 RENDERERS.kycflow = function(){
   let step = 0; // 0, 1, 2
   const STAGES = VER_STAGES && VER_STAGES.length ? VER_STAGES : [];
@@ -1803,7 +2042,7 @@ RENDERERS.kycflow = function(){
   paint();
 };
 
-// ── KYC PHOTO UPLOAD — standalone photo upload screen after verification ───────
+// -- KYC PHOTO UPLOAD - standalone photo upload screen after verification -------
 RENDERERS.kycphotoupload = function(){
   // Reset photos for this session
   let localPhotos = [];
