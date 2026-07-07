@@ -261,16 +261,19 @@ function setStatusDark(dark){
 let kycMode = 'voice';
 let userGender = null;
 let scheduledTime = null;
+let naomiPostVerification = false; // set to true after KYC, so naomiintro shows post-verification actions
+let kycStartStep = 0;               // set to 1 when step-0 (face scan) shown inline
+let inlinePhotos = [];              // profile photos, accessible by dnaprofile
 
 // -- FLOW CONFIG ---------------------------------------------------------------
 const FLOW_ORDER = [
   "splash","trailer","register","phoneinput","mobileotp","trust",
-  "naomiintro","kycquestions","kycflow","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
+  "naomiintro","kycquestions","kycflow","dashboard","matches","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
   register:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding",
-  naomiintro:"Onboarding flow", kycquestions:"Onboarding flow",
+  naomiintro:"Onboarding flow", kycquestions:"Onboarding flow", dashboard:"App", matches:"App",
   kycverification:"KYC flow", kycflow:"KYC flow", schedule:"Onboarding flow",
 };
 const DARK_STATUS_SCREENS = new Set(["splash","trailer","kycquestions"]);
@@ -361,7 +364,7 @@ const PORTRAIT_SECTIONS = [
     id: "s1", title: "", subtitle: "Let\u2019s talk about who you\u2019re hoping to find.",
     icon: "heart",
     fields: [
-      { id:"ideal_partner", label:"Who are you looking for? Describe your ideal partner in one or two sentences \u2014 what\u2019s the first impression they give?", type:"textarea", placeholder:"Warm but self-assured, the kind of person who makes a room feel easier\u2026" },
+      { id:"ideal_partner", label:"Who are you looking for \u2014 and if Naomi could generate one realistic portrait of your perfect match, what would it look like? Describe the first impression they give, their face, expression, posture, clothing, and overall vibe \u2014 as if they\u2019re standing in front of you.", type:"textarea", placeholder:"Warm but self-assured. A calm confidence that fills a room without trying. Kind eyes, a bit of a beard, something classic in how he dresses \u2014 well-fitted, not flashy. The kind of person who makes you feel like you\u2019re the only one in the room\u2026" },
     ]
   },
   {
@@ -400,16 +403,10 @@ const PORTRAIT_SECTIONS = [
     id: "s6", title: "Shared values", subtitle: "The values your partner needs to hold too.",
     icon: "detail",
     fields: [
-      { id:"shared_values", label:"What values must your partner share with you?", type:"text", placeholder:"Family, loyalty, honesty, career ambition, financial responsibility\u2026" },
+      { id:"shared_values", label:"What values must your partner share, and what kind of emotional connection are you looking for? How should they make you feel?", type:"textarea", placeholder:"Honesty, loyalty, family \u2014 and I want to feel safe, understood, a little challenged in the best way\u2026" },
     ]
   },
-  {
-    id: "s7", title: "Emotional connection", subtitle: "How you want this relationship to feel.",
-    icon: "chat",
-    fields: [
-      { id:"emotional_feel", label:"What kind of emotional connection are you looking for? How should your partner make you feel?", type:"text", placeholder:"Safe, inspired, understood, peaceful\u2026" },
-    ]
-  },
+
   {
     id: "s8", title: "A past attraction", subtitle: "This helps Naomi understand your real pattern, not just your ideal.",
     icon: "user",
@@ -422,13 +419,6 @@ const PORTRAIT_SECTIONS = [
     icon: "note",
     fields: [
       { id:"non_negotiables", label:"What are your non-negotiables \u2014 lifestyle, habits, children, pets, religion, location, education, goals?", type:"text", placeholder:"Must want kids, must not smoke, must be financially independent\u2026" },
-    ]
-  },
-  {
-    id: "s10", title: "The portrait", subtitle: "Help Naomi picture them as clearly as possible.",
-    icon: "art",
-    fields: [
-      { id:"match_portrait", label:"If I could generate one realistic portrait of your perfect match, what would you want me to include? Describe the face, expression, smile, posture, clothing, and overall vibe \u2014 as if they\u2019re standing in front of you.", type:"textarea", placeholder:"A warm, easy smile. Relaxed posture. Something a little classic in how they dress\u2026" },
     ]
   },
 ];
@@ -464,13 +454,12 @@ const SECTION_REACTIONS = [
 // Simulated answers per section (for mic autofill)
 const SECTION_SIMS = {
   s0: { user_age:"33", user_gender:"Woman", user_nationality:"American", user_marital:"Single", user_rel_goal:"Long-term relationship", user_location:"West Village, Manhattan, USA" },
-  s1: { ideal_partner:"Warm but self-assured \u2014 someone who makes a room feel easier just by being in it. Quietly confident, not loud about it." },
+  s1: { ideal_partner:"Warm but self-assured \u2014 the kind of calm confidence that fills a room without trying. Kind eyes, a bit of a beard, something classic in how he dresses. The sort of person who listens like nothing else is happening." },
   s2: { pref_age:"32\u201340", pref_body:"Tall, Athletic", pref_hair:"Brown, Short", pref_style:"Smart-casual, Classic/Tailored", pref_features:"Light stubble" },
   s3: { attract_traits:"Confident, funny, emotionally mature, ambitious, kind to people who can\u2019t do anything for him" },
   s4: { dealbreakers:"Dishonesty, jealousy, poor communication, no ambition" },
   s5: { ideal_life:"Slow Sunday mornings, real trips a couple times a year, evenings that don\u2019t feel like work. A real partnership, not a performance." },
-  s6: { shared_values:"Family, honesty, financial responsibility, personal growth" },
-  s7: { emotional_feel:"Safe, understood, a little challenged in the best way" },
+  s6: { shared_values:"Honesty, loyalty, family, financial responsibility \u2014 and I want to feel safe and understood, a little challenged in the best way." },
   s8: { past_attraction:"There was someone a few years ago \u2014 it was the way he listened, like nothing else was happening in the room." },
   s9: { non_negotiables:"Must want kids eventually. Must not smoke. Must be financially independent." },
   s10:{ match_portrait:"A warm, easy smile. Relaxed posture, hands in pockets. Something a little classic in how he dresses \u2014 navy, well-fitted. Kind eyes, a bit of a beard." },
@@ -503,14 +492,14 @@ function getNaomiReaction(qId){
 // Verification stages
 const VER_STAGES = [
   {
-    id:'identity', title:'Activate Full Profile', subtitle:'Browse & Connect',
-    naomi:"Before I can show your profile to anyone, I need to confirm your identity. This is a one-time step \u2014 it\u2019s what makes every introduction on NAOMI genuinely trustworthy.",
+    id:'identity', title:'Identity verification', subtitle:'',
+    naomi:'',
     icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
     userChecks:[
-      {label:"Government-issued ID", detail:"Passport, national ID, or driving licence \u2014 MRZ scan and document authenticity check."},
+      {label:"Government-issued ID", detail:"Passport, national ID, or driving licence — MRZ scan and document authenticity check."},
       {label:"Biometric face match", detail:"A single selfie matched against your ID photo."},
     ],
-    footer:"Once confirmed, your profile becomes visible to others and you can start browsing matches.", cta:"Start verification",
+    footer:"Once confirmed, your profile becomes visible to others and you can start receiving introductions.", cta:"Start verification",
   },
   {
     id:'address', title:'Unlock Photos & Direct Communication', subtitle:'Address & Safety',
@@ -549,6 +538,39 @@ let naomiSession = {
 function resetNaomiSession(){
   naomiSession = { nameEntered:false, userName:'', sectionMode:false, fieldIdx:0, answers:{} };
 }
+
+
+  // ── Shared bottom nav ────────────────────────────────────────────────────
+  function renderBottomNavBar(activeTab){
+    const tabs = [
+      ['dashboard', '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'Dashboard', false],
+      ['matches',   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>', 'Matches', false],
+      ['naomi',     '<span style="font-family:var(--fontDisplay);font-style:italic;font-size:20px;line-height:1;display:block;">N</span>', 'Naomi', true],
+      ['profile',   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', 'Profile', false],
+    ];
+    const html = tabs.map(([tab, icon, label, disabled]) => {
+      const active = tab === activeTab;
+      const col = active ? 'var(--goldSoft)' : disabled ? 'rgba(255,252,246,.2)' : 'rgba(255,252,246,.35)';
+      const border = active ? 'border-top:2px solid var(--gold);' : '';
+      return `<button data-nav="${tab}" ${disabled?'disabled':''}
+        style="flex:1;padding:10px 0 14px;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:transparent;cursor:${disabled?'default':'pointer'};color:${col};transition:color .15s;${border}">
+        ${icon}
+        <span style="font-family:var(--fontMono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;">${label}</span>
+      </button>`;
+    }).join('');
+    return `<div style="flex-shrink:0;background:var(--navy);border-top:1px solid rgba(255,252,246,.1);display:flex;align-items:stretch;">${html}</div>`;
+  }
+
+  function wireBottomNavBar(){
+    document.querySelectorAll('[data-nav]:not([disabled])').forEach(btn => {
+      btn.onclick = () => {
+        const tab = btn.dataset.nav;
+        if(tab === 'dashboard') go('dashboard');
+        if(tab === 'matches')   go('matches');
+        if(tab === 'profile')   go('dnaprofile');
+      };
+    });
+  }
 
 const RENDERERS = {};
 
@@ -709,7 +731,7 @@ RENDERERS.register = function(){
 
 RENDERERS.phoneinput = function(){
   $body.innerHTML=`
-    <div class="screen justifyBetween">
+    <div class="screen justifyBetween" style="">
       <div>
         <button id="phoneBack" style="padding:6px 13px;border-radius:9px;border:1px solid var(--line);background:var(--cream);color:var(--inkSoft);font-size:12px;cursor:pointer;margin-bottom:20px;">&larr;</button>
         <h1 class="disp" style="font-size:25px;margin-bottom:8px;">What&rsquo;s your<br>phone number?</h1>
@@ -875,10 +897,13 @@ RENDERERS.naomiintro = function(){
     const log = document.getElementById('chatLog');
     if(!log) return;
     const selected = new Set();
+    const custom   = new Set();
+
     const wrap = document.createElement('div');
     wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;padding:2px 0;';
     wrap.id = 'multiChipRow';
 
+    // ── Preset chips ──────────────────────────────────────────────────────
     const chipRow = document.createElement('div');
     chipRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
 
@@ -895,13 +920,13 @@ RENDERERS.naomiintro = function(){
       btn.onmouseenter = ()=>{ if(!selected.has(opt)){ btn.style.borderColor='var(--clay)'; btn.style.background='var(--clayBg)'; } };
       btn.onmouseleave = ()=>{ if(!selected.has(opt)) applyChipStyle(btn, false); };
       btn.onclick = ()=>{
-        // "No preference" clears everything else and is exclusive
         if(opt.toLowerCase().includes('no preference')){
-          selected.clear();
+          selected.clear(); custom.clear();
           selected.add(opt);
           chipRow.querySelectorAll('button').forEach(b=>applyChipStyle(b, b.textContent===opt));
+          renderCustomChips();
         } else {
-          selected.delete([...selected].find(s=>s.toLowerCase().includes('no preference')));
+          selected.delete([...selected].find(s=>s&&s.toLowerCase().includes('no preference')));
           if(selected.has(opt)) selected.delete(opt); else selected.add(opt);
           applyChipStyle(btn, selected.has(opt));
         }
@@ -911,38 +936,115 @@ RENDERERS.naomiintro = function(){
     });
     wrap.appendChild(chipRow);
 
+    // ── Custom chips row (user-typed values shown here) ───────────────────
+    const customChipRow = document.createElement('div');
+    customChipRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:7px;';
+
+    function renderCustomChips(){
+      customChipRow.innerHTML = '';
+      custom.forEach(val=>{
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--clay);background:var(--clayBg);font-size:13.5px;color:var(--ink);';
+        chip.innerHTML = `<span>${val}</span><button style="background:none;border:none;cursor:pointer;color:var(--clay);font-size:15px;line-height:1;padding:0 0 0 2px;">&times;</button>`;
+        chip.querySelector('button').onclick = ()=>{ custom.delete(val); renderCustomChips(); updateContinueState(); };
+        customChipRow.appendChild(chip);
+      });
+      if(custom.size) wrap.insertBefore(customChipRow, actionRow);
+      else if(customChipRow.parentNode) customChipRow.parentNode.removeChild(customChipRow);
+    }
+
+    // ── Continue / Skip row ───────────────────────────────────────────────
     const actionRow = document.createElement('div');
     actionRow.style.cssText = 'display:flex;gap:8px;align-items:center;';
 
     const continueBtn = document.createElement('button');
     continueBtn.textContent = 'Continue \u2192';
-    continueBtn.style.cssText = 'padding:9px 18px;border-radius:20px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13.5px;font-weight:700;cursor:pointer;';
+    continueBtn.style.cssText = 'padding:9px 18px;border-radius:20px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13.5px;font-weight:700;cursor:not-allowed;opacity:.45;transition:all .15s;';
     continueBtn.disabled = true;
     continueBtn.onclick = ()=>{
-      if(selected.size===0) return;
-      const answer = [...selected].join(', ');
+      const all = [...selected, ...custom].filter(Boolean);
+      if(!all.length) return;
+      restoreInputBar();
       wrap.remove();
-      submitAnswer(answer);
+      submitAnswer(all.join(', '));
     };
     actionRow.appendChild(continueBtn);
 
     function updateContinueState(){
-      const has = selected.size > 0;
+      const has = selected.size > 0 || custom.size > 0;
       continueBtn.disabled = !has;
       continueBtn.style.background = has ? 'var(--clay)' : 'var(--paperDeep)';
-      continueBtn.style.color = has ? 'var(--cream)' : 'var(--inkSoft)';
+      continueBtn.style.color      = has ? 'var(--cream)' : 'var(--inkSoft)';
+      continueBtn.style.cursor     = has ? 'pointer' : 'not-allowed';
+      continueBtn.style.opacity    = has ? '1' : '.45';
     }
 
     if(f.optional){
-      const skip=document.createElement('button');
-      skip.textContent='Skip'; skip.style.cssText='padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;';
-      skip.onclick=()=>{ wrap.remove(); submitAnswer(null); };
+      const skip = document.createElement('button');
+      skip.textContent = 'Skip';
+      skip.style.cssText = 'padding:9px 16px;border-radius:20px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;';
+      skip.onclick = ()=>{ restoreInputBar(); wrap.remove(); submitAnswer(null); };
       actionRow.appendChild(skip);
     }
     wrap.appendChild(actionRow);
 
     log.appendChild(wrap);
-    log.scrollTop=log.scrollHeight;
+    log.scrollTop = log.scrollHeight;
+
+    // ── Repurpose the existing chat input bar ─────────────────────────────
+    // Show/create it with "Add to answer" placeholder, Send adds a chip
+    let $ib = document.getElementById('chatInputBar');
+    if(!$ib){
+      $ib = document.createElement('div');
+      $ib.id = 'chatInputBar';
+      $ib.style.cssText = 'padding:10px 12px;border-top:1px solid var(--line);background:var(--cream);flex-shrink:0;';
+      const $screen = document.getElementById('chatLog')?.parentElement;
+      if($screen) $screen.appendChild($ib);
+    }
+
+    $ib.innerHTML = `
+      <div style="border-radius:14px;border:1.5px solid var(--line);background:var(--paperDeep);padding:10px 12px;">
+        <input id="chatAnswer" type="text" placeholder="Or type your own answer\u2026"
+          style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;outline:none;display:block;" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+          <div style="font-size:12px;color:var(--inkSoft);">Type anything not in the list above</div>
+          <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Add +</button>
+        </div>
+      </div>`;
+
+    const $ta   = $ib.querySelector('#chatAnswer');
+    const $send = $ib.querySelector('#chatSend');
+
+    $ta.oninput = ()=>{
+      const has = $ta.value.trim().length > 0;
+      $send.style.background = has ? 'var(--clay)' : 'var(--paperDeep)';
+      $send.style.color      = has ? 'var(--cream)' : 'var(--inkSoft)';
+    };
+    $ta.onkeydown = e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); doAdd(); }
+    };
+    $send.onclick = doAdd;
+
+    function doAdd(){
+      const val = $ta.value.trim();
+      if(!val) return;
+      selected.delete([...selected].find(s=>s&&s.toLowerCase().includes('no preference')));
+      chipRow.querySelectorAll('button').forEach(b=>{ if(b.textContent.toLowerCase().includes('no preference')) applyChipStyle(b,false); });
+      custom.add(val);
+      $ta.value = '';
+      $send.style.background = 'var(--paperDeep)';
+      $send.style.color = 'var(--inkSoft)';
+      renderCustomChips();
+      updateContinueState();
+      $ta.focus();
+    }
+
+    function restoreInputBar(){
+      // Remove the multiselect-mode input bar — askNextField will recreate it
+      // correctly for the next question
+      const $old = document.getElementById('chatInputBar');
+      if($old) $old.remove();
+    }
   }
 
   function showInputBar(f){
@@ -1051,7 +1153,7 @@ RENDERERS.naomiintro = function(){
     const a = naomiSession.answers || {};
     const traits = portraitBaseTraits();
     const traitStr = traits.length ? traits.join(', ') : 'features matching your description';
-    const portraitDetail = a.match_portrait ? ` ${a.match_portrait}` : '';
+    const portraitDetail = a.ideal_partner ? ` ${a.ideal_partner}` : '';
     return `${seed.mood} \u2014 ${traitStr}. ${seed.setting}.${portraitDetail ? ' Based on what you described:' + portraitDetail : ''}`;
   }
 
@@ -1225,7 +1327,7 @@ RENDERERS.naomiintro = function(){
       </button>` : `
       <div style="text-align:center;font-size:12px;color:var(--inkSoft);padding:4px 0;">No more regenerations available.</div>`}
       <button id="portraitContinueBtn" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;">
-        Continue to verification \u2192
+        Upload your profile pictures \u2192
       </button>`;
     log.appendChild(wrap);
     log.scrollTop = log.scrollHeight;
@@ -1242,8 +1344,365 @@ RENDERERS.naomiintro = function(){
       portraitShowProgressAndContinue();
     };
 
-    const $cont = document.getElementById('portraitContinueBtn');
-    if($cont) $cont.onclick = () => go('kycflow');
+    const $cont = wrap.querySelector('#portraitContinueBtn');
+    if($cont) $cont.onclick = () => { wrap.remove(); portraitShowPhotoUpload(); };
+  }
+
+  // -- Inline photo upload in chat -----------------------------------------------
+  function portraitShowPhotoUpload(){
+    inlinePhotos = []; // reset on entry
+    const MAX = 4;
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+
+    appendToLog(naomiBubble("One last thing — add up to 4 photos of yourself. Your photos are only shared after a mutual match."));
+
+    const outer = document.createElement('div');
+    log.appendChild(outer);
+
+    function slotId(){ return 'ppSlot_' + Date.now() + '_' + Math.random().toString(36).slice(2); }
+
+    function render(){
+      const n = inlinePhotos.length;
+      const fid = 'ppFile_' + Date.now();
+
+      outer.innerHTML = `
+        <div style="border:1.5px solid var(--line);border-radius:18px;background:var(--cream);overflow:hidden;">
+
+          <div style="padding:14px 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:13.5px;font-weight:700;color:var(--ink);">Profile photos</div>
+            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);">${n} / ${MAX}</div>
+          </div>
+
+          <div style="padding:14px 16px 10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            ${Array.from({length:MAX}, (_,i) => {
+              const photo = inlinePhotos[i];
+              const isNext = i === n && n < MAX;
+              if(photo) return `
+                <div style="aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;border:2px solid ${i===0?'var(--clay)':'var(--line)'};">
+                  <img src="${photo}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+                  <div style="position:absolute;top:5px;right:5px;display:flex;gap:4px;">
+                    <label for="${fid}" data-replace="${i}"
+                      style="width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                      title="Change photo">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </label>
+                    <button data-del="${i}"
+                      style="width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.6);border:none;cursor:pointer;color:white;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;"
+                      title="Delete photo">&times;</button>
+                  </div>
+                  ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(184,100,90,.88);text-align:center;font-size:9px;font-family:var(--fontMono);color:var(--cream);padding:3px 0;letter-spacing:.07em;">MAIN</div>':''}
+                </div>`;
+              if(isNext) return `
+                <label for="${fid}" data-add="${i}"
+                  style="aspect-ratio:1;border-radius:12px;background:var(--paperDeep);display:flex;flex-direction:column;align-items:center;justify-content:center;
+                         border:1.5px dashed ${i===0?'var(--clay)':'var(--line)'};cursor:pointer;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${i===0?'var(--clay)':'var(--inkSoft)'}" stroke-width="1.5" stroke-linecap="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <div style="font-size:10px;color:${i===0?'var(--clay)':'var(--inkSoft)'};margin-top:6px;">${i===0?'Main photo':'Add photo'}</div>
+                </label>`;
+              return `
+                <div style="aspect-ratio:1;border-radius:12px;background:var(--paperDeep);display:flex;align-items:center;justify-content:center;
+                            border:1.5px dashed var(--line);opacity:.3;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--line)" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>`;
+            }).join('')}
+          </div>
+
+          ${n > 0 ? `
+          <div style="padding:2px 16px 10px;display:flex;gap:6px;align-items:center;">
+            <span style="font-size:11px;color:var(--inkSoft);flex-shrink:0;">Uploaded:</span>
+            ${inlinePhotos.map((p,i)=>`
+              <div style="width:36px;height:36px;border-radius:8px;overflow:hidden;border:2px solid ${i===0?'var(--clay)':'var(--line)'};">
+                <img src="${p}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+              </div>`).join('')}
+          </div>` : ''}
+
+          <!-- real file input — triggered by label[for] -->
+          <input type="file" id="${fid}" accept="image/*"
+            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0;" />
+
+          <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;">
+            ${n > 0 ? `<button data-save="1"
+              style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14px;font-weight:700;cursor:pointer;">
+              Save ${n} photo${n>1?'s':''} &amp; continue
+            </button>` : ''}
+            <button data-skip="1"
+              style="width:100%;padding:12px;border-radius:13px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:13.5px;color:var(--inkSoft);cursor:pointer;">
+              Skip for now →
+            </button>
+          </div>
+        </div>`;
+
+      // wire file input — get the actual input element from the rendered DOM
+      const fi = outer.querySelector('#' + fid);
+      let replaceSlot = -1;
+
+      // wire replace labels — note slot before label opens picker
+      outer.querySelectorAll('label[data-replace]').forEach(lbl => {
+        lbl.addEventListener('click', () => { replaceSlot = +lbl.dataset.replace; });
+      });
+      // wire add labels
+      outer.querySelectorAll('label[data-add]').forEach(lbl => {
+        lbl.addEventListener('click', () => { replaceSlot = -1; });
+      });
+
+      if(fi) fi.addEventListener('change', function handler(){
+        fi.removeEventListener('change', handler);
+        const file = fi.files && fi.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          if(replaceSlot >= 0 && replaceSlot < inlinePhotos.length){
+            inlinePhotos[replaceSlot] = ev.target.result;
+          } else {
+            inlinePhotos.push(ev.target.result);
+          }
+          replaceSlot = -1;
+          render();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // wire delete
+      outer.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault(); e.stopPropagation();
+          inlinePhotos.splice(+btn.dataset.del, 1);
+          render();
+        });
+      });
+
+      // wire save
+      const saveBtn = outer.querySelector('[data-save]');
+      if(saveBtn) saveBtn.addEventListener('click', () => finish(false));
+
+      // wire skip
+      outer.querySelector('[data-skip]').addEventListener('click', () => finish(true));
+
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function finish(skipped){
+      outer.remove();
+      if(!skipped && inlinePhotos.length){
+        const bubble = document.createElement('div');
+        bubble.style.cssText = 'display:flex;justify-content:flex-end;';
+        bubble.innerHTML = `
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+            ${inlinePhotos.map((p,i)=>`
+              <div style="position:relative;width:72px;height:72px;border-radius:12px;overflow:hidden;border:2px solid ${i===0?'var(--clay)':'var(--line)'};">
+                <img src="${p}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+                ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(184,100,90,.88);font-size:8px;font-family:var(--fontMono);color:var(--cream);text-align:center;padding:2px 0;">MAIN</div>':''}
+              </div>`).join('')}
+          </div>`;
+        const logEl = document.getElementById('chatLog');
+        if(logEl){ logEl.appendChild(bubble); logEl.scrollTop = logEl.scrollHeight; }
+        appendToLog(naomiBubble(`${inlinePhotos.length} photo${inlinePhotos.length>1?'s':''} saved. ✔️`));
+      } else {
+        appendToLog(naomiBubble("No problem — you can add photos later from your profile."));
+      }
+      setTimeout(() => showKycConfirmCard(), 700);
+    }
+
+    render();
+    log.scrollTop = log.scrollHeight;
+  }
+
+
+  function showKycConfirmCard(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+
+    appendToLog(naomiBubble("Before I can introduce you to anyone, I need to confirm you’re who you say you are. This keeps everyone on NAOMI safe."));
+
+    // Simple button row directly under the message
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:2px 0 4px;';
+
+    const startBtn = document.createElement('button');
+    startBtn.style.cssText = 'width:100%;padding:14px;border-radius:24px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14.5px;font-weight:700;cursor:pointer;text-align:center;';
+    startBtn.textContent = 'Start verification';
+
+    wrap.appendChild(startBtn);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+
+    startBtn.onclick = function(){
+      wrap.remove();
+      kycStartStep = 0;
+      go('kycflow');
+    };
+  }
+
+
+  // -- Inline KYC Step 1: Face scan, shown in chat with back-to-chat button ------
+  function showKycStep1Inline(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+
+    appendToLog(naomiBubble("Before I can introduce you to anyone, I need to confirm you’re who you say you are. This is a one-time step — it keeps everyone on NAOMI safe."));
+
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1.5px solid rgba(184,100,90,.3);border-radius:18px;background:var(--cream);overflow:hidden;margin-top:4px;';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:14px 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;';
+    hdr.innerHTML = `
+      <button id="kycBackBtn" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--paperDeep);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--inkSoft);">&larr;</button>
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--clayBg);border:1px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;color:var(--clay);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink);">Step 1 of 3 — Face scan</div>
+        <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay);margin-top:2px;">Identity verification</div>
+      </div>`;
+
+    // Body
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;';
+
+    // Why callout
+    const why = document.createElement('div');
+    why.style.cssText = 'background:var(--paperDeep);border-radius:12px;padding:12px 14px;border-left:3px solid var(--clay);';
+    why.innerHTML = `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:5px;">Why we need this</div>
+      <div style="font-size:13px;color:var(--inkSoft);line-height:1.6;">NAOMI only introduces real people to real people. A face scan confirms your identity against your ID — so everyone you meet has passed the same check.</div>`;
+
+    // Check items
+    const checks = [
+      ['Government-issued ID', 'Passport, national ID, or driving licence — we scan the MRZ and verify authenticity.'],
+      ['Biometric face match', 'A single selfie matched against your ID photo. Takes about 30 seconds.'],
+    ];
+    const checkList = document.createElement('div');
+    checkList.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+    checks.forEach(([label, detail]) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;gap:10px;align-items:flex-start;background:var(--paperDeep);border-radius:11px;padding:11px 13px;';
+      item.innerHTML = `<div style="width:6px;height:6px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div>
+        <div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:2px;">${label}</div>
+          <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;">${detail}</div>
+        </div>`;
+      checkList.appendChild(item);
+    });
+
+    // Start verification button
+    const startBtn = document.createElement('button');
+    startBtn.id = 'kycStartBtn';
+    startBtn.style.cssText = 'width:100%;padding:14px;border-radius:12px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:4px;';
+    startBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Start verification`;
+
+    body.appendChild(why);
+    body.appendChild(checkList);
+    body.appendChild(startBtn);
+    card.appendChild(hdr);
+    card.appendChild(body);
+    log.appendChild(card);
+    log.scrollTop = log.scrollHeight;
+
+    // Wire back button
+    hdr.querySelector('#kycBackBtn').onclick = () => {
+      card.remove();
+      appendToLog(naomiBubble("No problem — you can come back to verification anytime. Your photos are saved."));
+    };
+
+    // Wire start — go to kycflow at step 1 (step 0 shown here inline)
+    startBtn.onclick = () => {
+      card.remove();
+      kycStartStep = 1;
+      go('kycflow');
+    };
+  }
+
+
+  // -- Post-verification chat actions (called from vcomplete via go('naomiintro') with flag) --
+  function showPostVerificationActions(){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+
+    appendToLog(naomiBubble("You’re verified. ✔️ Welcome to NAOMI, Naya. What would you like to do first?"));
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+    wrap.innerHTML = `
+      <button id="pvDna" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:18px;border:1.5px solid rgba(201,162,75,.3);background:rgba(201,162,75,.1);cursor:pointer;text-align:left;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(201,162,75,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20s4-6 4-10S7 0 7 0"/><path d="M17 20s-4-6-4-10S17 0 17 0"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="6" y1="14" x2="18" y2="14"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);">Reveal your relationship profile</div>
+          <div style="font-size:12.5px;color:var(--inkSoft);margin-top:2px;">See the Relationship DNA Naomi built from your answers</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="pvDeep" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:18px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);">Answer more questions</div>
+          <div style="font-size:12.5px;color:var(--inkSoft);margin-top:2px;">Help Naomi understand you even better</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`;
+
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+
+    document.getElementById('pvDna').onclick = () => {
+      wrap.remove();
+      showDnaProgressInline();
+    };
+    document.getElementById('pvDeep').onclick = () => {
+      wrap.remove();
+      go('deepquestions');
+    };
+  }
+
+  function showDnaProgressInline(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);gap:32px;padding:40px 32px;text-align:center;">
+        <div style="position:relative;width:100px;height:100px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(201,162,75,.15);animation:dnaRing1 2.4s ease-in-out infinite;"></div>
+          <div style="position:absolute;inset:8px;border-radius:50%;border:1.5px solid rgba(201,162,75,.25);animation:dnaRing2 2.4s ease-in-out infinite .3s;"></div>
+          <div style="position:absolute;inset:16px;border-radius:50%;border:1px solid rgba(201,162,75,.15);animation:dnaRing1 2.4s ease-in-out infinite .6s;"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <span style="font-family:var(--fontDisplay);font-style:italic;font-size:32px;color:var(--goldSoft);">N</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(201,162,75,.5);margin-bottom:10px;">Relationship DNA</div>
+          <div id="dnaLabel" style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);min-height:32px;transition:opacity .4s;">&nbsp;</div>
+        </div>
+        <div style="width:160px;height:2px;border-radius:2px;background:rgba(255,252,246,.08);overflow:hidden;">
+          <div id="dnaBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;transition:width .4s ease;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes dnaRing1{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.06);opacity:1}}
+        @keyframes dnaRing2{0%,100%{transform:scale(1.04);opacity:.4}50%{transform:scale(1);opacity:.8}}
+      </style>`;
+
+    const labels = ['Analysing answers\u2026','Building your profile\u2026','Mapping compatibility\u2026','Almost there\u2026',''];
+    let step = 0;
+    function nextStep(){
+      if(step >= labels.length){ go('dnaprofile'); return; }
+      const pct = Math.round((step / (labels.length-1)) * 100);
+      const $bar = document.getElementById('dnaBar');
+      const $lbl = document.getElementById('dnaLabel');
+      if($bar) $bar.style.width = pct + '%';
+      if($lbl){ $lbl.style.opacity='0'; setTimeout(()=>{ $lbl.textContent=labels[step]||'\u00a0'; $lbl.style.opacity='1'; },200); }
+      step++;
+      setTimeout(nextStep, step===labels.length ? 600 : 700);
+    }
+    setTimeout(nextStep, 400);
   }
 
   function startMatchPortraits(){
@@ -1313,18 +1772,15 @@ RENDERERS.naomiintro = function(){
     };
 
     // -- Rehydrate mid-flow state --------------------------------------------------
-    if(naomiSession.nameEntered){
+    if(naomiPostVerification && naomiSession.nameEntered){
+      naomiPostVerification = false;
+      setTimeout(()=> showPostVerificationActions(), 300);
+    } else if(naomiSession.nameEntered){
       if(naomiSession.sectionMode){
-        // Was mid-questionnaire — rebuild the field queue, re-show progress bar,
-        // and re-ask the current pending question (previous Q&A already in rebuildHistory
-        // is NOT replayed per-field here since we only persisted final answers;
-        // we resume from where they left off).
         buildFieldQueue();
         insertProgressBar();
         askNextField();
       } else {
-        // Was on the action area (Start questionnaire / Schedule for later) —
-        // re-show it with updated scheduledTime.
         appendActionArea();
       }
     }
@@ -1387,212 +1843,461 @@ RENDERERS.kycverification = function(){
 
 // -- DNA PROFILE - Relationship DNA card per project spec (Screen 13) ----------
 RENDERERS.dnaprofile = function(){
-  const saved = loadProgress();
-  const ans   = saved ? (saved.answers || {}) : {};
+  const a = naomiSession.answers || {};
 
-  // -- Persona-aware values: use answer if present, fall back to Naya's data --
-  const goal      = ans.p1_02 || 'Marriage & long-term partnership';
-  const location  = ans.p1_06 || 'West Village, Manhattan';
-  const work      = ans.p1_08 || 'Senior Marketing Director, B2B SaaS';
-  const oneWord   = ans.p1_11 || 'Ready';
-  const selfDesc  = ans.p1_07 || 'Warm but direct. Reliable. A little intense.';
-  const dealbreak = ans.p1_09 || 'Dishonesty. Someone who isn\u2019t curious about the world.';
-  const values    = ans.p1_10 || 'Honesty, growth, loyalty';
-  const kids      = ans.p1_05 || 'No children. Would like one or two.';
-  const week      = ans.p1_04 || 'Early runs, back-to-back meetings, evenings protected.';
-  const lastRel   = ans.p1_03 || '4-year relationship, ended over different futures.';
-  const decides   = ans.p2_1  || 'Research first, then trust my gut.';
-  const stress    = ans.p2_2  || 'Goes quiet first, then needs to talk it out.';
-  const difficult = ans.p2_3  || 'Being too independent. Still learning to ask for help.';
-  const vision    = ans.p1_12 || 'In a serious relationship with someone I genuinely admire.';
+  const d = {
+    age:         a.user_age         || '33',
+    location:    a.user_location    || 'West Village, Manhattan',
+    nationality: a.user_nationality || 'American',
+    gender:      a.user_gender      || 'Woman',
+    marital:     a.user_marital     || 'Single',
+    rel_goal:    a.user_rel_goal    || 'Long-term relationship',
+    ideal:       a.ideal_partner    || 'Warm but self-assured \u2014 the kind of calm confidence that fills a room without trying.',
+    body:        a.pref_body        || 'Tall, Athletic',
+    hair:        a.pref_hair        || 'Brown, Short',
+    style:       a.pref_style       || 'Smart-casual, Classic',
+    features:    a.pref_features    || 'Light stubble',
+    attract:     a.attract_traits   || 'Confident, funny, emotionally mature, kind to people who can\u2019t do anything for him',
+    dealbreak:   a.dealbreakers     || 'Dishonesty, jealousy, poor communication, lack of ambition',
+    ideal_life:  a.ideal_life       || 'Slow Sunday mornings, real trips a couple of times a year, evenings that don\u2019t feel like work.',
+    values:      a.shared_values    || 'Family, honesty, financial responsibility, personal growth',
+    nonneg:      a.non_negotiables  || 'Must want kids. Must not smoke. Must be financially independent.',
+  };
 
-  // Naomi-generated personality overview (based on Naya's full persona)
-  const overview = `Warm, emotionally intelligent, and quietly ambitious. Values deep connection over casual dating. Communicates directly and adjusts tone with care. Protects her emotional energy fiercely because she\u2019s spent it on the wrong people before.`;
+  const photos = inlinePhotos && inlinePhotos.length > 0 ? inlinePhotos : [];
+  const SECTIONS = ['photos','overview','intent','preferences','personality','lifestyle','compatibility'];
+  let privacy = {};
+  SECTIONS.forEach(s => privacy[s] = true);
 
+  function togglePrivacy(id){ privacy[id] = !privacy[id]; renderBody(); }
+
+  function privacyToggle(id){
+    const isPublic = privacy[id];
+    return `<button class="privToggle" data-id="${id}"
+      style="display:flex;align-items:center;gap:5px;background:${isPublic?'rgba(201,162,75,.15)':'rgba(255,252,246,.06)'};border:1px solid ${isPublic?'rgba(201,162,75,.35)':'rgba(255,252,246,.12)'};border-radius:20px;padding:4px 10px;cursor:pointer;">
+      ${isPublic
+        ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span style="font-family:var(--fontMono);font-size:9px;color:var(--goldSoft);letter-spacing:.06em;">PUBLIC</span>`
+        : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.35)" stroke-width="2.5" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg><span style="font-family:var(--fontMono);font-size:9px;color:rgba(255,252,246,.35);letter-spacing:.06em;">PRIVATE</span>`}
+    </button>`;
+  }
+
+  function secHead(label, id){
+    return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);">${label}</div>
+      ${privacyToggle(id)}
+    </div>`;
+  }
+
+  function row(label, value){
+    return `<div>
+      <div style="font-size:11px;color:rgba(255,252,246,.35);margin-bottom:2px;">${label}</div>
+      <div style="font-size:13.5px;color:var(--cream);line-height:1.45;">${value}</div>
+    </div><div style="height:1px;background:rgba(255,252,246,.07);"></div>`;
+  }
+
+  function chip(text){ return `<span style="padding:6px 13px;border-radius:20px;background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.15);font-size:13px;color:var(--cream);">${text}</span>`; }
+
+  function blurOverlay(id){
+    if(privacy[id]) return '';
+    return `<div style="position:absolute;inset:0;border-radius:15px;backdrop-filter:blur(10px);background:rgba(31,58,53,.65);display:flex;align-items:center;justify-content:center;pointer-events:none;">
+      <div style="text-align:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.5)" stroke-width="2" stroke-linecap="round" style="display:block;margin:0 auto 6px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div style="font-family:var(--fontMono);font-size:9px;color:rgba(255,252,246,.4);letter-spacing:.08em;">PRIVATE</div>
+      </div>
+    </div>`;
+  }
+
+  function renderBody(){
+    const $b = document.getElementById('dnaBody');
+    if(!$b) return;
+
+    $b.innerHTML = `
+      <!-- Photos -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Profile photos','photos')}
+        ${photos.length > 0
+          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${photos.map((p,i)=>`<div style="position:relative;width:68px;height:68px;border-radius:10px;overflow:hidden;border:2px solid ${i===0?'var(--gold)':'rgba(255,252,246,.15)'};">
+                <img src="${p}" style="width:100%;height:100%;object-fit:cover;" />
+                ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(201,162,75,.8);font-size:7.5px;font-family:var(--fontMono);color:var(--cream);text-align:center;padding:2px 0;letter-spacing:.06em;">MAIN</div>':''}
+              </div>`).join('')}
+            </div>`
+          : `<div style="font-size:13px;color:rgba(255,252,246,.3);font-style:italic;">No photos added yet.</div>`}
+        ${blurOverlay('photos')}
+      </div>
+
+      <!-- Overview -->
+      <div style="background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.2);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Personality overview','overview')}
+        <div style="font-family:var(--fontDisplay);font-size:14.5px;color:var(--cream);line-height:1.65;font-style:italic;">&ldquo;Warm, emotionally intelligent, and quietly ambitious. Values deep connection over casual dating. Communicates directly and adjusts tone with care.&rdquo;</div>
+        <div style="font-size:11px;color:rgba(255,252,246,.3);margin-top:8px;">Generated by Naomi from your conversation</div>
+        ${blurOverlay('overview')}
+      </div>
+
+      <!-- Intent -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Relationship intent','intent')}
+        <div style="display:flex;flex-direction:column;gap:0;">
+          ${row('Looking for', d.rel_goal)}
+          ${row('Marital status', d.marital)}
+          ${row('Non-negotiables', d.nonneg)}
+          ${row('Ideal life together', d.ideal_life.length > 90 ? d.ideal_life.slice(0,90)+'…' : d.ideal_life)}
+        </div>
+        ${blurOverlay('intent')}
+      </div>
+
+      <!-- Preferences -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Partner preferences','preferences')}
+        <div style="display:flex;flex-direction:column;gap:0;">
+          ${row('Ideal partner', d.ideal.length > 90 ? d.ideal.slice(0,90)+'…' : d.ideal)}
+          ${row('Physical', [d.body,d.hair,d.style,d.features].filter(Boolean).join(' \u00b7 '))}
+          ${row('Drawn to', d.attract)}
+          ${row('Deal-breakers', d.dealbreak)}
+        </div>
+        ${blurOverlay('preferences')}
+      </div>
+
+      <!-- Personality -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Personality & values','personality')}
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">
+          ${['Honesty','Loyalty','Growth','Trust','Family','Connection'].map(v=>chip(v)).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:rgba(255,252,246,.05);border-radius:11px;padding:12px;">
+            <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,252,246,.35);margin-bottom:9px;">Strengths</div>
+            ${['Empathetic','Communicative','Reliable','Self-aware'].map(s=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div><span style="font-size:12.5px;color:var(--cream);">${s}</span></div>`).join('')}
+          </div>
+          <div style="background:rgba(255,252,246,.05);border-radius:11px;padding:12px;">
+            <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,252,246,.35);margin-bottom:9px;">Growth areas</div>
+            ${['Overthinking','Perfectionism','Asking for help'].map(s=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--clay);flex-shrink:0;"></div><span style="font-size:12.5px;color:var(--cream);">${s}</span></div>`).join('')}
+          </div>
+        </div>
+        ${blurOverlay('personality')}
+      </div>
+
+      <!-- Lifestyle -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Lifestyle','lifestyle')}
+        <div style="display:flex;flex-direction:column;gap:0;">
+          ${row('Location', d.location)}
+          ${row('Nationality', d.nationality)}
+          ${row('Values', d.values)}
+        </div>
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:7px;">
+          ${['Running','Cooking','Reading','Travel','Long dinners'].map(h=>chip(h)).join('')}
+        </div>
+        ${blurOverlay('lifestyle')}
+      </div>
+
+      <!-- Compatibility -->
+      <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;position:relative;">
+        ${secHead('Compatibility drivers','compatibility')}
+        ${[['Emotional compatibility',95],['Communication style',88],['Life goals alignment',82],['Family vision',76],['Values alignment',70]].map(([label,pct],i)=>`
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(201,162,75,.2);border:1px solid rgba(201,162,75,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-family:var(--fontMono);font-size:10px;color:var(--goldSoft);font-weight:700;">${i+1}</span>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13.5px;color:var(--cream);">${label}</div>
+              <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.08);margin-top:5px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
+              </div>
+            </div>
+          </div>`).join('')}
+        ${blurOverlay('compatibility')}
+      </div>
+
+      <!-- Completeness -->
+      <div style="background:rgba(184,100,90,.1);border:1px solid rgba(184,100,90,.2);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:12.5px;color:rgba(255,252,246,.65);line-height:1.6;">Profile is <strong style="color:var(--cream);">72% complete</strong>. Answering more questions sharpens your matches.</div>
+      </div>`;
+
+    $b.querySelectorAll('.privToggle').forEach(btn=>{
+      btn.onclick = () => togglePrivacy(btn.dataset.id);
+    });
+  }
+
+  // ── Render shell with bottom nav ─────────────────────────────────────────
   $body.innerHTML = `
     <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);overflow:hidden;">
 
       <!-- Header -->
-      <div style="padding:20px 20px 16px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;display:flex;align-items:center;gap:14px;">
-        <button id="dnaBackBtn" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--cream);font-size:14px;">&larr;</button>
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(201,162,75,.2);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:22px;color:var(--goldSoft);">N</span>
+      <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;display:flex;align-items:center;gap:14px;">
+        <div style="width:46px;height:46px;border-radius:50%;background:rgba(201,162,75,.15);border:1.5px solid rgba(201,162,75,.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:20px;color:var(--goldSoft);">N</span>
         </div>
-        <div>
-          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);line-height:1.1;">Naya Weiss</div>
-          <div style="font-size:12px;color:rgba(255,252,246,.45);margin-top:2px;">33 · ${location}</div>
-          <div style="font-family:var(--fontMono);font-size:9.5px;color:var(--goldSoft);letter-spacing:.12em;text-transform:uppercase;margin-top:4px;">Relationship DNA</div>
+        <div style="flex:1;">
+          <div style="font-family:var(--fontDisplay);font-size:19px;color:var(--cream);line-height:1.1;">${naomiSession.userName || 'Naya Weiss'}</div>
+          <div style="font-size:12px;color:rgba(255,252,246,.4);margin-top:1px;">${d.age} \u00b7 ${d.location}</div>
+          <div style="font-family:var(--fontMono);font-size:9px;color:var(--goldSoft);letter-spacing:.12em;text-transform:uppercase;margin-top:3px;">Relationship DNA</div>
         </div>
-        <div style="margin-left:auto;text-align:right;">
-          <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.3);letter-spacing:.06em;">Profile</div>
-          <div style="font-family:var(--fontMono);font-size:13px;color:var(--goldSoft);font-weight:700;">72%</div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:var(--fontMono);font-size:9.5px;color:rgba(255,252,246,.3);letter-spacing:.06em;">Complete</div>
+          <div style="font-family:var(--fontMono);font-size:15px;color:var(--goldSoft);font-weight:700;">72%</div>
         </div>
       </div>
 
       <!-- Scrollable body -->
-      <div style="flex:1;overflow-y:auto;padding:16px 18px 24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="flex:1;overflow-y:auto;padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px;" id="dnaBody"></div>
 
-        <!-- Personality Overview -->
-        <div style="background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.25);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--goldSoft);margin-bottom:8px;">Personality overview</div>
-          <div style="font-family:var(--fontDisplay);font-size:14.5px;color:var(--cream);line-height:1.65;font-style:italic;">&ldquo;${overview}&rdquo;</div>
-          <div style="font-size:11px;color:rgba(255,252,246,.3);margin-top:8px;">Generated by Naomi based on your conversation</div>
-        </div>
-
-        <!-- Relationship Intent -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Relationship intent</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${[
-              { label:'Looking for', value: goal },
-              { label:'Family goals', value: kids },
-              { label:'One year from now', value: vision },
-            ].map(r=>`<div>
-              <div style="font-size:11px;color:rgba(255,252,246,.35);margin-bottom:2px;">${r.label}</div>
-              <div style="font-size:13.5px;color:var(--cream);line-height:1.45;">${r.value}</div>
-            </div>`).join(`<div style="height:1px;background:rgba(255,252,246,.07);"></div>`)}
-          </div>
-        </div>
-
-        <!-- Core Values -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Core values</div>
-          <div style="display:flex;flex-wrap:wrap;gap:7px;">
-            ${['Honesty','Loyalty','Growth','Trust','Family','Connection'].map(v=>`<span style="padding:6px 13px;border-radius:20px;background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.15);font-size:13px;color:var(--cream);">${v}</span>`).join('')}
-          </div>
-        </div>
-
-        <!-- Strengths & Growth Areas -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:14px;padding:14px;">
-            <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:10px;">Strengths</div>
-            ${['Empathetic','Communicative','Reliable','Self-aware'].map(s=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div><span style="font-size:12.5px;color:var(--cream);">${s}</span></div>`).join('')}
-          </div>
-          <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:14px;padding:14px;">
-            <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:10px;">Growth areas</div>
-            ${['Overthinking','Perfectionism','Asks for help'].map(s=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--clay);flex-shrink:0;"></div><span style="font-size:12.5px;color:var(--cream);">${s}</span></div>`).join('')}
-          </div>
-        </div>
-
-        <!-- Lifestyle -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Lifestyle</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${[
-              { label:'Work & identity', value: work },
-              { label:'Typical week',   value: week },
-              { label:'Self-description', value: selfDesc },
-            ].map(r=>`<div>
-              <div style="font-size:11px;color:rgba(255,252,246,.35);margin-bottom:2px;">${r.label}</div>
-              <div style="font-size:13.5px;color:var(--cream);line-height:1.45;">${r.value}</div>
-            </div>`).join(`<div style="height:1px;background:rgba(255,252,246,.07);"></div>`)}
-          </div>
-        </div>
-
-        <!-- Hobbies & Interests -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:10px;">Hobbies &amp; interests</div>
-          <div style="display:flex;flex-wrap:wrap;gap:7px;">
-            ${['Running','Cooking','Reading','Travel','Dinners with friends'].map(h=>`<span style="padding:6px 13px;border-radius:20px;background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.15);font-size:13px;color:var(--cream);">${h}</span>`).join('')}
-          </div>
-        </div>
-
-        <!-- Partner Preferences -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Partner preferences</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${[
-              { label:'Non-negotiables', value: dealbreak },
-              { label:'Values in a partner', value: values },
-              { label:'Relationship history', value: lastRel },
-            ].map(r=>`<div>
-              <div style="font-size:11px;color:rgba(255,252,246,.35);margin-bottom:2px;">${r.label}</div>
-              <div style="font-size:13.5px;color:var(--cream);line-height:1.45;">${r.value}</div>
-            </div>`).join(`<div style="height:1px;background:rgba(255,252,246,.07);"></div>`)}
-          </div>
-        </div>
-
-        <!-- Compatibility Drivers -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Compatibility drivers</div>
-          <div style="font-size:11px;color:rgba(255,252,246,.3);margin-bottom:12px;">Top factors Naomi will optimise for your matches</div>
-          ${[
-            'Emotional compatibility',
-            'Communication style',
-            'Life goals alignment',
-            'Family vision',
-            'Values alignment',
-          ].map((d,i)=>`
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-              <div style="width:22px;height:22px;border-radius:50%;background:rgba(201,162,75,.2);border:1px solid rgba(201,162,75,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span style="font-family:var(--fontMono);font-size:10px;color:var(--goldSoft);font-weight:700;">${i+1}</span>
-              </div>
-              <div style="flex:1;">
-                <div style="font-size:13.5px;color:var(--cream);">${d}</div>
-                <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.08);margin-top:5px;overflow:hidden;">
-                  <div style="height:100%;width:${[95,88,82,76,70][i]}%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
-                </div>
-              </div>
-            </div>`).join('')}
-        </div>
-
-        <!-- Emotional patterns (from KYC) -->
-        <div style="background:rgba(255,252,246,.06);border:1px solid rgba(255,252,246,.1);border-radius:16px;padding:16px 18px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:12px;">Emotional patterns</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${[
-              { label:'Decision-making',       value: decides },
-              { label:'Under stress',           value: stress },
-              { label:'Hard in relationships',  value: difficult },
-            ].map(r=>`<div>
-              <div style="font-size:11px;color:rgba(255,252,246,.35);margin-bottom:2px;">${r.label}</div>
-              <div style="font-size:13.5px;color:var(--cream);line-height:1.45;">${r.value}</div>
-            </div>`).join(`<div style="height:1px;background:rgba(255,252,246,.07);"></div>`)}
-          </div>
-        </div>
-
-        <!-- Profile completeness note -->
-        <div style="background:rgba(184,100,90,.12);border:1px solid rgba(184,100,90,.25);border-radius:14px;padding:14px 16px;">
-          <div style="font-size:12.5px;color:rgba(255,252,246,.65);line-height:1.6;">
-            Your profile is <strong style="color:var(--cream);">72% complete</strong>. Completing deeper questions will improve the precision of your matches.
-          </div>
-        </div>
-
+      <!-- Action row -->
+      <div style="padding:10px 18px 8px;border-top:1px solid rgba(255,252,246,.08);flex-shrink:0;display:flex;gap:10px;">
+        <button id="dnaStartMatch" style="flex:1;padding:13px;border-radius:13px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14px;font-weight:700;cursor:pointer;">Start matchmaking</button>
+        <button id="dnaMoreQ" style="flex:1;padding:13px;border-radius:13px;border:1.5px solid rgba(255,252,246,.2);background:transparent;font-family:var(--fontBody);font-size:14px;color:rgba(255,252,246,.6);cursor:pointer;">More questions</button>
       </div>
 
-      <!-- CTA -->
-      <div style="padding:14px 18px 20px;border-top:1px solid rgba(255,252,246,.1);flex-shrink:0;display:flex;flex-direction:column;gap:10px;">
-        <button class="btn gold" id="dnaBack">Start matchmaking</button>
-        <button id="dnaComplete" style="width:100%;padding:14px;border-radius:14px;border:1.5px solid rgba(255,252,246,.2);background:transparent;font-family:var(--fontBody);font-size:15px;font-weight:500;color:rgba(255,252,246,.6);cursor:pointer;">Complete my profile</button>
-      </div>
+      ${renderBottomNavBar('profile')}
     </div>`;
 
-  document.getElementById('dnaBackBtn').onclick = () => go('vcomplete');
-  document.getElementById('dnaBack').onclick = () => go('matchmaking');
-  document.getElementById('dnaComplete').onclick = () => go('deepquestions');
+  renderBody();
+
+  document.getElementById('dnaStartMatch').onclick = () => go('matchmaking');
+  document.getElementById('dnaMoreQ').onclick      = () => go('deepquestions');
+
+  wireBottomNavBar();
 };
 
-// -- DEEP QUESTIONS - 6 more in same chat style --------------------------------
+
+RENDERERS.dashboard = function(){
+  $body.innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);overflow:hidden;">
+
+      <!-- Header -->
+      <div style="padding:22px 22px 14px;flex-shrink:0;">
+        <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:6px;">Welcome back</div>
+        <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);line-height:1.2;">${naomiSession.userName || 'Naya'}</div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div style="flex:1;overflow-y:auto;padding:0 18px 20px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Mission card -->
+        <div style="background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.2);border-radius:18px;padding:20px;">
+          <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldSoft);margin-bottom:12px;">Us Against the World</div>
+          <div style="font-family:var(--fontDisplay);font-style:italic;font-size:15.5px;color:var(--cream);line-height:1.65;margin-bottom:14px;">"We are not here to keep people swiping. We are here to help them choose better."</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">Our model is to teach people how to succeed in relationship in order for them to never come back to our app. We believe the goal is not more matches. The goal is fewer, deeper, more meaningful connections.</div>
+            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">We believe people should understand themselves before choosing someone else. Our model is to teach people how to succeed in relationships in order for them to never come back to our app.</div>
+            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">We are not here to keep people swiping. We are here to help them choose better.</div>
+          </div>
+        </div>
+
+        <!-- Feature cards -->
+        ${[
+          {
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            title: 'Your Relationship DNA',
+            desc: 'A deep profile built from your answers. The more you share, the better your matches.',
+            action: 'View profile',
+            route: 'dnaprofile',
+            disabled: false,
+          },
+          {
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            title: 'Matches',
+            desc: 'Naomi will introduce you to people who genuinely fit. Curated introductions, not a feed.',
+            action: 'Go to Matches',
+            route: 'matches',
+            disabled: false,
+          },
+          {
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.35)" stroke-width="1.6" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+            title: 'Talk to Naomi',
+            desc: 'Your personal matchmaker. Ask anything, refine your preferences, or just check in.',
+            action: 'Coming soon',
+            route: null,
+            disabled: true,
+          },
+          {
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><polyline points="17 8 12 3 7 8"/></svg>',
+            title: 'Answer more questions',
+            desc: 'Every answer sharpens your matches. 49 questions to help Naomi understand you.',
+            action: 'Continue',
+            route: 'deepquestions',
+            disabled: false,
+          },
+        ].map(f => `
+          <div style="background:rgba(255,252,246,.${f.disabled?'03':'07'});border:1px solid rgba(255,252,246,.${f.disabled?'06':'12'});border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;opacity:${f.disabled?'.5':'1'};">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,252,246,.07);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${f.icon}</div>
+            <div style="flex:1;">
+              <div style="font-size:14.5px;font-weight:700;color:var(--cream);margin-bottom:4px;">${f.title}</div>
+              <div style="font-size:12.5px;color:rgba(255,252,246,.45);line-height:1.55;margin-bottom:10px;">${f.desc}</div>
+              <button ${f.disabled?'disabled':''} data-route="${f.route||''}"
+                style="padding:7px 16px;border-radius:20px;border:1px solid ${f.disabled?'rgba(255,252,246,.12)':'rgba(255,252,246,.3)'};background:transparent;font-family:var(--fontBody);font-size:12.5px;color:${f.disabled?'rgba(255,252,246,.25)':'rgba(255,252,246,.7)'};cursor:${f.disabled?'default':'pointer'};">
+                ${f.action}
+              </button>
+            </div>
+          </div>`).join('')}
+
+      </div>
+
+      ${renderBottomNavBar('dashboard')}
+    </div>`;
+
+  $body.querySelectorAll('[data-route]:not([disabled])').forEach(btn => {
+    if(btn.dataset.route) btn.onclick = () => go(btn.dataset.route);
+  });
+  wireBottomNavBar();
+};
+
+
+RENDERERS.matches = function(){
+  $body.innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);overflow:hidden;">
+
+      <!-- Header -->
+      <div style="padding:22px 22px 14px;flex-shrink:0;border-bottom:1px solid rgba(255,252,246,.08);">
+        <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:4px;">Matches</div>
+        <div style="font-size:12.5px;color:rgba(255,252,246,.4);line-height:1.5;">Naomi will introduce you to people who genuinely fit.</div>
+      </div>
+
+      <!-- Empty state -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;gap:24px;">
+
+        <!-- Icon -->
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(201,162,75,.1);border:1.5px solid rgba(201,162,75,.2);display:flex;align-items:center;justify-content:center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.4" stroke-linecap="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </div>
+
+        <div>
+          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);margin-bottom:8px;">No matches yet</div>
+          <div style="font-size:13.5px;color:rgba(255,252,246,.45);line-height:1.7;max-width:260px;">Complete your profile and start matchmaking so Naomi can find the right person for you.</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;">
+          <button id="matchStartBtn" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Start matchmaking
+          </button>
+          <button id="matchProfileBtn" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid rgba(255,252,246,.2);background:transparent;color:rgba(255,252,246,.65);font-family:var(--fontBody);font-size:14px;cursor:pointer;">
+            Complete my profile first
+          </button>
+        </div>
+
+        <div style="font-size:11.5px;color:rgba(255,252,246,.25);line-height:1.6;max-width:240px;">
+          "The goal is not more matches. The goal is fewer, deeper, more meaningful connections."
+        </div>
+      </div>
+
+      ${renderBottomNavBar('matches')}
+    </div>`;
+
+  document.getElementById('matchStartBtn').onclick  = () => go('matchmaking');
+  document.getElementById('matchProfileBtn').onclick = () => go('dnaprofile');
+  wireBottomNavBar();
+};
+
+
 RENDERERS.deepquestions = function(){
   const saved = loadProgress();
   let answers = saved ? (saved.answers || {}) : {};
   let recording = false;
   let transcriptTimer = null;
   const DEEP_QS = [
-    { id:'p2_4', q:'What do you value most in a friendship?',              hint:'Think of your closest friend. What makes them irreplaceable?' },
-    { id:'p2_5', q:'What are you obsessed with right now?',               hint:'The thing you can\u2019t stop thinking or talking about.' },
-    { id:'p2_6', q:'What do you irrationally hate?',                      hint:'Something small that bothers you more than it should.' },
-    { id:'p3_1', q:'What qualities matter most to you in a partner?',     hint:'Not a checklist \u2014 the things that genuinely move you.' },
-    { id:'p3_2', q:'What is absolutely unacceptable in a relationship?',  hint:'The things you know, not just the things you think.' },
-    { id:'p3_4', q:'What does a healthy relationship look like, day to day?', hint:'The ordinary Tuesday, not just the big moments.' },
+    { id:'q01', q:"If you're sitting next to someone on an airplane and they fall asleep but you have to pee do you wake them up or try to shimmy around them?", hint:"There is no right answer. Just an honest one." },
+    { id:'q02', q:"What has genuinely surprised you?", hint:"Something that shifted how you see things." },
+    { id:'q03', q:"What's your favorite film?", hint:"The one you'd watch on a rainy Sunday without thinking twice." },
+    { id:'q04', q:"Tell me about an adventure you went on recently.", hint:"Big or small. What made it feel like one?" },
+    { id:'q05', q:"One word to describe yourself.", hint:"The first one that comes is usually the truest." },
+    { id:'q06', q:"What have you made recently?", hint:"Cooked, built, written, created — anything counts." },
+    { id:'q07', q:"What music gives you goosebumps?", hint:"The song, or the moment it comes on." },
+    { id:'q08', q:"What are you obsessed about?", hint:"The thing you can't stop thinking or reading about." },
+    { id:'q09', q:"What do you irrationally hate?", hint:"Something small that bothers you more than it should." },
+    { id:'q10', q:"Before making a phone call, do you ever rehearse what you're going to say? Why?", hint:"Be honest. Most people do." },
+    { id:'q11', q:"What would constitute a perfect day for you?", hint:"From the moment you wake up. Every detail." },
+    { id:'q12', q:"When did you last sing to yourself?", hint:"And what was the song?" },
+    { id:'q13', q:"If you could change anything about the way you were raised, what would it be?", hint:"Take your time with this one." },
+    { id:'q14', q:"If you could wake up tomorrow having gained one quality or ability, what would it be?", hint:"Not a superpower. Something real." },
+    { id:'q15', q:"If a crystal ball could tell you the truth about yourself, your life, the future or anything else, what would you want to know?", hint:"The answer reveals what you're most uncertain about." },
+    { id:'q16', q:"Is there something that you've dreamt of doing for a long time? Why haven't you done it?", hint:"This one is worth sitting with." },
+    { id:'q17', q:"What do you value most in a friendship?", hint:"Think of your closest friend. What makes them irreplaceable?" },
+    { id:'q18', q:"What is your most treasured memory?", hint:"The one you return to when you need it most." },
+    { id:'q19', q:"When did you last cry in front of another person?", hint:"You don't have to share why — just when." },
+    { id:'q20', q:"Which historical time period would you most like to visit?", hint:"And what would you do there?" },
+    { id:'q21', q:"Who do you think is the most inspirational person alive today?", hint:"And what did they do to earn that from you?" },
+    { id:'q22', q:"What would you love to find at a yard sale?", hint:"This tells me something about how you see value." },
+    { id:'q23', q:"What's on your bucket list that nobody would ever guess?", hint:"The one you haven't told many people." },
+    { id:'q24', q:"Would you rather meet your great-grandparents or your great great grandchild?", hint:"Neither is wrong. Both say something." },
+    { id:'q25', q:"What do you think is the ideal age?", hint:"To be, to have been, or to reach — your call." },
+    { id:'q26', q:"In which activity would you like a lesson from an expert?", hint:"The thing you wish you'd started earlier." },
+    { id:'q27', q:"Which of your personality traits would you like to change?", hint:"Be specific. Vague answers don't help you." },
+    { id:'q28', q:"If you could have front-row seats at any concert, who would you like to see?", hint:"Past, present, or future — anyone." },
+    { id:'q29', q:"What fashion trend you followed was cool then, but now looks ridiculous!", hint:"No judgement. We've all been there." },
+    { id:'q30', q:"Would you rather vacation in a big city or the countryside?", hint:"And what does that say about you?" },
+    { id:'q31', q:"What's your dream job?", hint:"Not the practical answer. The real one." },
+    { id:'q32', q:"Favorite dessert?", hint:"The one you'd never skip." },
+    { id:'q33', q:"What do you wish you were better at saying “no” to?", hint:"This one says a lot." },
+    { id:'q34', q:"What would you most like to do for someone else if you had the money and time?", hint:"The thing you'd love to give." },
+    { id:'q35', q:"What would you do if you had no fear?", hint:"The thing that's been waiting." },
+    { id:'q36', q:"What was your favorite game to play as a child?", hint:"And do you still have that instinct in you?" },
+    { id:'q37', q:"Where would you choose to live if you had to leave the country?", hint:"The place that keeps calling." },
+    { id:'q38', q:"What makes a house a home?", hint:"For you, specifically." },
+    { id:'q39', q:"What was your favorite childhood meal?", hint:"The one someone made for you." },
+    { id:'q40', q:"Have you ever had an experience that led you to believe in angels or ghosts?", hint:"Sceptics welcome." },
+    { id:'q41', q:"If you lived to be 100, would you rather have a sharp mind or a fit body?", hint:"You can only pick one." },
+    { id:'q42', q:"If you could be brilliant at one subject, which would you choose?", hint:"The one you always wished came naturally." },
+    { id:'q43', q:"Do you have any superstitions?", hint:"Things you do “just in case.”" },
+    { id:'q44', q:"What's the hardest thing you've ever done?", hint:"You don't have to explain why. Just what it was." },
+    { id:'q45', q:"What obligation do you believe you have to your county?", hint:"Your honest answer, not the expected one." },
+    { id:'q46', q:"How do you define success?", hint:"Your definition. Not anyone else's." },
+    { id:'q47', q:"What would you miss most about your home if you moved?", hint:"The small thing, not the obvious one." },
+    { id:'q48', q:"What's one goal you hope to accomplish this year?", hint:"Not a resolution. A real intention." },
+    { id:'q49', q:"What's your proudest accomplishment?", hint:"The one that still means something." },
   ];
   const DEEP_SIMS = {
-    p2_4:"Loyalty and honesty. Someone who shows up without being asked.",
-    p2_5:"Urban design and walkable cities. I can\u2019t stop reading about it.",
-    p2_6:"Slow walkers in narrow hallways. Unreasonably so.",
-    p3_1:"Emotional honesty, curiosity, and someone who actually shows up.",
-    p3_2:"Dishonesty. And indifference to other people\u2019s experience.",
-    p3_4:"Two people who are happy to be home together. Not performing. Just existing well.",
+    q01:"I'd shimmy. Waking someone is too much.",
+    q02:"That I actually like being alone. I spent years thinking I didn't.",
+    q03:"Eternal Sunshine of the Spotless Mind. Every time.",
+    q04:"Took a train to nowhere last autumn. Ended up in a town I'd never heard of.",
+    q05:"Ready.",
+    q06:"A really good dinner. Slow-cooked lamb, proper table, people I love.",
+    q07:"Phoebe Bridgers live. Garden Song. I cried the first time.",
+    q08:"Urban design. Why some places feel alive and others don't.",
+    q09:"Slow walkers in narrow hallways. Unreasonably so.",
+    q10:"Yes. Always. Even for simple ones. I like to know what I'm going to say.",
+    q11:"A slow morning. Good coffee. A run. Then nowhere to be.",
+    q12:"This morning. Something on a playlist I'd forgotten about.",
+    q13:"I would have been pushed to talk about hard things earlier. We were a family that went quiet.",
+    q14:"The ability to be fully present. I'm working on it.",
+    q15:"Whether the choices I'm making now will feel worth it in ten years.",
+    q16:"Writing. I keep starting and stopping. Fear of it being bad.",
+    q17:"Loyalty. Showing up without being asked.",
+    q18:"A road trip with my dad when I was twelve. We didn't talk much. It was perfect.",
+    q19:"A few months ago, watching something completely unrelated. It just hit.",
+    q20:"1920s Paris. I'd go for the writers.",
+    q21:"Malala. What she did at seventeen still stops me.",
+    q22:"A first-edition book I'd actually read. Or an old camera that still works.",
+    q23:"Walk the Camino de Santiago. Alone.",
+    q24:"Great-grandchild. I'd want to see what the world becomes.",
+    q25:"Early thirties. You finally start trusting yourself.",
+    q26:"Pottery. I've always wanted someone to just show me.",
+    q27:"The need to have everything planned. It gets in the way.",
+    q28:"Phoebe Bridgers. Front row. Obviously.",
+    q29:"Low-rise jeans. The early 2000s were a dark time.",
+    q30:"Countryside, if I'm honest. But I'd miss the city within a week.",
+    q31:"Novelist. I've been writing the same book in my head for years.",
+    q32:"Something with salted caramel. Always.",
+    q33:"Extra work. Saying yes when I mean no.",
+    q34:"Pay off my parents' mortgage. Without a big announcement.",
+    q35:"I'd have quit two years earlier and started the thing I keep putting off.",
+    q36:"Cluedo. I'd still win.",
+    q37:"Lisbon. Every time I leave I want to go back.",
+    q38:"Someone cooking. The smell of food being made for you.",
+    q39:"My grandmother's apple cake. I've never been able to replicate it.",
+    q40:"Once, in a house on a work trip. I've never fully explained it.",
+    q41:"Sharp mind. Absolutely.",
+    q42:"Mathematics. It's a language I've always wanted to speak.",
+    q43:"I always knock on wood. I know it's irrational.",
+    q44:"Walking away from something I'd worked on for three years. Best decision I ever made.",
+    q45:"To vote, to pay tax honestly, and to be kind in public.",
+    q46:"A life I'd choose again if I had to.",
+    q47:"The light in my kitchen in the morning. I didn't notice it until I thought about leaving.",
+    q48:"Finish the thing I keep starting. Just once, all the way.",
+    q49:"Rebuilding something I thought was broken. Took years. Worth every bit.",
   };
   let qi = 0;
   function stopRec(){ recording=false; if(transcriptTimer){clearInterval(transcriptTimer);transcriptTimer=null;} }
@@ -1956,19 +2661,259 @@ RENDERERS.matchreveal = function(){
 // ask why, then offer to regenerate (with "how should Naomi change it") up to
 // 3 times. After everything is resolved, continue to verification.
 RENDERERS.kycflow = function(){
-  let step = 0; // 0, 1, 2
+  let step = kycStartStep; kycStartStep = 0;
+  let faceScanDone = false;
+  let idScanDone   = false;
   const STAGES = VER_STAGES && VER_STAGES.length ? VER_STAGES : [];
 
+  // ── Sub-step A: Face scan ─────────────────────────────────────────────────
+  function showFaceScan(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
+        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+          <button id="fsBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
+          <div style="flex:1;">
+            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">Face scan</div>
+            <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+              <div style="height:100%;width:25%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 28px;gap:24px;">
+          <div style="position:relative;width:180px;height:180px;">
+            <div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(201,162,75,.25);animation:pulseRing 2s ease-out infinite;"></div>
+            <div style="position:absolute;inset:6px;border-radius:50%;border:2px solid rgba(201,162,75,.4);"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(255,252,246,.06);display:flex;align-items:center;justify-content:center;">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div style="position:absolute;top:10px;left:10px;width:20px;height:20px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:2px 0 0 0;"></div>
+            <div style="position:absolute;top:10px;right:10px;width:20px;height:20px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 2px 0 0;"></div>
+            <div style="position:absolute;bottom:10px;left:10px;width:20px;height:20px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:0 0 0 2px;"></div>
+            <div style="position:absolute;bottom:10px;right:10px;width:20px;height:20px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 0 2px 0;"></div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:8px;">Look straight ahead</div>
+            <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Hold your device at eye level in good lighting. Naomi will match this selfie against your ID.</div>
+          </div>
+          <button id="fsScan" style="padding:16px 40px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            Take selfie
+          </button>
+          <div style="font-size:12px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;max-width:240px;">Your selfie is used only for verification and never stored or shared.</div>
+        </div>
+      </div>
+      <style>@keyframes pulseRing{0%{transform:scale(.9);opacity:.6}70%{transform:scale(1.05);opacity:0}100%{transform:scale(1.05);opacity:0}}</style>`;
+
+    document.getElementById('fsBack').onclick = () => paint();
+    document.getElementById('fsScan').onclick = () => {
+      const $fc = $body.querySelector('[style*="flex-direction:column;align-items:center;justify-content:center"]');
+      if(!$fc) return;
+      $fc.innerHTML = `
+        <div style="position:relative;width:180px;height:180px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:3px solid var(--clay);animation:pulseRing 1s ease-out infinite;"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(184,100,90,.12);display:flex;align-items:center;justify-content:center;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);margin-bottom:6px;">Scanning\u2026</div>
+          <div style="font-size:13px;color:rgba(255,252,246,.45);">Matching against your ID</div>
+        </div>
+        <div style="width:220px;height:6px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
+          <div id="fsProg" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
+        </div>`;
+      let pct = 0;
+      const t = setInterval(() => {
+        pct += 6 + Math.random()*10;
+        const b = document.getElementById('fsProg');
+        if(b) b.style.width = Math.min(pct,100) + '%';
+        if(pct >= 100){
+          clearInterval(t);
+          setTimeout(() => showFaceScanSuccess(), 350);
+        }
+      }, 180);
+    };
+  }
+
+  function showFaceScanSuccess(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:24px;text-align:center;">
+        <div style="width:90px;height:90px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:8px;">Face matched \u2714</div>
+          <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;">Now let\u2019s scan your ID document.</div>
+        </div>
+        <div style="width:60px;height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+          <div id="fsSuccProg" style="height:100%;width:0%;background:var(--ok);transition:width 1.2s linear;border-radius:2px;"></div>
+        </div>
+      </div>`;
+    setTimeout(() => { const b = document.getElementById('fsSuccProg'); if(b) b.style.width='100%'; }, 50);
+    setTimeout(() => { faceScanDone = true; showIdScan(); }, 1600);
+  }
+
+  // ── Sub-step B: ID document scan ──────────────────────────────────────────
+  function showIdScan(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
+        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+          <button id="idBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
+          <div style="flex:1;">
+            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">ID document scan</div>
+            <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+              <div style="height:100%;width:50%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px 22px;display:flex;flex-direction:column;gap:20px;">
+
+          <!-- Naomi message -->
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,252,246,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
+            </div>
+            <div style="background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.15);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--cream);">
+              Great \u2014 face matched. Now I need to verify your ID document. You can use a passport, national ID, or driving licence.
+            </div>
+          </div>
+
+          <!-- Document type selector -->
+          <div style="display:flex;flex-direction:column;gap:8px;" id="idTypeList">
+            ${[
+              ['passport',   'Passport',          'M7 14H17M7 10H17M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
+              ['national',   'National ID card',  'M2 5h20v14H2zM2 10h20'],
+              ['driving',    'Driving licence',   'M3 17l2-7h14l2 7M5 17h14M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
+            ].map(([id, label, path]) => `
+              <button class="idType" data-t="${id}"
+                style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(255,252,246,.15);background:rgba(255,252,246,.06);cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="${path}"/></svg>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:var(--cream);">${label}</div>
+                <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.4)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>`).join('')}
+          </div>
+
+          <div style="font-size:12px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">
+            Your document data is encrypted, verified once, and never retained beyond this session.
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('idBack').onclick = () => { faceScanDone = false; showFaceScan(); };
+
+    document.querySelectorAll('.idType').forEach(btn => {
+      btn.onclick = () => {
+        // Highlight selected
+        document.querySelectorAll('.idType').forEach(b => {
+          b.style.borderColor = 'rgba(255,252,246,.15)';
+          b.style.background  = 'rgba(255,252,246,.06)';
+        });
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.background  = 'rgba(201,162,75,.15)';
+        setTimeout(() => showIdScanCamera(), 400);
+      };
+    });
+  }
+
+  function showIdScanCamera(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
+        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+          <button id="idCamBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
+          <div style="flex:1;">
+            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">Scan your document</div>
+            <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+              <div style="height:100%;width:50%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 22px;gap:22px;" id="idCamContent">
+          <!-- Document viewfinder -->
+          <div style="position:relative;width:100%;max-width:300px;aspect-ratio:1.586;background:rgba(255,252,246,.04);border-radius:12px;border:2px solid rgba(255,252,246,.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.3)" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <!-- Corner brackets -->
+            <div style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-top:2.5px solid var(--gold);border-left:2.5px solid var(--gold);border-radius:2px 0 0 0;"></div>
+            <div style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-top:2.5px solid var(--gold);border-right:2.5px solid var(--gold);border-radius:0 2px 0 0;"></div>
+            <div style="position:absolute;bottom:8px;left:8px;width:22px;height:22px;border-bottom:2.5px solid var(--gold);border-left:2.5px solid var(--gold);border-radius:0 0 0 2px;"></div>
+            <div style="position:absolute;bottom:8px;right:8px;width:22px;height:22px;border-bottom:2.5px solid var(--gold);border-right:2.5px solid var(--gold);border-radius:0 0 2px 0;"></div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);margin-bottom:6px;">Place your document</div>
+            <div style="font-size:13.5px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Lay it flat in good light. Make sure all four corners are visible.</div>
+          </div>
+          <button id="idCapture" style="padding:15px 36px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Scan document
+          </button>
+        </div>
+      </div>`;
+
+    document.getElementById('idCamBack').onclick = () => showIdScan();
+    document.getElementById('idCapture').onclick = () => {
+      const $c = document.getElementById('idCamContent');
+      if(!$c) return;
+      $c.innerHTML = `
+        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.2" stroke-linecap="round" style="animation:pulseRing 1.2s ease-out infinite;">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);">Reading document\u2026</div>
+          <div style="font-size:13px;color:rgba(255,252,246,.4);">Extracting MRZ data and verifying authenticity</div>
+          <div style="width:220px;height:6px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
+            <div id="idProg" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
+          </div>
+        </div>`;
+      let pct = 0;
+      const t = setInterval(() => {
+        pct += 5 + Math.random()*8;
+        const b = document.getElementById('idProg');
+        if(b) b.style.width = Math.min(pct,100) + '%';
+        if(pct >= 100){ clearInterval(t); setTimeout(() => showIdScanSuccess(), 350); }
+      }, 200);
+    };
+  }
+
+  function showIdScanSuccess(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:24px;text-align:center;">
+        <div style="width:90px;height:90px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:8px;">Document verified \u2714</div>
+          <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;">Identity confirmed. Moving to the next step.</div>
+        </div>
+        <div style="background:rgba(255,252,246,.06);border-radius:14px;padding:14px 20px;border:1px solid rgba(255,252,246,.12);display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;">
+          ${[['Face scan','matched to your ID'],['Document MRZ','verified \u2714'],['Document authenticity','confirmed \u2714']].map(([k,v])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12.5px;color:rgba(255,252,246,.5);">${k}</span>
+              <span style="font-size:12.5px;font-weight:600;color:var(--ok);">${v}</span>
+            </div>`).join('')}
+        </div>
+        <div style="width:80px;height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+          <div id="idSuccProg" style="height:100%;width:0%;background:var(--ok);transition:width 1.5s linear;border-radius:2px;"></div>
+        </div>
+      </div>`;
+    setTimeout(() => { const b = document.getElementById('idSuccProg'); if(b) b.style.width='100%'; }, 50);
+    setTimeout(() => { idScanDone = true; step = 1; paint(); }, 2000);
+  }
+
+  // ── Main step screen ──────────────────────────────────────────────────────
   function paint(){
     const s = STAGES[step];
-    if(!s){ go('vcomplete'); return; }
+    if(!s){ naomiPostVerification = false; go('dashboard'); return; }
     const isLast = step === STAGES.length - 1;
-    const progress = Math.round(((step + 1) / STAGES.length) * 100);
+    // Total sub-steps: face scan (1a) + ID scan (1b) + remaining STAGES
+    const totalSteps = STAGES.length + 1; // +1 for 2 sub-steps counted as one extra
+    const displayStep = step === 0 ? 1 : step + 1;
+    const progress = Math.round((displayStep / totalSteps) * 100);
 
     $body.innerHTML = `
       <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
 
-        <!-- Header with back + progress -->
+        <!-- Header -->
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             <button id="kfBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:var(--inkSoft);">&larr;</button>
@@ -1978,33 +2923,53 @@ RENDERERS.kycflow = function(){
                 <div style="height:100%;width:${progress}%;background:var(--clay);border-radius:4px;transition:width .4s ease;"></div>
               </div>
             </div>
-            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);flex-shrink:0;">${step+1} / ${STAGES.length}</div>
+            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);flex-shrink:0;">${displayStep} / ${totalSteps}</div>
           </div>
         </div>
 
-        <!-- Scrollable step content -->
+        <!-- Content -->
         <div style="flex:1;overflow-y:auto;padding:20px 18px 16px;">
 
-          <!-- Stage header -->
           <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;">
             <div style="width:46px;height:46px;border-radius:14px;background:var(--clayBg);border:1.5px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--clay);">
               ${s.icon}
             </div>
             <div>
               <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px;">${s.title}</div>
-              <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay);">${s.subtitle}</div>
+              ${s.subtitle ? `<div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay);">${s.subtitle}</div>` : ''}
             </div>
           </div>
 
-          <!-- Naomi explanation -->
-          <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:20px;">
+          ${s.naomi ? `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:20px;">
             <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
             </div>
             <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--ink);">${s.naomi}</div>
-          </div>
+          </div>` : ''}
 
-          <!-- Checks -->
+          ${step === 0 ? `
+          <!-- Face scan + ID scan status rows -->
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            <div style="display:flex;gap:12px;align-items:center;background:${faceScanDone?'var(--okBg)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${faceScanDone?'var(--ok)':'var(--line)'};">
+              <div style="width:34px;height:34px;border-radius:50%;background:${faceScanDone?'var(--ok)':'var(--clay)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${faceScanDone ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'}
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">1a \u00b7 Face scan</div>
+                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${faceScanDone?'Matched to your ID \u2714':'Take a selfie to match against your ID'}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;background:${idScanDone?'var(--okBg)':faceScanDone?'var(--paperDeep)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${idScanDone?'var(--ok)':'var(--line)'};opacity:${!faceScanDone?.5:1};">
+              <div style="width:34px;height:34px;border-radius:50%;background:${idScanDone?'var(--ok)':faceScanDone?'var(--clay)':'var(--line)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${idScanDone ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'}
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">1b \u00b7 ID document scan</div>
+                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${idScanDone?'Document verified \u2714':faceScanDone?'Scan your passport, national ID, or licence':'Complete face scan first'}</div>
+              </div>
+            </div>
+          </div>` : ''}
+
           <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
             ${s.userChecks.map(c=>`
               <div style="display:flex;gap:12px;align-items:flex-start;background:var(--paperDeep);border-radius:14px;padding:14px 16px;border:1px solid var(--line);">
@@ -2016,117 +2981,41 @@ RENDERERS.kycflow = function(){
               </div>`).join('')}
           </div>
 
-          <!-- Footer note -->
           <div style="background:rgba(31,58,53,.06);border-radius:12px;padding:12px 14px;border-left:3px solid var(--clay);">
             <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.6;">${s.footer}</div>
           </div>
         </div>
 
-        <!-- Footer nav -->
+        <!-- Footer CTA -->
         <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:10px;">
-          <button id="kfCont" class="btn" style="font-size:15px;">${isLast ? 'Complete verification' : 'Continue \u2014 ' + STAGES[step+1].title}</button>
-          ${step > 0 ? '' : '<p style="font-size:11.5px;color:var(--inkSoft);text-align:center;line-height:1.5;margin:0;">Verification is required to browse and connect.</p>'}
+          <button id="kfCont" class="btn" style="font-size:15px;display:flex;align-items:center;justify-content:center;gap:9px;${step===0 && !faceScanDone?'':''}">
+            ${step===0 && !faceScanDone
+              ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg> Start face scan'
+              : step===0 && faceScanDone && !idScanDone
+                ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Scan ID document'
+                : isLast ? 'Complete verification' : 'Continue \u2014 ' + STAGES[step+1].title}
+          </button>
+          ${step === 0 ? '<p style="font-size:11.5px;color:var(--inkSoft);text-align:center;line-height:1.5;margin:0;">Your data is encrypted and used only for this verification.</p>' : ''}
         </div>
       </div>`;
 
-    // Step counter dots
     document.getElementById('kfBack').onclick = () => {
       if(step > 0){ step--; paint(); }
-      else back();
+      else go('naomiintro');
     };
     document.getElementById('kfCont').onclick = () => {
-      if(step < STAGES.length - 1){ step++; paint(); }
-      else go('kycphotoupload');
+      if(step === 0 && !faceScanDone){ showFaceScan(); }
+      else if(step === 0 && faceScanDone && !idScanDone){ showIdScan(); }
+      else if(step < STAGES.length - 1){ step++; paint(); }
+      else { showDnaReveal(); }
     };
   }
-  paint();
-};
 
-// -- KYC PHOTO UPLOAD - standalone photo upload screen after verification -------
-RENDERERS.kycphotoupload = function(){
-  // Reset photos for this session
-  let localPhotos = [];
-  const MAX = 6;
-  const DESCS = [
-    {label:'Main photo', sub:'Clear face, looking at the camera.', required:true},
-    {label:'Smile',      sub:'Natural, not posed.'},
-    {label:'Full length',sub:'Head to toe, everyday clothes.'},
-    {label:'A passion',  sub:'Hobby, travel — something real.'},
-    {label:'Social',     sub:'Friends or family. Face visible.'},
-    {label:'One more',   sub:'Anything authentically you.'},
-  ];
-
-  function paint(){
-    $body.innerHTML = `
-      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
-
-        <!-- Header -->
-        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button id="ppBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:var(--inkSoft);">&larr;</button>
-            <div style="flex:1;">
-              <div style="font-size:15px;font-weight:700;color:var(--ink);">Profile photos</div>
-              <div style="font-size:12px;color:var(--inkSoft);">Up to 6 \u00b7 face clearly visible in each</div>
-            </div>
-            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);" id="ppCount">${localPhotos.length} / ${MAX}</div>
-          </div>
-        </div>
-
-        <!-- Scrollable content -->
-        <div style="flex:1;overflow-y:auto;padding:16px 18px;">
-
-          <!-- 3x2 grid -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;" id="ppGrid">
-            ${DESCS.map((d,i)=>`
-              <div class="ppSlot" data-idx="${i}" style="aspect-ratio:1;border-radius:12px;border:1.5px dashed ${i===0?'var(--clay)':'var(--line)'};background:var(--paperDeep);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .15s;padding:4px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${i===0?'var(--clay)':'var(--inkSoft)'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <div style="font-size:8.5px;color:${i===0?'var(--clay)':'var(--inkSoft)'};margin-top:4px;text-align:center;line-height:1.2;">${d.label}</div>
-                ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:var(--clay);text-align:center;font-size:7.5px;font-family:var(--fontMono);color:var(--cream);padding:2px 0;letter-spacing:.06em;">MAIN</div>':''}
-              </div>`).join('')}
-          </div>
-
-          <!-- Rules -->
-          <div style="background:var(--paperDeep);border-radius:12px;padding:12px 14px;border:1px solid var(--line);">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkSoft);margin-bottom:8px;">Face visibility rules</div>
-            ${['Face must be clearly visible in every photo','No sunglasses, masks or heavy filters','At least one photo looking directly at the camera','Photos must be within the last 2 years'].map(r=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><div style="width:4px;height:4px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div><span style="font-size:12px;color:var(--inkSoft);line-height:1.45;">${r}</span></div>`).join('')}
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
-          <button id="ppDone" class="btn" style="opacity:${localPhotos.length>0?1:.35};font-size:15px;" ${localPhotos.length===0?'disabled':''}>Save photos &amp; continue</button>
-          <button id="ppSkip" style="width:100%;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;text-align:center;">Skip for now \u2192</button>
-        </div>
-
-        <input type="file" id="ppFileInput" accept="image/*" style="display:none;" />
-      </div>`;
-
-    document.getElementById('ppBack').onclick = () => back();
-    document.getElementById('ppDone').onclick = () => go('vcomplete');
-    document.getElementById('ppSkip').onclick = () => go('vcomplete');
-
-    // Wire slots
-    document.querySelectorAll('.ppSlot').forEach(slot => {
-      const i = +slot.dataset.idx;
-      const locked = i > 0 && localPhotos.length < i;
-      if(locked){ slot.style.cursor='default'; slot.style.opacity='.4'; return; }
-      slot.onclick = () => {
-        let $inp = document.getElementById('ppFileInput');
-        $inp.onchange = (e) => {
-          const file = e.target.files[0]; if(!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => { localPhotos[i]={dataURL:ev.target.result}; paint(); };
-          reader.readAsDataURL(file); $inp.value='';
-        };
-        $inp.click();
-      };
-      if(localPhotos[i]){
-        slot.innerHTML = `<img src="${localPhotos[i].dataURL}" style="width:100%;height:100%;object-fit:cover;" /><button class="ppRemove" data-idx="${i}" style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>`;
-        slot.style.borderStyle='solid';
-        slot.querySelector('.ppRemove').onclick=(e)=>{ e.stopPropagation(); localPhotos.splice(i,1); paint(); };
-      }
-    });
+  // ── DNA reveal after final verification step ──────────────────────────────
+  function showDnaReveal(){
+    naomiPostVerification = false; go('dashboard');
   }
+
   paint();
 };
 
