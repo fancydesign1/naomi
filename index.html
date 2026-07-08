@@ -268,12 +268,12 @@ let inlinePhotos = [];              // profile photos, accessible by dnaprofile
 // -- FLOW CONFIG ---------------------------------------------------------------
 const FLOW_ORDER = [
   "splash","trailer","register","phoneinput","mobileotp","trust",
-  "naomiintro","kycquestions","kycflow","dashboard","matches","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
+  "naomiintro","kycquestions","kycwelcome","kycflow","dashboard","matches","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
   register:"Onboarding", phoneinput:"Onboarding", mobileotp:"Onboarding",
-  naomiintro:"Onboarding flow", kycquestions:"Onboarding flow", dashboard:"App", matches:"App",
+  naomiintro:"Onboarding flow", kycquestions:"Onboarding flow", dashboard:"App", matches:"App", kycwelcome:"App",
   kycverification:"KYC flow", kycflow:"KYC flow", schedule:"Onboarding flow",
 };
 const DARK_STATUS_SCREENS = new Set(["splash","trailer","kycquestions"]);
@@ -361,10 +361,10 @@ const PORTRAIT_SECTIONS = [
     ]
   },
   {
-    id: "s1", title: "", subtitle: "Let\u2019s talk about who you\u2019re hoping to find.",
+    id: "s1", title: "", subtitle: "",
     icon: "heart",
     fields: [
-      { id:"ideal_partner", label:"Who are you looking for \u2014 and if Naomi could generate one realistic portrait of your perfect match, what would it look like? Describe the first impression they give, their face, expression, posture, clothing, and overall vibe \u2014 as if they\u2019re standing in front of you.", type:"textarea", placeholder:"Warm but self-assured. A calm confidence that fills a room without trying. Kind eyes, a bit of a beard, something classic in how he dresses \u2014 well-fitted, not flashy. The kind of person who makes you feel like you\u2019re the only one in the room\u2026" },
+      { id:"ideal_partner", label:"Describe your ideal match — their face, expression, style, and overall vibe.", type:"textarea", placeholder:"Warm but self-assured. A calm confidence that fills a room without trying. Kind eyes, a bit of a beard, something classic in how he dresses \u2014 well-fitted, not flashy. The kind of person who makes you feel like you\u2019re the only one in the room\u2026" },
     ]
   },
   {
@@ -492,41 +492,27 @@ function getNaomiReaction(qId){
 // Verification stages
 const VER_STAGES = [
   {
-    id:'identity', title:'Identity verification', subtitle:'',
-    naomi:'',
-    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
-    userChecks:[
-      {label:"Government-issued ID", detail:"Passport, national ID, or driving licence — MRZ scan and document authenticity check."},
-      {label:"Biometric face match", detail:"A single selfie matched against your ID photo."},
-    ],
-    footer:"Once confirmed, your profile becomes visible to others and you can start receiving introductions.", cta:"Start verification",
+    id:'identity',
+    step:1,
+    title:'Identity verification',
+    subtitle:'Confirm you are who you say you are. This is a one-time step that keeps every introduction on NAOMI genuine.',
+    icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
   },
   {
-    id:'address', title:'Unlock Photos & Direct Communication', subtitle:'Address & Safety',
-    naomi:"Great \u2014 identity confirmed. The next step unlocks full profile photos and direct messaging.",
-    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-    userChecks:[
-      {label:"Proof of address", detail:"Utility bill, bank statement, or government letter \u2014 document scan and data extraction."},
-    ],
-    footer:"Completing this stage unlocks profile photos and direct conversation.", cta:"Continue",
+    id:'address',
+    step:2,
+    title:'Address verification',
+    subtitle:'Upload a document that confirms your residential address. Accepted documents are dated within the last three months.',
+    icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   },
   {
-    id:'matching', title:'Enter the Matching Process', subtitle:'Background & Premium Verified',
-    naomi:"Almost there. Before Naomi can introduce you to anyone, we run a final background check. Complete to earn your NAOMI Verified badge.",
-    icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    userChecks:[
-      {label:"Criminal record check", detail:"National database search in your country of residence."},
-      {label:"International criminal check", detail:"Where available \u2014 relevant if you\u2019ve lived in multiple countries."},
-      {label:"Social media cross-reference", detail:"Optional \u2014 confirms your declared identity matches your social presence."},
-      {label:"Enhanced background check", detail:"Deeper search across multiple databases."},
-      {label:"Financial fraud check", detail:"Confirms no history of financial scams or fraud."},
-      {label:"Income verification", detail:"Optional \u2014 bank statement analysis for premium users."},
-    ],
-    footer:"Both parties must clear standard checks before any introduction. Completing all earns your NAOMI Verified badge \u00b7 Blue V.", cta:"Run background check",
+    id:'background',
+    step:3,
+    title:'Criminal background check',
+    subtitle:'This check runs automatically in the background. No action is required from you.',
+    icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10" stroke-width="2"/></svg>`,
   },
-];
-
-// Session state for naomiintro — persists across navigation to/from schedule,
+];// Session state for naomiintro — persists across navigation to/from schedule,
 // but is reset on a true fresh start (e.g. from trust screen).
 let naomiSession = {
   nameEntered: false,
@@ -543,9 +529,9 @@ function resetNaomiSession(){
   // ── Shared bottom nav ────────────────────────────────────────────────────
   function renderBottomNavBar(activeTab){
     const tabs = [
-      ['dashboard', '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'Dashboard', false],
+      ['dashboard', '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'Home', false],
       ['matches',   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>', 'Matches', false],
-      ['naomi',     '<span style="font-family:var(--fontDisplay);font-style:italic;font-size:20px;line-height:1;display:block;">N</span>', 'Naomi', true],
+      ['naomi',     '<span style="font-family:var(--fontDisplay);font-style:italic;font-size:20px;line-height:1;display:block;">N</span>', 'Chat', true],
       ['profile',   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', 'Profile', false],
     ];
     const html = tabs.map(([tab, icon, label, disabled]) => {
@@ -626,30 +612,90 @@ RENDERERS.trailer = function(){
 
 // -- TRUST ---------------------------------------------------------------------
 RENDERERS.trust = function(){
-  $body.innerHTML=`
-    <div class="screen justifyBetween">
-      <div>
-        <h1 class="disp" style="font-size:28px;margin-bottom:6px;">Trust comes <em style="color:var(--clay);font-style:italic;">first.</em></h1>
-        <p class="bodyMuted" style="margin-bottom:26px;font-size:13.5px;">Before you share anything, here's what we commit to.</p>
-        <div style="display:flex;flex-direction:column;gap:16px;">
-          ${[
-            ['🔒','Your privacy comes first.','We never sell your data or show you ads.'],
-            ['❤️','We don\'t optimize for swipes.','Our algorithm isn\'t built to keep you scrolling.'],
-            ['🤝','We only succeed when you do.','Our incentives are tied to outcomes, not screen time.'],
-            ['🛡','Every member is verified.','Identity and trust checks, before anyone is introduced.'],
-          ].map(([e,t,d])=>`
-            <div style="display:flex;gap:14px;align-items:flex-start;">
-              <div style="font-size:20px;flex-shrink:0;margin-top:2px;">${e}</div>
-              <div>
-                <div style="font-weight:700;font-size:14.5px;margin-bottom:2px;">${t}</div>
-                <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${d}</div>
+  let phase = 1;
+
+  function render(){
+    if(phase === 1){
+      $body.innerHTML = `
+        <div class="screen justifyBetween" style="padding:28px 24px 28px;">
+          <div>
+            <h1 class="disp" style="font-size:24px;margin-bottom:4px;">Trust comes <em style="color:var(--clay);font-style:italic;">first.</em></h1>
+            <p class="bodyMuted" style="margin-bottom:20px;font-size:13px;">Before you share anything, here’s what we commit to.</p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${[
+                ['🔒','Your privacy comes first.','We never sell your data or show you ads.'],
+                ['❤️',"We don't optimize for swipes.","Our algorithm isn't built to keep you scrolling."],
+                ['🤝','We only succeed when you do.','Our incentives are tied to outcomes, not screen time.'],
+                ['🛡','Every member is verified.','Identity and trust checks, before anyone is introduced.'],
+              ].map(([e,t,d])=>`
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <div style="font-size:17px;flex-shrink:0;margin-top:1px;">${e}</div>
+                  <div>
+                    <div style="font-weight:700;font-size:13.5px;margin-bottom:1px;">${t}</div>
+                    <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;">${d}</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <button class="btn" id="trustNext">Ready to get started</button>
+        </div>`;
+      document.getElementById('trustNext').onclick = () => { phase = 2; render(); };
+
+    } else {
+      let sel = null;
+      function rs(){
+        $body.innerHTML = `
+          <div class="screen justifyBetween" style="padding:28px 24px 28px;">
+            <div>
+              <h1 class="disp" style="font-size:24px;margin-bottom:4px;">How would you like to talk with Naomi?</h1>
+              <p class="bodyMuted" style="margin-bottom:20px;font-size:13px;">You can change this at any time.</p>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <button id="optVoice" style="width:100%;padding:14px;border-radius:15px;border:1.5px solid ${sel==='voice'?'var(--clay)':'var(--line)'};background:${sel==='voice'?'var(--clayBg)':'var(--cream)'};cursor:pointer;text-align:left;display:flex;align-items:center;gap:13px;transition:all .15s;">
+                  <div style="width:40px;height:40px;border-radius:11px;background:${sel==='voice'?'rgba(184,100,90,.15)':'var(--paperDeep)'};border:1.5px solid ${sel==='voice'?'rgba(184,100,90,.3)':'var(--line)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${sel==='voice'?'var(--clay)':'var(--inkSoft)'}" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px;">Voice conversation</div>
+                    <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;">Talk naturally — Naomi listens and builds your profile.</div>
+                  </div>
+                  <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${sel==='voice'?'var(--clay)':'var(--line)'};background:${sel==='voice'?'var(--clay)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    ${sel==='voice'?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
+                  </div>
+                </button>
+                <button id="optChat" style="width:100%;padding:14px;border-radius:15px;border:1.5px solid ${sel==='chat'?'var(--clay)':'var(--line)'};background:${sel==='chat'?'var(--clayBg)':'var(--cream)'};cursor:pointer;text-align:left;display:flex;align-items:center;gap:13px;transition:all .15s;">
+                  <div style="width:40px;height:40px;border-radius:11px;background:${sel==='chat'?'rgba(184,100,90,.15)':'var(--paperDeep)'};border:1.5px solid ${sel==='chat'?'rgba(184,100,90,.3)':'var(--line)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${sel==='chat'?'var(--clay)':'var(--inkSoft)'}" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px;">Chat</div>
+                    <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;">Type at your own pace — Naomi guides you one question at a time.</div>
+                  </div>
+                  <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${sel==='chat'?'var(--clay)':'var(--line)'};background:${sel==='chat'?'var(--clay)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    ${sel==='chat'?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
+                  </div>
+                </button>
               </div>
-            </div>`).join('')}
-        </div>
-      </div>
-      <button class="btn" id="trustGo">Ready to get started</button>
-    </div>`;
-  document.getElementById('trustGo').onclick=()=>{ resetNaomiSession(); go('naomiintro'); };
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn" id="trustGo" style="opacity:${sel?1:.4};pointer-events:${sel?'auto':'none'};">Get started</button>
+              <button id="trustBack" style="padding:12px;border-radius:13px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;width:100%;">&larr; Back</button>
+            </div>
+          </div>`;
+        document.getElementById('optVoice').onclick = () => { sel = 'voice'; rs(); };
+        document.getElementById('optChat').onclick  = () => { sel = 'chat';  rs(); };
+        document.getElementById('trustGo').onclick  = () => {
+          naomiSession.conversationStyle = sel;
+          resetNaomiSession();
+          naomiSession.conversationStyle = sel;
+          go('naomiintro');
+        };
+        document.getElementById('trustBack').onclick = () => { phase = 1; render(); };
+      }
+      rs();
+    }
+  }
+
+  render();
 };
 
 // -- REGISTER ------------------------------------------------------------------
@@ -1508,38 +1554,13 @@ RENDERERS.naomiintro = function(){
       } else {
         appendToLog(naomiBubble("No problem — you can add photos later from your profile."));
       }
-      setTimeout(() => showKycConfirmCard(), 700);
+      setTimeout(() => go('kycwelcome'), 600);
     }
 
     render();
     log.scrollTop = log.scrollHeight;
   }
 
-
-  function showKycConfirmCard(){
-    const log = document.getElementById('chatLog');
-    if(!log) return;
-
-    appendToLog(naomiBubble("Before I can introduce you to anyone, I need to confirm you’re who you say you are. This keeps everyone on NAOMI safe."));
-
-    // Simple button row directly under the message
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:2px 0 4px;';
-
-    const startBtn = document.createElement('button');
-    startBtn.style.cssText = 'width:100%;padding:14px;border-radius:24px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:14.5px;font-weight:700;cursor:pointer;text-align:center;';
-    startBtn.textContent = 'Start verification';
-
-    wrap.appendChild(startBtn);
-    log.appendChild(wrap);
-    log.scrollTop = log.scrollHeight;
-
-    startBtn.onclick = function(){
-      wrap.remove();
-      kycStartStep = 0;
-      go('kycflow');
-    };
-  }
 
 
   // -- Inline KYC Step 1: Face scan, shown in chat with back-to-chat button ------
@@ -1647,7 +1668,7 @@ RENDERERS.naomiintro = function(){
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
         <div style="flex:1;">
-          <div style="font-size:15px;font-weight:700;color:var(--ink);">Answer more questions</div>
+          <div style="font-size:15px;font-weight:700;color:var(--ink);">Deep questionnaires</div>
           <div style="font-size:12.5px;color:var(--inkSoft);margin-top:2px;">Help Naomi understand you even better</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2076,7 +2097,6 @@ RENDERERS.dashboard = function(){
         <!-- Mission card -->
         <div style="background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.2);border-radius:18px;padding:20px;">
           <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldSoft);margin-bottom:12px;">Us Against the World</div>
-          <div style="font-family:var(--fontDisplay);font-style:italic;font-size:15.5px;color:var(--cream);line-height:1.65;margin-bottom:14px;">"We are not here to keep people swiping. We are here to help them choose better."</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">Our model is to teach people how to succeed in relationship in order for them to never come back to our app. We believe the goal is not more matches. The goal is fewer, deeper, more meaningful connections.</div>
             <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">We believe people should understand themselves before choosing someone else. Our model is to teach people how to succeed in relationships in order for them to never come back to our app.</div>
@@ -2249,7 +2269,7 @@ RENDERERS.deepquestions = function(){
     { id:'q49', q:"What's your proudest accomplishment?", hint:"The one that still means something." },
   ];
   const DEEP_SIMS = {
-    q01:"I'd shimmy. Waking someone is too much.",
+    q01:"I'd shimmy. Waking someone feels like too much.",
     q02:"That I actually like being alone. I spent years thinking I didn't.",
     q03:"Eternal Sunshine of the Spotless Mind. Every time.",
     q04:"Took a train to nowhere last autumn. Ended up in a town I'd never heard of.",
@@ -2660,26 +2680,267 @@ RENDERERS.matchreveal = function(){
 // from the user's described preferences. For each: Like / Dislike. On Dislike,
 // ask why, then offer to regenerate (with "how should Naomi change it") up to
 // 3 times. After everything is resolved, continue to verification.
+RENDERERS.kycwelcome = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:32px 24px 28px;overflow-y:auto;">
+
+      <!-- Content — centred -->
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;">
+
+        <!-- Checkmark circle -->
+        <div style="position:relative;width:96px;height:96px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:pulseRingLight 2.4s ease-out infinite;"></div>
+          <div style="width:96px;height:96px;border-radius:50%;background:var(--clayBg);border:2px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Text -->
+        <div>
+          <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.2;margin-bottom:10px;">
+            Your profile is ready
+          </div>
+          <div style="font-size:14px;color:var(--inkSoft);line-height:1.7;max-width:280px;margin:0 auto;">
+            Congratulations — you’ve completed your onboarding. The next step is identity verification, which unlocks your full profile and allows Naomi to start making introductions.
+          </div>
+        </div>
+
+        <!-- What’s next card -->
+        <div style="width:100%;background:var(--paperDeep);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkSoft);">What’s next</div>
+          ${[
+            ['1','Identity verification','Face scan + ID document — takes about 2 minutes.'],
+            ['2','Address verification','Upload a proof of address document.'],
+            ['3','Background check','Runs automatically. No action needed from you.'],
+          ].map(([n,title,detail])=>`
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:22px;height:22px;border-radius:50%;background:var(--clay);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                <span style="font-family:var(--fontMono);font-size:10px;color:var(--cream);font-weight:700;">${n}</span>
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">${title}</div>
+                <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;margin-top:2px;">${detail}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <button class="btn" id="kwProceed" style="width:100%;margin-top:4px;">Proceed to verification</button>
+    </div>
+    <style>@keyframes pulseRingLight{0%{transform:scale(.9);opacity:.5}70%{transform:scale(1.08);opacity:0}100%{transform:scale(1.08);opacity:0}}</style>`;
+
+  document.getElementById('kwProceed').onclick = () => go('kycflow');
+};
+
+
 RENDERERS.kycflow = function(){
-  let step = kycStartStep; kycStartStep = 0;
   let faceScanDone = false;
   let idScanDone   = false;
-  const STAGES = VER_STAGES && VER_STAGES.length ? VER_STAGES : [];
+  let step = 1; // 1=identity, 2=address, 3=background
 
-  // ── Sub-step A: Face scan ─────────────────────────────────────────────────
+  const TOTAL = 3;
+
+  // ── Shared header ──────────────────────────────────────────────────────────
+  function header(stepNum, stage){
+    const pct = Math.round((stepNum / TOTAL) * 100);
+    return `
+      <div style="padding:14px 18px 14px;border-bottom:1px solid var(--line);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <button id="kfBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:16px;color:var(--inkSoft);">&larr;</button>
+          <div style="flex:1;">
+            <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkSoft);margin-bottom:5px;">Identity verification</div>
+            <div style="height:4px;border-radius:4px;background:var(--paperDeep);overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:var(--clay);border-radius:4px;transition:width .4s;"></div>
+            </div>
+          </div>
+          <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);flex-shrink:0;">${stepNum} / ${TOTAL}</div>
+        </div>
+      </div>`;
+  }
+
+  function stageBlock(stage){
+    return `
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+        <div style="width:48px;height:48px;border-radius:14px;background:var(--clayBg);border:1.5px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--clay);">${stage.icon}</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:5px;line-height:1.2;">${stage.title}</div>
+          <div style="font-size:13.5px;color:var(--ink);line-height:1.65;">${stage.subtitle}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Step 1: Identity — face scan + ID upload ───────────────────────────────
+  function showStep1(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
+        ${header(1, VER_STAGES[0])}
+        <div style="flex:1;overflow-y:auto;padding:18px 18px 12px;">
+          ${stageBlock(VER_STAGES[0])}
+
+          <!-- Sub-step status rows -->
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            <div style="display:flex;gap:12px;align-items:center;background:${faceScanDone?'var(--okBg)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${faceScanDone?'var(--ok)':'var(--line)'};">
+              <div style="width:34px;height:34px;border-radius:50%;background:${faceScanDone?'var(--ok)':'var(--clay)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${faceScanDone?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'}
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">Face scan</div>
+                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${faceScanDone?'Matched \u2714':'A quick selfie matched against your ID photo'}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;background:${idScanDone?'var(--okBg)':faceScanDone?'var(--paperDeep)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${idScanDone?'var(--ok)':'var(--line)'};opacity:${faceScanDone?1:.4};">
+              <div style="width:34px;height:34px;border-radius:50%;background:${idScanDone?'var(--ok)':faceScanDone?'var(--clay)':'var(--line)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${idScanDone?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'}
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">ID document upload</div>
+                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${idScanDone?'Verified \u2714':faceScanDone?'Passport, national ID, or driving licence':'Complete face scan first'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;">
+          <button id="kfCont" class="btn" style="font-size:15px;">
+            ${!faceScanDone ? 'Start face scan' : !idScanDone ? 'Scan ID document' : 'Continue \u2014 Step 2'}
+          </button>
+        </div>
+      </div>`;
+    wireBack();
+    document.getElementById('kfCont').onclick = () => {
+      if(!faceScanDone) showFaceScan();
+      else if(!idScanDone) showIdScan();
+      else { step = 2; showStep2(); }
+    };
+  }
+
+  // ── Step 2: Address verification ───────────────────────────────────────────
+  function showStep2(){
+    const fi = document.createElement('input');
+    fi.type='file'; fi.accept='image/*,.pdf';
+    fi.style.cssText='position:fixed;top:-999px;left:-999px;opacity:0;width:1px;height:1px;';
+    document.body.appendChild(fi);
+    const files2 = [];
+
+    function render2(){
+      $body.innerHTML = `
+        <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
+          ${header(2, VER_STAGES[1])}
+          <div style="flex:1;overflow-y:auto;padding:18px 18px 12px;">
+            ${stageBlock(VER_STAGES[1])}
+
+            <!-- Upload zone -->
+            <div id="addrZone" style="border:1.5px dashed var(--line);border-radius:14px;background:var(--paperDeep);padding:28px 20px;text-align:center;cursor:pointer;margin-bottom:12px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;">Drop your file here or browse</div>
+              <div style="font-size:12px;color:var(--inkSoft);">Utility bill, bank statement, or government letter \u2014 PDF or image</div>
+            </div>
+
+            <!-- File list -->
+            <div id="addrList"></div>
+          </div>
+          <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+            ${files2.length ? `<button id="addrCont" class="btn" style="font-size:15px;">Continue \u2014 Step 3</button>` : `<button id="addrUpload" class="btn" style="font-size:15px;">Upload document</button>`}
+            <button id="addrSkip" style="width:100%;padding:12px;border-radius:13px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14px;color:var(--inkSoft);cursor:pointer;">Skip for now</button>
+          </div>
+        </div>`;
+
+      // Render file list
+      const list = document.getElementById('addrList');
+      if(list && files2.length){
+        const hdr=document.createElement('div');
+        hdr.style.cssText='font-size:12px;font-weight:700;color:var(--inkSoft);letter-spacing:.06em;padding:4px 0 8px;';
+        hdr.textContent='Uploads';
+        list.appendChild(hdr);
+        files2.forEach(function(f,i){
+          const row=document.createElement('div');
+          row.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--cream);margin-bottom:8px;';
+          const ext=(f.name.split('.').pop()||'FILE').toUpperCase().slice(0,4);
+          const kb=f.size<1024*1024?Math.round(f.size/1024)+'KB':(f.size/1024/1024).toFixed(1)+'MB';
+          row.innerHTML='<div style="width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--paperDeep);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--fontMono);font-size:9px;color:var(--inkSoft);font-weight:700;">'+ext+'</div>'
+            +'<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div><div style="font-size:12px;color:var(--inkSoft);margin-top:2px;">'+kb+'</div></div>'
+            +'<button data-i="'+i+'" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>';
+          row.querySelector('[data-i]').onclick=function(){files2.splice(+this.dataset.i,1);render2();};
+          list.appendChild(row);
+        });
+      }
+
+      wireBack2();
+      document.getElementById('addrZone').onclick=()=>fi.click();
+      const $up=document.getElementById('addrUpload');
+      if($up) $up.onclick=()=>fi.click();
+      const $cont=document.getElementById('addrCont');
+      if($cont) $cont.onclick=()=>{ fi.remove(); step=3; showStep3(); };
+      document.getElementById('addrSkip').onclick=()=>{ fi.remove(); step=3; showStep3(); };
+    }
+
+    fi.addEventListener('change',function(){
+      Array.from(fi.files).forEach(function(f){files2.push(f);});
+      fi.value=''; render2();
+    });
+
+    function wireBack2(){
+      document.getElementById('kfBack').onclick=()=>{ fi.remove(); step=1; showStep1(); };
+    }
+
+    render2();
+  }
+
+  // ── Step 3: Criminal background check ─────────────────────────────────────
+  function showStep3(){
+    $body.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
+        ${header(3, VER_STAGES[2])}
+        <div style="flex:1;overflow-y:auto;padding:18px 18px 12px;">
+          ${stageBlock(VER_STAGES[2])}
+
+          <!-- What's included -->
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            ${[
+              ['Criminal record check', 'National database search in your country of residence.'],
+              ['International criminal check', 'Where available \u2014 relevant if you\u2019ve lived in multiple countries.'],
+              ['Financial fraud check', 'Confirms no history of financial scams or fraud.'],
+              ['Social media cross-reference', 'Confirms your declared identity matches your social presence.'],
+            ].map(([label,detail])=>`
+              <div style="display:flex;gap:12px;align-items:flex-start;background:var(--paperDeep);border-radius:13px;padding:13px 15px;border:1px solid var(--line);">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px;">${label}</div>
+                  <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${detail}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <div style="background:rgba(31,58,53,.06);border-radius:12px;padding:12px 14px;border-left:3px solid var(--clay);">
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.6;">Both parties complete the same checks before any introduction. Completing all steps earns your NAOMI Verified badge.</div>
+          </div>
+        </div>
+        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;">
+          <button id="kfCont" class="btn" style="font-size:15px;">Run background check</button>
+        </div>
+      </div>`;
+    wireBack();
+    document.getElementById('kfCont').onclick = () => showDnaReveal();
+  }
+
+  // ── Sub-step: Face scan ────────────────────────────────────────────────────
   function showFaceScan(){
     $body.innerHTML = `
       <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
-        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+        <div style="padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
           <button id="fsBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
           <div style="flex:1;">
-            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">Face scan</div>
+            <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px;">Face scan</div>
             <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
               <div style="height:100%;width:25%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
             </div>
           </div>
+          <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);">1 / 3</div>
         </div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 28px;gap:24px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;gap:24px;" id="fsContent">
           <div style="position:relative;width:180px;height:180px;">
             <div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(201,162,75,.25);animation:pulseRing 2s ease-out infinite;"></div>
             <div style="position:absolute;inset:6px;border-radius:50%;border:2px solid rgba(201,162,75,.4);"></div>
@@ -2693,25 +2954,22 @@ RENDERERS.kycflow = function(){
           </div>
           <div style="text-align:center;">
             <div style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);margin-bottom:8px;">Look straight ahead</div>
-            <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Hold your device at eye level in good lighting. Naomi will match this selfie against your ID.</div>
+            <div style="font-size:13.5px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Hold your device at eye level in good lighting. Your selfie will be matched against your ID.</div>
           </div>
-          <button id="fsScan" style="padding:16px 40px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-            Take selfie
-          </button>
-          <div style="font-size:12px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;max-width:240px;">Your selfie is used only for verification and never stored or shared.</div>
+        </div>
+        <div style="padding:14px 20px 20px;border-top:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+          <button id="fsScan" class="btn" style="font-size:15px;background:var(--clay);">Take selfie</button>
         </div>
       </div>
       <style>@keyframes pulseRing{0%{transform:scale(.9);opacity:.6}70%{transform:scale(1.05);opacity:0}100%{transform:scale(1.05);opacity:0}}</style>`;
 
-    document.getElementById('fsBack').onclick = () => paint();
+    document.getElementById('fsBack').onclick = () => showStep1();
     document.getElementById('fsScan').onclick = () => {
-      const $fc = $body.querySelector('[style*="flex-direction:column;align-items:center;justify-content:center"]');
-      if(!$fc) return;
-      $fc.innerHTML = `
+      const $c = document.getElementById('fsContent');
+      $c.innerHTML = `
         <div style="position:relative;width:180px;height:180px;">
           <div style="position:absolute;inset:0;border-radius:50%;border:3px solid var(--clay);animation:pulseRing 1s ease-out infinite;"></div>
-          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(184,100,90,.12);display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(184,100,90,.1);display:flex;align-items:center;justify-content:center;">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
         </div>
@@ -2719,121 +2977,93 @@ RENDERERS.kycflow = function(){
           <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);margin-bottom:6px;">Scanning\u2026</div>
           <div style="font-size:13px;color:rgba(255,252,246,.45);">Matching against your ID</div>
         </div>
-        <div style="width:220px;height:6px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
-          <div id="fsProg" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
+        <div style="width:220px;height:5px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
+          <div id="fsBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
         </div>`;
-      let pct = 0;
-      const t = setInterval(() => {
-        pct += 6 + Math.random()*10;
-        const b = document.getElementById('fsProg');
-        if(b) b.style.width = Math.min(pct,100) + '%';
-        if(pct >= 100){
-          clearInterval(t);
-          setTimeout(() => showFaceScanSuccess(), 350);
-        }
-      }, 180);
+      let pct=0;
+      const t=setInterval(()=>{
+        pct+=7+Math.random()*9;
+        const b=document.getElementById('fsBar');
+        if(b) b.style.width=Math.min(pct,100)+'%';
+        if(pct>=100){ clearInterval(t); setTimeout(showFaceScanSuccess,350); }
+      },180);
     };
   }
 
   function showFaceScanSuccess(){
-    $body.innerHTML = `
-      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:24px;text-align:center;">
-        <div style="width:90px;height:90px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
-          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    $body.innerHTML=`
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:22px;text-align:center;">
+        <div style="width:88px;height:88px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div>
           <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:8px;">Face matched \u2714</div>
           <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;">Now let\u2019s scan your ID document.</div>
         </div>
         <div style="width:60px;height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
-          <div id="fsSuccProg" style="height:100%;width:0%;background:var(--ok);transition:width 1.2s linear;border-radius:2px;"></div>
+          <div id="fsSucc" style="height:100%;width:0%;background:var(--ok);transition:width 1.4s linear;"></div>
         </div>
       </div>`;
-    setTimeout(() => { const b = document.getElementById('fsSuccProg'); if(b) b.style.width='100%'; }, 50);
-    setTimeout(() => { faceScanDone = true; showIdScan(); }, 1600);
+    setTimeout(()=>{ const b=document.getElementById('fsSucc'); if(b) b.style.width='100%'; },50);
+    setTimeout(()=>{ faceScanDone=true; showIdScan(); },1800);
   }
 
-  // ── Sub-step B: ID document scan ──────────────────────────────────────────
+  // ── Sub-step: ID scan ──────────────────────────────────────────────────────
   function showIdScan(){
-    $body.innerHTML = `
+    $body.innerHTML=`
       <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
-        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+        <div style="padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
           <button id="idBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
           <div style="flex:1;">
-            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">ID document scan</div>
+            <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px;">ID document upload</div>
             <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
               <div style="height:100%;width:50%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
             </div>
           </div>
+          <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);">1 / 3</div>
         </div>
-        <div style="flex:1;overflow-y:auto;padding:24px 22px;display:flex;flex-direction:column;gap:20px;">
-
-          <!-- Naomi message -->
+        <div style="flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:16px;">
           <div style="display:flex;gap:10px;align-items:flex-start;">
-            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,252,246,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,252,246,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
             </div>
-            <div style="background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.15);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--cream);">
-              Great \u2014 face matched. Now I need to verify your ID document. You can use a passport, national ID, or driving licence.
+            <div style="background:rgba(255,252,246,.08);border:1px solid rgba(255,252,246,.12);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--cream);">
+              Face matched. Now upload a photo of your ID \u2014 passport, national ID card, or driving licence.
             </div>
           </div>
-
-          <!-- Document type selector -->
-          <div style="display:flex;flex-direction:column;gap:8px;" id="idTypeList">
-            ${[
-              ['passport',   'Passport',          'M7 14H17M7 10H17M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
-              ['national',   'National ID card',  'M2 5h20v14H2zM2 10h20'],
-              ['driving',    'Driving licence',   'M3 17l2-7h14l2 7M5 17h14M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
-            ].map(([id, label, path]) => `
-              <button class="idType" data-t="${id}"
-                style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(255,252,246,.15);background:rgba(255,252,246,.06);cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">
-                <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="${path}"/></svg>
-                </div>
-                <div style="font-size:14px;font-weight:600;color:var(--cream);">${label}</div>
-                <svg style="margin-left:auto;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.4)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${['Passport','National ID card','Driving licence'].map(t=>`
+              <button class="idType" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(255,252,246,.15);background:rgba(255,252,246,.06);cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">
+                <span style="font-size:14px;font-weight:600;color:var(--cream);">${t}</span>
+                <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.4)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </button>`).join('')}
           </div>
-
-          <div style="font-size:12px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">
-            Your document data is encrypted, verified once, and never retained beyond this session.
-          </div>
+          <div style="font-size:12px;color:rgba(255,252,246,.3);text-align:center;line-height:1.5;">Your document is verified once and never retained.</div>
         </div>
       </div>`;
 
-    document.getElementById('idBack').onclick = () => { faceScanDone = false; showFaceScan(); };
-
-    document.querySelectorAll('.idType').forEach(btn => {
-      btn.onclick = () => {
-        // Highlight selected
-        document.querySelectorAll('.idType').forEach(b => {
-          b.style.borderColor = 'rgba(255,252,246,.15)';
-          b.style.background  = 'rgba(255,252,246,.06)';
-        });
-        btn.style.borderColor = 'var(--gold)';
-        btn.style.background  = 'rgba(201,162,75,.15)';
-        setTimeout(() => showIdScanCamera(), 400);
-      };
+    document.getElementById('idBack').onclick=()=>{ faceScanDone=false; showFaceScan(); };
+    document.querySelectorAll('.idType').forEach(btn=>{
+      btn.onclick=()=>{ btn.style.borderColor='var(--gold)'; btn.style.background='rgba(201,162,75,.15)'; setTimeout(showIdScanCamera,350); };
     });
   }
 
   function showIdScanCamera(){
-    $body.innerHTML = `
+    $body.innerHTML=`
       <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);">
-        <div style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+        <div style="padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,252,246,.1);flex-shrink:0;">
           <button id="idCamBack" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,252,246,.2);background:rgba(255,252,246,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--cream);font-size:16px;">&larr;</button>
           <div style="flex:1;">
-            <div style="font-size:15px;font-weight:700;color:var(--cream);margin-bottom:5px;">Scan your document</div>
+            <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px;">Scan your document</div>
             <div style="height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
               <div style="height:100%;width:50%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;"></div>
             </div>
           </div>
+          <div style="font-family:var(--fontMono);font-size:10px;color:rgba(255,252,246,.4);">1 / 3</div>
         </div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 22px;gap:22px;" id="idCamContent">
-          <!-- Document viewfinder -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;gap:22px;" id="idCamContent">
           <div style="position:relative;width:100%;max-width:300px;aspect-ratio:1.586;background:rgba(255,252,246,.04);border-radius:12px;border:2px solid rgba(255,252,246,.2);display:flex;align-items:center;justify-content:center;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.3)" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            <!-- Corner brackets -->
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,252,246,.25)" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             <div style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-top:2.5px solid var(--gold);border-left:2.5px solid var(--gold);border-radius:2px 0 0 0;"></div>
             <div style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-top:2.5px solid var(--gold);border-right:2.5px solid var(--gold);border-radius:0 2px 0 0;"></div>
             <div style="position:absolute;bottom:8px;left:8px;width:22px;height:22px;border-bottom:2.5px solid var(--gold);border-left:2.5px solid var(--gold);border-radius:0 0 0 2px;"></div>
@@ -2841,182 +3071,73 @@ RENDERERS.kycflow = function(){
           </div>
           <div style="text-align:center;">
             <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);margin-bottom:6px;">Place your document</div>
-            <div style="font-size:13.5px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Lay it flat in good light. Make sure all four corners are visible.</div>
+            <div style="font-size:13px;color:rgba(255,252,246,.5);line-height:1.6;max-width:260px;">Lay it flat in good light. All four corners must be visible.</div>
           </div>
-          <button id="idCapture" style="padding:15px 36px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Scan document
-          </button>
+        </div>
+        <div style="padding:14px 20px 20px;border-top:1px solid rgba(255,252,246,.1);flex-shrink:0;">
+          <button id="idCapture" class="btn" style="background:var(--clay);font-size:15px;">Scan document</button>
         </div>
       </div>`;
 
-    document.getElementById('idCamBack').onclick = () => showIdScan();
-    document.getElementById('idCapture').onclick = () => {
-      const $c = document.getElementById('idCamContent');
-      if(!$c) return;
-      $c.innerHTML = `
-        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;">
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.2" stroke-linecap="round" style="animation:pulseRing 1.2s ease-out infinite;">
-            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-          </svg>
+    document.getElementById('idCamBack').onclick=()=>showIdScan();
+    document.getElementById('idCapture').onclick=()=>{
+      const $c=document.getElementById('idCamContent');
+      $c.innerHTML=`
+        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.2" stroke-linecap="round" style="animation:pulseRing 1.2s ease-out infinite;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           <div style="font-family:var(--fontDisplay);font-size:20px;color:var(--cream);">Reading document\u2026</div>
-          <div style="font-size:13px;color:rgba(255,252,246,.4);">Extracting MRZ data and verifying authenticity</div>
-          <div style="width:220px;height:6px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
-            <div id="idProg" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
+          <div style="font-size:13px;color:rgba(255,252,246,.4);">Verifying authenticity</div>
+          <div style="width:220px;height:5px;border-radius:4px;background:rgba(255,252,246,.08);overflow:hidden;">
+            <div id="idBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:4px;transition:width .3s;"></div>
           </div>
         </div>`;
-      let pct = 0;
-      const t = setInterval(() => {
-        pct += 5 + Math.random()*8;
-        const b = document.getElementById('idProg');
-        if(b) b.style.width = Math.min(pct,100) + '%';
-        if(pct >= 100){ clearInterval(t); setTimeout(() => showIdScanSuccess(), 350); }
-      }, 200);
+      let pct=0;
+      const t=setInterval(()=>{
+        pct+=5+Math.random()*8;
+        const b=document.getElementById('idBar');
+        if(b) b.style.width=Math.min(pct,100)+'%';
+        if(pct>=100){ clearInterval(t); setTimeout(showIdScanSuccess,350); }
+      },200);
     };
   }
 
   function showIdScanSuccess(){
-    $body.innerHTML = `
-      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:24px;text-align:center;">
-        <div style="width:90px;height:90px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
-          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    $body.innerHTML=`
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);padding:32px;gap:22px;text-align:center;">
+        <div style="width:88px;height:88px;border-radius:50%;background:rgba(72,187,120,.15);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div>
           <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);margin-bottom:8px;">Document verified \u2714</div>
-          <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;">Identity confirmed. Moving to the next step.</div>
+          <div style="font-size:14px;color:rgba(255,252,246,.5);line-height:1.6;">Identity confirmed. Moving to step 2.</div>
         </div>
-        <div style="background:rgba(255,252,246,.06);border-radius:14px;padding:14px 20px;border:1px solid rgba(255,252,246,.12);display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;">
-          ${[['Face scan','matched to your ID'],['Document MRZ','verified \u2714'],['Document authenticity','confirmed \u2714']].map(([k,v])=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="background:rgba(255,252,246,.06);border-radius:14px;padding:14px 20px;border:1px solid rgba(255,252,246,.1);display:flex;flex-direction:column;gap:7px;width:100%;max-width:280px;">
+          ${[['Face scan','matched \u2714'],['Document MRZ','verified \u2714'],['Authenticity','confirmed \u2714']].map(([k,v])=>`
+            <div style="display:flex;justify-content:space-between;">
               <span style="font-size:12.5px;color:rgba(255,252,246,.5);">${k}</span>
               <span style="font-size:12.5px;font-weight:600;color:var(--ok);">${v}</span>
             </div>`).join('')}
         </div>
-        <div style="width:80px;height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
-          <div id="idSuccProg" style="height:100%;width:0%;background:var(--ok);transition:width 1.5s linear;border-radius:2px;"></div>
+        <div style="width:70px;height:3px;border-radius:2px;background:rgba(255,252,246,.1);overflow:hidden;">
+          <div id="idSucc" style="height:100%;width:0%;background:var(--ok);transition:width 1.6s linear;"></div>
         </div>
       </div>`;
-    setTimeout(() => { const b = document.getElementById('idSuccProg'); if(b) b.style.width='100%'; }, 50);
-    setTimeout(() => { idScanDone = true; step = 1; paint(); }, 2000);
+    setTimeout(()=>{ const b=document.getElementById('idSucc'); if(b) b.style.width='100%'; },50);
+    setTimeout(()=>{ idScanDone=true; step=1; showStep1(); },2200);
   }
 
-  // ── Main step screen ──────────────────────────────────────────────────────
-  function paint(){
-    const s = STAGES[step];
-    if(!s){ naomiPostVerification = false; go('dashboard'); return; }
-    const isLast = step === STAGES.length - 1;
-    // Total sub-steps: face scan (1a) + ID scan (1b) + remaining STAGES
-    const totalSteps = STAGES.length + 1; // +1 for 2 sub-steps counted as one extra
-    const displayStep = step === 0 ? 1 : step + 1;
-    const progress = Math.round((displayStep / totalSteps) * 100);
-
-    $body.innerHTML = `
-      <div style="height:100%;display:flex;flex-direction:column;background:var(--paper);">
-
-        <!-- Header -->
-        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <button id="kfBack" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:var(--inkSoft);">&larr;</button>
-            <div style="flex:1;">
-              <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--inkSoft);margin-bottom:4px;">Identity verification</div>
-              <div style="height:4px;border-radius:4px;background:var(--paperDeep);overflow:hidden;">
-                <div style="height:100%;width:${progress}%;background:var(--clay);border-radius:4px;transition:width .4s ease;"></div>
-              </div>
-            </div>
-            <div style="font-family:var(--fontMono);font-size:11px;color:var(--inkSoft);flex-shrink:0;">${displayStep} / ${totalSteps}</div>
-          </div>
-        </div>
-
-        <!-- Content -->
-        <div style="flex:1;overflow-y:auto;padding:20px 18px 16px;">
-
-          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;">
-            <div style="width:46px;height:46px;border-radius:14px;background:var(--clayBg);border:1.5px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--clay);">
-              ${s.icon}
-            </div>
-            <div>
-              <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px;">${s.title}</div>
-              ${s.subtitle ? `<div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay);">${s.subtitle}</div>` : ''}
-            </div>
-          </div>
-
-          ${s.naomi ? `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:20px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span style="font-family:var(--fontDisplay);font-style:italic;font-size:12px;color:var(--goldSoft);">N</span>
-            </div>
-            <div style="background:var(--cream);border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--ink);">${s.naomi}</div>
-          </div>` : ''}
-
-          ${step === 0 ? `
-          <!-- Face scan + ID scan status rows -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
-            <div style="display:flex;gap:12px;align-items:center;background:${faceScanDone?'var(--okBg)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${faceScanDone?'var(--ok)':'var(--line)'};">
-              <div style="width:34px;height:34px;border-radius:50%;background:${faceScanDone?'var(--ok)':'var(--clay)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                ${faceScanDone ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>'}
-              </div>
-              <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">1a \u00b7 Face scan</div>
-                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${faceScanDone?'Matched to your ID \u2714':'Take a selfie to match against your ID'}</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:12px;align-items:center;background:${idScanDone?'var(--okBg)':faceScanDone?'var(--paperDeep)':'var(--paperDeep)'};border-radius:13px;padding:13px 15px;border:1px solid ${idScanDone?'var(--ok)':'var(--line)'};opacity:${!faceScanDone?.5:1};">
-              <div style="width:34px;height:34px;border-radius:50%;background:${idScanDone?'var(--ok)':faceScanDone?'var(--clay)':'var(--line)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                ${idScanDone ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'}
-              </div>
-              <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">1b \u00b7 ID document scan</div>
-                <div style="font-size:12px;color:var(--inkSoft);margin-top:1px;">${idScanDone?'Document verified \u2714':faceScanDone?'Scan your passport, national ID, or licence':'Complete face scan first'}</div>
-              </div>
-            </div>
-          </div>` : ''}
-
-          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
-            ${s.userChecks.map(c=>`
-              <div style="display:flex;gap:12px;align-items:flex-start;background:var(--paperDeep);border-radius:14px;padding:14px 16px;border:1px solid var(--line);">
-                <div style="width:7px;height:7px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:5px;"></div>
-                <div>
-                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;">${c.label}</div>
-                  <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">${c.detail}</div>
-                </div>
-              </div>`).join('')}
-          </div>
-
-          <div style="background:rgba(31,58,53,.06);border-radius:12px;padding:12px 14px;border-left:3px solid var(--clay);">
-            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.6;">${s.footer}</div>
-          </div>
-        </div>
-
-        <!-- Footer CTA -->
-        <div style="padding:14px 18px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:10px;">
-          <button id="kfCont" class="btn" style="font-size:15px;display:flex;align-items:center;justify-content:center;gap:9px;${step===0 && !faceScanDone?'':''}">
-            ${step===0 && !faceScanDone
-              ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg> Start face scan'
-              : step===0 && faceScanDone && !idScanDone
-                ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Scan ID document'
-                : isLast ? 'Complete verification' : 'Continue \u2014 ' + STAGES[step+1].title}
-          </button>
-          ${step === 0 ? '<p style="font-size:11.5px;color:var(--inkSoft);text-align:center;line-height:1.5;margin:0;">Your data is encrypted and used only for this verification.</p>' : ''}
-        </div>
-      </div>`;
-
-    document.getElementById('kfBack').onclick = () => {
-      if(step > 0){ step--; paint(); }
-      else go('naomiintro');
-    };
-    document.getElementById('kfCont').onclick = () => {
-      if(step === 0 && !faceScanDone){ showFaceScan(); }
-      else if(step === 0 && faceScanDone && !idScanDone){ showIdScan(); }
-      else if(step < STAGES.length - 1){ step++; paint(); }
-      else { showDnaReveal(); }
-    };
-  }
-
-  // ── DNA reveal after final verification step ──────────────────────────────
+  // ── showDnaReveal — called after step 3 ───────────────────────────────────
   function showDnaReveal(){
-    naomiPostVerification = false; go('dashboard');
+    naomiPostVerification = true; go('naomiintro');
   }
 
-  paint();
+  function wireBack(){
+    const btn=document.getElementById('kfBack');
+    if(btn) btn.onclick=()=>{ if(step>1){ step--; step===1?showStep1():step===2?showStep2():showStep3(); } else go('naomiintro'); };
+  }
+
+  // Start at step 1
+  showStep1();
 };
 
 
