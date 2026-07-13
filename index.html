@@ -265,10 +265,49 @@ let naomiPostVerification = false; // set to true after KYC, so naomiintro shows
 let kycStartStep = 0;               // set to 1 when step-0 (face scan) shown inline
 let inlinePhotos = [];              // profile photos, accessible by dnaprofile
 
+// Module-level DNA reveal — callable from any screen
+function dnaRevealFlow(){
+  $body.innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);gap:32px;padding:40px 32px;text-align:center;">
+      <div style="position:relative;width:100px;height:100px;">
+        <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(201,162,75,.15);animation:dnaRing1 2.4s ease-in-out infinite;"></div>
+        <div style="position:absolute;inset:8px;border-radius:50%;border:1.5px solid rgba(201,162,75,.25);animation:dnaRing2 2.4s ease-in-out infinite .3s;"></div>
+        <div style="position:absolute;inset:16px;border-radius:50%;border:1px solid rgba(201,162,75,.15);animation:dnaRing1 2.4s ease-in-out infinite .6s;"></div>
+        <div style="position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:var(--fontDisplay);font-style:italic;font-size:32px;color:var(--goldSoft);">N</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:var(--fontMono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(201,162,75,.5);margin-bottom:10px;">Relationship DNA</div>
+        <div id="dnaLabel" style="font-family:var(--fontDisplay);font-size:22px;color:var(--cream);min-height:32px;transition:opacity .4s;">&nbsp;</div>
+      </div>
+      <div style="width:160px;height:2px;border-radius:2px;background:rgba(255,252,246,.08);overflow:hidden;">
+        <div id="dnaBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),var(--gold));border-radius:2px;transition:width .4s ease;"></div>
+      </div>
+    </div>
+    <style>
+      @keyframes dnaRing1{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.06);opacity:1}}
+      @keyframes dnaRing2{0%,100%{transform:scale(1.04);opacity:.4}50%{transform:scale(1);opacity:.8}}
+    </style>`;
+  const labels = ['Analysing answers\u2026','Building your profile\u2026','Mapping compatibility\u2026','Almost there\u2026',''];
+  let step = 0;
+  function nextStep(){
+    if(step >= labels.length){ go('dnaprofile'); return; }
+    const pct = Math.round((step / (labels.length-1)) * 100);
+    const $bar = document.getElementById('dnaBar');
+    const $lbl = document.getElementById('dnaLabel');
+    if($bar) $bar.style.width = pct + '%';
+    if($lbl){ $lbl.style.opacity='0'; setTimeout(()=>{ $lbl.textContent=labels[step]||'\u00a0'; $lbl.style.opacity='1'; },200); }
+    step++;
+    setTimeout(nextStep, step===labels.length ? 600 : 700);
+  }
+  setTimeout(nextStep, 400);
+}
+
 // -- FLOW CONFIG ---------------------------------------------------------------
 const FLOW_ORDER = [
   "splash","trailer","register","phoneinput","mobileotp","trust",
-  "naomiintro","kycquestions","kycwelcome","kycflow","dashboard","matches","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
+  "naomiintro","kycquestions","kycwelcome","kycflow","kyccongratz","dashboard","matches","kycphotoupload","kycverification","dnaprofile","deepquestions","vcomplete","paywall","matchmaking","matchreveal","schedule",
 ];
 const SECTION_LABELS = {
   splash:"Awareness", trailer:"Awareness", trust:"Awareness",
@@ -1108,9 +1147,16 @@ RENDERERS.naomiintro = function(){
           ? `<textarea id="chatAnswer" placeholder="${f.placeholder||'Type here\u2026'}" rows="2" style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:100px;overflow-y:auto;display:block;"></textarea>`
           : `<input id="chatAnswer" type="${f.type==='number'?'number':'text'}" placeholder="${f.placeholder||'Type here\u2026'}" style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;outline:none;display:block;" />`}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-          <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button id="chatVoice" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="12" x2="4" y2="12"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="6" x2="10" y2="18"/><line x1="13" y1="9" x2="13" y2="15"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="19" y1="10" x2="19" y2="14"/>
+              </svg>
+            </button>
+          </div>
           <div style="display:flex;gap:8px;align-items:center;">
             ${f.optional?'<button id="chatSkip" style="background:none;border:none;font-family:var(--fontBody);font-size:13px;color:var(--inkSoft);cursor:pointer;text-decoration:underline;">Skip</button>':''}
             <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
@@ -1372,8 +1418,8 @@ RENDERERS.naomiintro = function(){
         \u21bb Regenerate all 3 (${PORTRAIT_MAX_REGENS - portraitRegenCount} left)
       </button>` : `
       <div style="text-align:center;font-size:12px;color:var(--inkSoft);padding:4px 0;">No more regenerations available.</div>`}
-      <button id="portraitContinueBtn" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;">
-        Upload your profile pictures \u2192
+      <button id="portraitContinueBtn" style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--clay);color:var(--cream);font-family:var(--fontBody);font-size:15px;font-weight:700;cursor:pointer;">
+        Add your photos \u2192
       </button>`;
     log.appendChild(wrap);
     log.scrollTop = log.scrollHeight;
@@ -1390,8 +1436,12 @@ RENDERERS.naomiintro = function(){
       portraitShowProgressAndContinue();
     };
 
-    const $cont = wrap.querySelector('#portraitContinueBtn');
-    if($cont) $cont.onclick = () => { wrap.remove(); portraitShowPhotoUpload(); };
+    const $cont = document.getElementById('portraitContinueBtn');
+    if($cont) $cont.onclick = () => {
+      wrap.remove();
+      appendToLog(naomiBubble("Now add up to 4 photos of yourself. Your photos are only shown to someone after you\u2019ve both expressed interest."));
+      setTimeout(() => portraitShowPhotoUpload(), 600);
+    };
   }
 
   // -- Inline photo upload in chat -----------------------------------------------
@@ -1400,8 +1450,6 @@ RENDERERS.naomiintro = function(){
     const MAX = 4;
     const log = document.getElementById('chatLog');
     if(!log) return;
-
-    appendToLog(naomiBubble("One last thing — add up to 4 photos of yourself. Your photos are only shared after a mutual match."));
 
     const outer = document.createElement('div');
     log.appendChild(outer);
@@ -1679,7 +1727,7 @@ RENDERERS.naomiintro = function(){
 
     document.getElementById('pvDna').onclick = () => {
       wrap.remove();
-      showDnaProgressInline();
+      dnaRevealFlow();
     };
     document.getElementById('pvDeep').onclick = () => {
       wrap.remove();
@@ -1768,9 +1816,16 @@ RENDERERS.naomiintro = function(){
             <textarea id="chatAnswer" placeholder="Type your name\u2026" rows="1"
               style="width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--fontBody);font-size:14.5px;line-height:1.5;resize:none;outline:none;min-height:22px;max-height:60px;overflow-y:auto;display:block;"></textarea>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+              <div style="display:flex;align-items:center;gap:6px;">
               <button id="chatMic" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--paperDeep);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <svg width="14" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
+              <button id="chatVoice2" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+                  <line x1="4" y1="12" x2="4" y2="12"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="6" x2="10" y2="18"/><line x1="13" y1="9" x2="13" y2="15"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="19" y1="10" x2="19" y2="14"/>
+                </svg>
+              </button>
+              </div>
               <button id="chatSend" style="padding:7px 16px;border-radius:12px;border:none;background:var(--paperDeep);color:var(--inkSoft);font-family:var(--fontBody);font-size:13px;font-weight:700;cursor:pointer;">Send &rarr;</button>
             </div>
           </div>
@@ -2086,23 +2141,27 @@ RENDERERS.dashboard = function(){
     <div style="height:100%;display:flex;flex-direction:column;background:var(--navy);overflow:hidden;">
 
       <!-- Header -->
-      <div style="padding:22px 22px 14px;flex-shrink:0;">
-        <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:6px;">Welcome back</div>
-        <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--cream);line-height:1.2;">${naomiSession.userName || 'Naya'}</div>
+      <div style="padding:22px 22px 14px;flex-shrink:0;display:flex;align-items:center;gap:14px;">
+        <!-- Avatar -->
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(201,162,75,.2);border:2px solid rgba(201,162,75,.4);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          ${inlinePhotos && inlinePhotos[0]
+            ? `<img src="${inlinePhotos[0]}" style="width:100%;height:100%;object-fit:cover;" />`
+            : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--goldSoft)" stroke-width="1.6" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
+        </div>
+        <div>
+          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,252,246,.4);margin-bottom:4px;">Welcome back</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--cream);line-height:1.2;">${naomiSession.userName || 'Naya'}</div>
+            ${naomiPostVerification ? `<div style="display:flex;align-items:center;gap:4px;background:#1D6FF2;border-radius:20px;padding:3px 8px 3px 5px;flex-shrink:0;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span style="font-family:var(--fontMono);font-size:9px;color:white;letter-spacing:.06em;font-weight:700;">VERIFIED</span>
+            </div>` : ''}
+          </div>
+        </div>
       </div>
 
       <!-- Scrollable body -->
       <div style="flex:1;overflow-y:auto;padding:0 18px 20px;display:flex;flex-direction:column;gap:14px;">
-
-        <!-- Mission card -->
-        <div style="background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.2);border-radius:18px;padding:20px;">
-          <div style="font-family:var(--fontMono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldSoft);margin-bottom:12px;">Us Against the World</div>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">Our model is to teach people how to succeed in relationship in order for them to never come back to our app. We believe the goal is not more matches. The goal is fewer, deeper, more meaningful connections.</div>
-            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">We believe people should understand themselves before choosing someone else. Our model is to teach people how to succeed in relationships in order for them to never come back to our app.</div>
-            <div style="font-size:12.5px;color:rgba(255,252,246,.5);line-height:1.7;">We are not here to keep people swiping. We are here to help them choose better.</div>
-          </div>
-        </div>
 
         <!-- Feature cards -->
         ${[
@@ -2218,106 +2277,48 @@ RENDERERS.deepquestions = function(){
   let recording = false;
   let transcriptTimer = null;
   const DEEP_QS = [
-    { id:'q01', q:"If you're sitting next to someone on an airplane and they fall asleep but you have to pee do you wake them up or try to shimmy around them?", hint:"There is no right answer. Just an honest one." },
-    { id:'q02', q:"What has genuinely surprised you?", hint:"Something that shifted how you see things." },
-    { id:'q03', q:"What's your favorite film?", hint:"The one you'd watch on a rainy Sunday without thinking twice." },
-    { id:'q04', q:"Tell me about an adventure you went on recently.", hint:"Big or small. What made it feel like one?" },
-    { id:'q05', q:"One word to describe yourself.", hint:"The first one that comes is usually the truest." },
-    { id:'q06', q:"What have you made recently?", hint:"Cooked, built, written, created — anything counts." },
-    { id:'q07', q:"What music gives you goosebumps?", hint:"The song, or the moment it comes on." },
-    { id:'q08', q:"What are you obsessed about?", hint:"The thing you can't stop thinking or reading about." },
-    { id:'q09', q:"What do you irrationally hate?", hint:"Something small that bothers you more than it should." },
-    { id:'q10', q:"Before making a phone call, do you ever rehearse what you're going to say? Why?", hint:"Be honest. Most people do." },
-    { id:'q11', q:"What would constitute a perfect day for you?", hint:"From the moment you wake up. Every detail." },
-    { id:'q12', q:"When did you last sing to yourself?", hint:"And what was the song?" },
-    { id:'q13', q:"If you could change anything about the way you were raised, what would it be?", hint:"Take your time with this one." },
-    { id:'q14', q:"If you could wake up tomorrow having gained one quality or ability, what would it be?", hint:"Not a superpower. Something real." },
-    { id:'q15', q:"If a crystal ball could tell you the truth about yourself, your life, the future or anything else, what would you want to know?", hint:"The answer reveals what you're most uncertain about." },
-    { id:'q16', q:"Is there something that you've dreamt of doing for a long time? Why haven't you done it?", hint:"This one is worth sitting with." },
-    { id:'q17', q:"What do you value most in a friendship?", hint:"Think of your closest friend. What makes them irreplaceable?" },
-    { id:'q18', q:"What is your most treasured memory?", hint:"The one you return to when you need it most." },
-    { id:'q19', q:"When did you last cry in front of another person?", hint:"You don't have to share why — just when." },
-    { id:'q20', q:"Which historical time period would you most like to visit?", hint:"And what would you do there?" },
-    { id:'q21', q:"Who do you think is the most inspirational person alive today?", hint:"And what did they do to earn that from you?" },
-    { id:'q22', q:"What would you love to find at a yard sale?", hint:"This tells me something about how you see value." },
-    { id:'q23', q:"What's on your bucket list that nobody would ever guess?", hint:"The one you haven't told many people." },
-    { id:'q24', q:"Would you rather meet your great-grandparents or your great great grandchild?", hint:"Neither is wrong. Both say something." },
-    { id:'q25', q:"What do you think is the ideal age?", hint:"To be, to have been, or to reach — your call." },
-    { id:'q26', q:"In which activity would you like a lesson from an expert?", hint:"The thing you wish you'd started earlier." },
-    { id:'q27', q:"Which of your personality traits would you like to change?", hint:"Be specific. Vague answers don't help you." },
-    { id:'q28', q:"If you could have front-row seats at any concert, who would you like to see?", hint:"Past, present, or future — anyone." },
-    { id:'q29', q:"What fashion trend you followed was cool then, but now looks ridiculous!", hint:"No judgement. We've all been there." },
-    { id:'q30', q:"Would you rather vacation in a big city or the countryside?", hint:"And what does that say about you?" },
-    { id:'q31', q:"What's your dream job?", hint:"Not the practical answer. The real one." },
-    { id:'q32', q:"Favorite dessert?", hint:"The one you'd never skip." },
-    { id:'q33', q:"What do you wish you were better at saying “no” to?", hint:"This one says a lot." },
-    { id:'q34', q:"What would you most like to do for someone else if you had the money and time?", hint:"The thing you'd love to give." },
-    { id:'q35', q:"What would you do if you had no fear?", hint:"The thing that's been waiting." },
-    { id:'q36', q:"What was your favorite game to play as a child?", hint:"And do you still have that instinct in you?" },
-    { id:'q37', q:"Where would you choose to live if you had to leave the country?", hint:"The place that keeps calling." },
-    { id:'q38', q:"What makes a house a home?", hint:"For you, specifically." },
-    { id:'q39', q:"What was your favorite childhood meal?", hint:"The one someone made for you." },
-    { id:'q40', q:"Have you ever had an experience that led you to believe in angels or ghosts?", hint:"Sceptics welcome." },
-    { id:'q41', q:"If you lived to be 100, would you rather have a sharp mind or a fit body?", hint:"You can only pick one." },
-    { id:'q42', q:"If you could be brilliant at one subject, which would you choose?", hint:"The one you always wished came naturally." },
-    { id:'q43', q:"Do you have any superstitions?", hint:"Things you do “just in case.”" },
-    { id:'q44', q:"What's the hardest thing you've ever done?", hint:"You don't have to explain why. Just what it was." },
-    { id:'q45', q:"What obligation do you believe you have to your county?", hint:"Your honest answer, not the expected one." },
-    { id:'q46', q:"How do you define success?", hint:"Your definition. Not anyone else's." },
-    { id:'q47', q:"What would you miss most about your home if you moved?", hint:"The small thing, not the obvious one." },
-    { id:'q48', q:"What's one goal you hope to accomplish this year?", hint:"Not a resolution. A real intention." },
-    { id:'q49', q:"What's your proudest accomplishment?", hint:"The one that still means something." },
+    { id:'q01', q:"What has genuinely surprised you?", hint:"Something that shifted how you see things." },
+    { id:'q02', q:"What's your favorite film?", hint:"The one you'd watch on a rainy Sunday without thinking twice." },
+    { id:'q03', q:"Tell me about an adventure you went on recently.", hint:"Big or small. What made it feel like one?" },
+    { id:'q04', q:"One word to describe yourself.", hint:"The first one that comes is usually the truest." },
+    { id:'q05', q:"What have you made recently?", hint:"Cooked, built, written, created — anything counts." },
+    { id:'q06', q:"What music gives you goosebumps?", hint:"The song, or the moment it comes on." },
+    { id:'q07', q:"What are you obsessed about?", hint:"The thing you can't stop thinking or reading about." },
+    { id:'q08', q:"What do you irrationally hate?", hint:"Something small that bothers you more than it should." },
+    { id:'q09', q:"Before making a phone call, do you ever rehearse what you're going to say? Why?", hint:"Be honest. Most people do." },
+    { id:'q10', q:"What would constitute a perfect day for you?", hint:"From the moment you wake up. Every detail." },
+    { id:'q11', q:"When did you last sing to yourself?", hint:"And what was the song?" },
+    { id:'q12', q:"If you could change anything about the way you were raised, what would it be?", hint:"Take your time with this one." },
+    { id:'q13', q:"If you could wake up tomorrow having gained one quality or ability, what would it be?", hint:"Not a superpower. Something real." },
+    { id:'q14', q:"If a crystal ball could tell you the truth about yourself, your life, the future or anything else, what would you want to know?", hint:"The answer reveals what you're most uncertain about." },
+    { id:'q15', q:"Is there something that you've dreamt of doing for a long time? Why haven't you done it?", hint:"This one is worth sitting with." },
+    { id:'q16', q:"What do you value most in a friendship?", hint:"Think of your closest friend. What makes them irreplaceable?" },
+    { id:'q17', q:"What is your most treasured memory?", hint:"The one you return to when you need it most." },
+    { id:'q18', q:"When did you last cry in front of another person?", hint:"You don't have to share why — just when." },
+    { id:'q19', q:"Which historical time period would you most like to visit?", hint:"And what would you do there?" },
+    { id:'q20', q:"Who do you think is the most inspirational person alive today?", hint:"And what did they do to earn that from you?" },
   ];
   const DEEP_SIMS = {
-    q01:"I'd shimmy. Waking someone feels like too much.",
-    q02:"That I actually like being alone. I spent years thinking I didn't.",
-    q03:"Eternal Sunshine of the Spotless Mind. Every time.",
-    q04:"Took a train to nowhere last autumn. Ended up in a town I'd never heard of.",
-    q05:"Ready.",
-    q06:"A really good dinner. Slow-cooked lamb, proper table, people I love.",
-    q07:"Phoebe Bridgers live. Garden Song. I cried the first time.",
-    q08:"Urban design. Why some places feel alive and others don't.",
-    q09:"Slow walkers in narrow hallways. Unreasonably so.",
-    q10:"Yes. Always. Even for simple ones. I like to know what I'm going to say.",
-    q11:"A slow morning. Good coffee. A run. Then nowhere to be.",
-    q12:"This morning. Something on a playlist I'd forgotten about.",
-    q13:"I would have been pushed to talk about hard things earlier. We were a family that went quiet.",
-    q14:"The ability to be fully present. I'm working on it.",
-    q15:"Whether the choices I'm making now will feel worth it in ten years.",
-    q16:"Writing. I keep starting and stopping. Fear of it being bad.",
-    q17:"Loyalty. Showing up without being asked.",
-    q18:"A road trip with my dad when I was twelve. We didn't talk much. It was perfect.",
-    q19:"A few months ago, watching something completely unrelated. It just hit.",
-    q20:"1920s Paris. I'd go for the writers.",
-    q21:"Malala. What she did at seventeen still stops me.",
-    q22:"A first-edition book I'd actually read. Or an old camera that still works.",
-    q23:"Walk the Camino de Santiago. Alone.",
-    q24:"Great-grandchild. I'd want to see what the world becomes.",
-    q25:"Early thirties. You finally start trusting yourself.",
-    q26:"Pottery. I've always wanted someone to just show me.",
-    q27:"The need to have everything planned. It gets in the way.",
-    q28:"Phoebe Bridgers. Front row. Obviously.",
-    q29:"Low-rise jeans. The early 2000s were a dark time.",
-    q30:"Countryside, if I'm honest. But I'd miss the city within a week.",
-    q31:"Novelist. I've been writing the same book in my head for years.",
-    q32:"Something with salted caramel. Always.",
-    q33:"Extra work. Saying yes when I mean no.",
-    q34:"Pay off my parents' mortgage. Without a big announcement.",
-    q35:"I'd have quit two years earlier and started the thing I keep putting off.",
-    q36:"Cluedo. I'd still win.",
-    q37:"Lisbon. Every time I leave I want to go back.",
-    q38:"Someone cooking. The smell of food being made for you.",
-    q39:"My grandmother's apple cake. I've never been able to replicate it.",
-    q40:"Once, in a house on a work trip. I've never fully explained it.",
-    q41:"Sharp mind. Absolutely.",
-    q42:"Mathematics. It's a language I've always wanted to speak.",
-    q43:"I always knock on wood. I know it's irrational.",
-    q44:"Walking away from something I'd worked on for three years. Best decision I ever made.",
-    q45:"To vote, to pay tax honestly, and to be kind in public.",
-    q46:"A life I'd choose again if I had to.",
-    q47:"The light in my kitchen in the morning. I didn't notice it until I thought about leaving.",
-    q48:"Finish the thing I keep starting. Just once, all the way.",
-    q49:"Rebuilding something I thought was broken. Took years. Worth every bit.",
+    q01:"That I actually like being alone. I spent years thinking I didn't.",
+    q02:"Eternal Sunshine of the Spotless Mind. Every time.",
+    q03:"Took a train to nowhere last autumn. Ended up in a town I'd never heard of.",
+    q04:"Ready.",
+    q05:"A really good dinner. Slow-cooked lamb, proper table, people I love.",
+    q06:"Phoebe Bridgers live. Garden Song. I cried the first time.",
+    q07:"Urban design. Why some places feel alive and others don't.",
+    q08:"Slow walkers in narrow hallways. Unreasonably so.",
+    q09:"Yes. Always. Even for simple ones. I like to know what I'm going to say.",
+    q10:"A slow morning. Good coffee. A run. Then nowhere to be.",
+    q11:"This morning. Something on a playlist I'd forgotten about.",
+    q12:"I would have been pushed to talk about hard things earlier. We were a family that went quiet.",
+    q13:"The ability to be fully present. I'm working on it.",
+    q14:"Whether the choices I'm making now will feel worth it in ten years.",
+    q15:"Writing. I keep starting and stopping. Fear of it being bad.",
+    q16:"Loyalty. Showing up without being asked.",
+    q17:"A road trip with my dad when I was twelve. We didn't talk much. It was perfect.",
+    q18:"A few months ago, watching something completely unrelated. It just hit.",
+    q19:"1920s Paris. I'd go for the writers.",
+    q20:"Malala. What she did at seventeen still stops me.",
   };
   let qi = 0;
   function stopRec(){ recording=false; if(transcriptTimer){clearInterval(transcriptTimer);transcriptTimer=null;} }
@@ -2365,7 +2366,7 @@ RENDERERS.deepquestions = function(){
     setTimeout(()=>{const l=document.getElementById('dqLog');if(l)l.scrollTop=l.scrollHeight;},40);
     const $ta=document.getElementById('dqAns');
     if($ta) $ta.oninput=()=>{ $ta.style.height='auto'; $ta.style.height=Math.min($ta.scrollHeight,80)+'px'; const $s=document.getElementById('dqSend'); if($s){const has=$ta.value.trim().length>0;$s.style.background=has?'var(--clay)':'var(--paperDeep)';$s.style.color=has?'var(--cream)':'var(--inkSoft)';} };
-    document.getElementById('dqBack').onclick=()=>{stopRec();if(qi>0){qi--;paint();}else back();};
+    document.getElementById('dqBack').onclick=()=>{stopRec();if(qi>0){qi--;paint();}else go('dashboard');};
     document.getElementById('dqMic').onclick=()=>{
       if(recording){stopRec();if(!answers[q.id])answers[q.id]=DEEP_SIMS[q.id]||GENERIC_SIM;paint();}
       else{recording=true;const $inp=document.getElementById('dqAns');if($inp)$inp.value='';answers[q.id]='';
@@ -2681,58 +2682,95 @@ RENDERERS.matchreveal = function(){
 // ask why, then offer to regenerate (with "how should Naomi change it") up to
 // 3 times. After everything is resolved, continue to verification.
 RENDERERS.kycwelcome = function(){
-  $body.innerHTML = `
-    <div class="screen justifyBetween" style="padding:32px 24px 28px;overflow-y:auto;">
 
-      <!-- Content — centred -->
-      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;">
+  function showMain(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:32px 24px 28px;overflow-y:auto;">
 
-        <!-- Checkmark circle -->
-        <div style="position:relative;width:96px;height:96px;">
-          <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:pulseRingLight 2.4s ease-out infinite;"></div>
-          <div style="width:96px;height:96px;border-radius:50%;background:var(--clayBg);border:2px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;">
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;">
+
+          <div style="position:relative;width:96px;height:96px;">
+            <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:pulseRingLight 2.4s ease-out infinite;"></div>
+            <div style="width:96px;height:96px;border-radius:50%;background:var(--clayBg);border:2px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;">
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.2;margin-bottom:10px;">Your profile is ready</div>
+            <div style="font-size:14px;color:var(--inkSoft);line-height:1.7;max-width:280px;margin:0 auto;">
+              Congratulations — you’ve completed your onboarding. The next step is identity verification, which unlocks your full profile and allows Naomi to start making introductions.
+            </div>
+          </div>
+
+          <div style="width:100%;background:var(--paperDeep);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;display:flex;flex-direction:column;gap:12px;">
+            <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkSoft);">What’s next</div>
+            ${[
+              ['1','Identity verification','Face scan + ID document — takes about 2 minutes.'],
+              ['2','Address verification','Upload a proof of address document.'],
+              ['3','Background check','Runs automatically. No action needed from you.'],
+            ].map(([n,title,detail])=>`
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="width:22px;height:22px;border-radius:50%;background:var(--clay);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                  <span style="font-family:var(--fontMono);font-size:10px;color:var(--cream);font-weight:700;">${n}</span>
+                </div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:700;color:var(--ink);">${title}</div>
+                  <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;margin-top:2px;">${detail}</div>
+                </div>
+              </div>`).join('')}
           </div>
         </div>
 
-        <!-- Text -->
-        <div>
-          <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.2;margin-bottom:10px;">
-            Your profile is ready
-          </div>
-          <div style="font-size:14px;color:var(--inkSoft);line-height:1.7;max-width:280px;margin:0 auto;">
-            Congratulations — you’ve completed your onboarding. The next step is identity verification, which unlocks your full profile and allows Naomi to start making introductions.
-          </div>
-        </div>
-
-        <!-- What’s next card -->
-        <div style="width:100%;background:var(--paperDeep);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;display:flex;flex-direction:column;gap:12px;">
-          <div style="font-family:var(--fontMono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkSoft);">What’s next</div>
-          ${[
-            ['1','Identity verification','Face scan + ID document — takes about 2 minutes.'],
-            ['2','Address verification','Upload a proof of address document.'],
-            ['3','Background check','Runs automatically. No action needed from you.'],
-          ].map(([n,title,detail])=>`
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <div style="width:22px;height:22px;border-radius:50%;background:var(--clay);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
-                <span style="font-family:var(--fontMono);font-size:10px;color:var(--cream);font-weight:700;">${n}</span>
-              </div>
-              <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--ink);">${title}</div>
-                <div style="font-size:12px;color:var(--inkSoft);line-height:1.5;margin-top:2px;">${detail}</div>
-              </div>
-            </div>`).join('')}
+        <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
+          <button class="btn" id="kwProceed">Proceed to verification</button>
+          <button id="kwLater" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--line);background:transparent;font-family:var(--fontBody);font-size:14.5px;color:var(--inkSoft);cursor:pointer;">Continue later</button>
         </div>
       </div>
+      <style>@keyframes pulseRingLight{0%{transform:scale(.9);opacity:.5}70%{transform:scale(1.08);opacity:0}100%{transform:scale(1.08);opacity:0}}</style>`;
 
-      <button class="btn" id="kwProceed" style="width:100%;margin-top:4px;">Proceed to verification</button>
-    </div>
-    <style>@keyframes pulseRingLight{0%{transform:scale(.9);opacity:.5}70%{transform:scale(1.08);opacity:0}100%{transform:scale(1.08);opacity:0}}</style>`;
+    document.getElementById('kwProceed').onclick = () => go('kycflow');
+    document.getElementById('kwLater').onclick   = () => showLater();
+  }
 
-  document.getElementById('kwProceed').onclick = () => go('kycflow');
+  function showLater(){
+    $body.innerHTML = `
+      <div class="screen justifyBetween" style="padding:40px 28px 36px;">
+
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
+
+          <!-- Bookmark / save icon -->
+          <div style="width:80px;height:80px;border-radius:50%;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.6" stroke-linecap="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+
+          <div>
+            <div style="font-family:var(--fontDisplay);font-size:24px;color:var(--ink);line-height:1.2;margin-bottom:12px;">All your progress is saved</div>
+            <div style="font-size:14.5px;color:var(--inkSoft);line-height:1.75;max-width:280px;margin:0 auto;">
+              You can close the app and come back whenever you’re ready. Verification is the only step left before Naomi can start making introductions.
+            </div>
+          </div>
+
+          <div style="width:100%;background:var(--paperDeep);border-radius:14px;padding:16px 18px;border:1px solid var(--line);">
+            <div style="font-size:13px;color:var(--inkSoft);line-height:1.65;">
+              Your answers, photos, and preferences are safely stored. Nothing will be lost.
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="kwProceedLater">Proceed to verification</button>
+      </div>`;
+
+    document.getElementById('kwProceedLater').onclick = () => go('kycflow');
+  }
+
+  showMain();
 };
+
 
 
 RENDERERS.kycflow = function(){
@@ -3128,7 +3166,7 @@ RENDERERS.kycflow = function(){
 
   // ── showDnaReveal — called after step 3 ───────────────────────────────────
   function showDnaReveal(){
-    naomiPostVerification = true; go('naomiintro');
+    go('kyccongratz');
   }
 
   function wireBack(){
@@ -3138,6 +3176,87 @@ RENDERERS.kycflow = function(){
 
   // Start at step 1
   showStep1();
+};
+
+
+RENDERERS.kyccongratz = function(){
+  $body.innerHTML = `
+    <div class="screen justifyBetween" style="padding:36px 24px 28px;overflow-y:auto;">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;">
+
+        <!-- Checkmark -->
+        <div style="position:relative;width:90px;height:90px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(184,100,90,.2);animation:pulseRingLight 2.4s ease-out infinite;"></div>
+          <div style="width:90px;height:90px;border-radius:50%;background:var(--clayBg);border:2px solid rgba(184,100,90,.3);display:flex;align-items:center;justify-content:center;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2" stroke-linecap="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Text -->
+        <div>
+          <div style="font-family:var(--fontDisplay);font-size:26px;color:var(--ink);line-height:1.2;margin-bottom:10px;">You’re verified</div>
+          <div style="font-size:14px;color:var(--inkSoft);line-height:1.7;max-width:280px;margin:0 auto;">
+            We’re running your background check now. It typically takes 24–48 hours. You can go ahead and explore your profile — we’ll let you know as soon as it’s done.
+          </div>
+        </div>
+
+        <!-- Background check progress card -->
+        <div style="width:100%;background:var(--paperDeep);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:13.5px;font-weight:700;color:var(--ink);">Background check</div>
+            <div style="font-family:var(--fontMono);font-size:10px;color:var(--inkSoft);background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 9px;">In progress</div>
+          </div>
+          <div style="height:5px;border-radius:4px;background:var(--line);overflow:hidden;margin-bottom:8px;">
+            <div id="bgBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--clay),rgba(184,100,90,.5));border-radius:4px;transition:width 2.5s ease-out;"></div>
+          </div>
+          <div style="font-size:12px;color:var(--inkSoft);line-height:1.55;">
+            Criminal record check · Fraud check · Identity cross-reference
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:100%;">
+
+        <button id="kgDna" style="width:100%;padding:18px 20px;border-radius:16px;border:1.5px solid rgba(184,100,90,.3);background:var(--clayBg);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;transition:all .15s;">
+          <div style="width:44px;height:44px;border-radius:13px;background:var(--clay);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div style="flex:1;text-align:left;">
+            <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:3px;">Reveal your relationship profile</div>
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">See the Relationship DNA Naomi built from your answers</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
+        <button id="kgDeep" style="width:100%;padding:18px 20px;border-radius:16px;border:1.5px solid var(--line);background:var(--cream);cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;transition:all .15s;">
+          <div style="width:44px;height:44px;border-radius:13px;background:var(--paperDeep);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="1.8" stroke-linecap="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div style="flex:1;text-align:left;">
+            <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:3px;">Deep questionnaires</div>
+            <div style="font-size:12.5px;color:var(--inkSoft);line-height:1.5;">Help Naomi understand you even better</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--inkSoft)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+    <style>@keyframes pulseRingLight{0%{transform:scale(.9);opacity:.5}70%{transform:scale(1.08);opacity:0}100%{transform:scale(1.08);opacity:0}}</style>`;
+
+  // Animate progress bar to ~35% (in progress, not complete)
+  setTimeout(() => {
+    const bar = document.getElementById('bgBar');
+    if(bar) bar.style.width = '35%';
+  }, 200);
+
+  document.getElementById('kgDna').onclick  = () => dnaRevealFlow();
+  document.getElementById('kgDeep').onclick = () => go('deepquestions');
 };
 
 
